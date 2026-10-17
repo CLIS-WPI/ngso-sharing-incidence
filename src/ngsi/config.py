@@ -22,22 +22,47 @@ class ConfigError(ValueError):
 
 @dataclass(frozen=True)
 class Beam:
-    """Antenna / downlink beam parameters for one satellite shell."""
+    """Antenna / downlink link parameters for one satellite shell.
+
+    ``peak_gain_dbi`` and ``beamwidth_deg`` drive the ITU-R S.1528 space-station
+    pattern; ``eirp_density_dbw_per_mhz``, ``freq_ghz``, ``bandwidth_mhz`` and
+    ``system_noise_temp_k`` drive the I/N and Delta T/T link budget
+    (:mod:`ngsi.interference`).
+    """
 
     peak_gain_dbi: float
     beamwidth_deg: float
     eirp_density_dbw_per_mhz: float
+    freq_ghz: float
+    bandwidth_mhz: float
+    system_noise_temp_k: float
     source: str
+
+    _REQUIRED = (
+        "peak_gain_dbi",
+        "beamwidth_deg",
+        "eirp_density_dbw_per_mhz",
+        "freq_ghz",
+        "bandwidth_mhz",
+        "system_noise_temp_k",
+        "source",
+    )
 
     @classmethod
     def from_dict(cls, d: dict[str, Any]) -> "Beam":
-        for key in ("peak_gain_dbi", "beamwidth_deg", "eirp_density_dbw_per_mhz", "source"):
+        for key in cls._REQUIRED:
             if key not in d:
                 raise ConfigError(f"beam missing required key {key!r}: {d!r}")
+        for key in ("beamwidth_deg", "freq_ghz", "bandwidth_mhz", "system_noise_temp_k"):
+            if float(d[key]) <= 0.0:
+                raise ConfigError(f"beam {key!r} must be positive: {d!r}")
         return cls(
             peak_gain_dbi=float(d["peak_gain_dbi"]),
             beamwidth_deg=float(d["beamwidth_deg"]),
             eirp_density_dbw_per_mhz=float(d["eirp_density_dbw_per_mhz"]),
+            freq_ghz=float(d["freq_ghz"]),
+            bandwidth_mhz=float(d["bandwidth_mhz"]),
+            system_noise_temp_k=float(d["system_noise_temp_k"]),
             source=str(d["source"]),
         )
 

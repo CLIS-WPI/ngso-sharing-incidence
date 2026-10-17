@@ -137,12 +137,18 @@ Traceability: every number below is read from `results/` by
 
 All shell *orbital* elements are from the FCC-derived literature (Starlink and
 Kuiper: Pachler et al. 2021 Table II / Kuiper FCC technical appendix; OneWeb
-altitude/inclination per FCC DA-23-362). **Every antenna/beam parameter is an
-`ASSUMED` placeholder**, every Walker phasing factor F defaults to 1 (`ASSUMED`),
-and the OneWeb 18x36 plane layout is `ASSUMED` (filings give 18x40 or
-12x49+8x16). The earth model and epoch are `ASSUMED` modelling choices. These are
-the only places physical numbers enter; replace them from the filings before any
-physical conclusion.
+altitude/inclination per FCC DA-23-362). The antenna/beam parameters are now
+partly filing-sourced (worst-case max convention; see
+`configs/constellations.yaml`): Starlink Ku-band max antenna gain 44 dBi and max
+EIRP density -8.3 dBW/MHz (FCC-22-91A1 paras. 190-191), Kuiper user beam 35 dBi /
+2.8 deg spot at 19.8 GHz (Kuiper experimental STA). The satellite *beamwidths*
+(Starlink derived, Kuiper filed), every *system noise temperature*, and all
+OneWeb beam values remain `ASSUMED`; every Walker phasing factor F defaults to 1
+(`ASSUMED`) and the OneWeb 18x36 plane layout is `ASSUMED` (filings give 18x40 or
+12x49+8x16). The earth model and epoch are `ASSUMED` modelling choices. **Gate-1
+events are purely geometric and do not consume any beam parameter**, so the
+numbers in Sections 3-5 are independent of these values; they matter only for the
+future I/N -> Delta T/T phase.
 
 ## 3. Section E - sanity gate (results in `{e1.name}/sanity.json`)
 
@@ -255,8 +261,11 @@ Each PNG is also copied into the run directory it was built from.
 - Spherical earth, circular orbits, J2 secular only, fixed GMST epoch, no
   atmospheric drag, no link budget: this is an *incidence* screen, not a
   co-ordination simulation.
-- All beam/EIRP parameters and every F are `ASSUMED`; the OneWeb layout is
-  `ASSUMED`. The theta sweep is a proxy pending a beamwidth-derived half-angle.
+- Beam gains and EIRP densities are now worst-case filing values (Starlink,
+  Kuiper), but satellite beamwidths, all system noise temperatures, every
+  Walker F, the OneWeb beam and the OneWeb layout are still `ASSUMED`. Gate-1
+  events are geometric and independent of these. The theta sweep is a proxy
+  pending a beamwidth-derived half-angle.
 - Event fractions are sampling-limited at 10 s; durations use a separate 1 s run.
 - The 25.261(c) "spectrum loss" is a saturating co-presence proxy; the 25.261(d)
   Delta T/T thresholds are not yet coupled to an I/N calculation.
@@ -264,8 +273,8 @@ Each PNG is also copied into the run directory it was built from.
 ## 8. Approval requested
 
 Gate 1 is complete and the pipeline is reproducible (`make run-all`). Requesting
-approval before adding population weighting, real beam/EIRP parameters, and the
-I/N -> Delta T/T link, and before any of these numbers are treated as physical.
+approval before adding population weighting and the I/N -> Delta T/T link, and
+before any of these numbers are treated as physical.
 """
 
     out = RESULTS / "GATE1_REPORT.md"

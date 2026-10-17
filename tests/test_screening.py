@@ -23,7 +23,7 @@ def _shell(name: str, alt: float, inc: float, planes: int, spp: int, f: int) -> 
         planes=planes,
         sats_per_plane=spp,
         phasing_f=f,
-        beam=Beam(30.0, 3.0, -18.0, "ASSUMED"),
+        beam=Beam(30.0, 3.0, -18.0, 12.0, 240.0, 150.0, "ASSUMED"),
         source="ASSUMED",
     )
 

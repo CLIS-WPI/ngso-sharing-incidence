@@ -42,10 +42,23 @@ constellations:
         phasing_f: 1
         source: Pachler et al. 2021 Table II (FCC-derived)
         beam: &beam_starlink
-          peak_gain_dbi: 34.0
-          beamwidth_deg: 2.0
-          eirp_density_dbw_per_mhz: -18.0
-          source: ASSUMED
+          peak_gain_dbi: 44.0
+          beamwidth_deg: 1.1
+          eirp_density_dbw_per_mhz: -8.3
+          freq_ghz: 12.0
+          bandwidth_mhz: 240.0
+          system_noise_temp_k: 150.0
+          source: >-
+            WORST-CASE (max) convention. peak_gain_dbi: SpaceX Gen2 Ku-band
+            maximum antenna gain 44 dBi, FCC-22-91A1 (2022) para. 190.
+            eirp_density_dbw_per_mhz: maximum Ku-band downlink EIRP density
+            -8.3 dBW/MHz (top of the -11.9..-8.3 dBW/MHz range), FCC-22-91A1
+            para. 191. beamwidth_deg: DERIVED from the 44 dBi peak via
+            HPBW ~ 70*lambda/D (aperture efficiency 0.6, ASSUMED); no filing
+            states the satellite beamwidth. freq_ghz: centre of the Ku-band user
+            downlink 10.7-12.7 GHz. bandwidth_mhz: Starlink Ku channel, emission
+            designator 240MD7W (SpaceX FCC filings). system_noise_temp_k:
+            ASSUMED terminal value.
       - name: STARLINK-s2-540-53
         altitude_km: 540.0
         inclination_deg: 53.2
@@ -91,10 +104,19 @@ constellations:
         phasing_f: 1
         source: Kuiper FCC Technical Appendix 2019, SAT-LOA-20190704-00057
         beam: &beam_kuiper
-          peak_gain_dbi: 33.0
-          beamwidth_deg: 2.2
+          peak_gain_dbi: 35.0
+          beamwidth_deg: 2.8
           eirp_density_dbw_per_mhz: -19.0
-          source: ASSUMED
+          freq_ghz: 19.8
+          bandwidth_mhz: 500.0
+          system_noise_temp_k: 200.0
+          source: >-
+            peak_gain_dbi / beamwidth_deg / freq_ghz: Kuiper experimental STA
+            satellite user beam 35 dBi, 2.8 deg 3-dB spot beam at 19.8 GHz,
+            apps.fcc.gov/els/GetAtt.html?id=347260 (19.6-20.1 GHz).
+            eirp_density_dbw_per_mhz: ASSUMED (the STA gives total EIRP 36 dBW,
+            not a per-MHz density). bandwidth_mhz: largest Kuiper emission
+            designator 500MG7W (FCC). system_noise_temp_k: ASSUMED.
       - name: KUIPER-s2-610-42
         altitude_km: 610.0
         inclination_deg: 42.0
@@ -129,4 +151,11 @@ constellations:
           peak_gain_dbi: 30.0
           beamwidth_deg: 3.0
           eirp_density_dbw_per_mhz: -20.0
-          source: ASSUMED
+          freq_ghz: 12.0
+          bandwidth_mhz: 125.0
+          system_noise_temp_k: 200.0
+          source: >-
+            ASSUMED. No citable OneWeb user-beam gain / beamwidth / EIRP value
+            found; FCC-17-77 only references binary Ku/Ka antenna-gain mask files
+            (Petition, "Ku masks"/"Ka masks"). Ku-band downlink is nominally
+            10.7-12.7 GHz.
