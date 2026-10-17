@@ -11,7 +11,10 @@ research: **never hard-code or aim for expected results.**
 1. **Never invent, estimate, or round numbers in reports.** Every number must come
    from code output or a file under `results/`; cite the command or path.
 2. **Every physical parameter lives in `configs/`** with a `source:` (FCC filing
-   reference) or the literal `ASSUMED`. `ngsi.config` validation rejects anything else.
+   reference) or the literal `ASSUMED`. `ngsi.config` requires a `source` key on
+   every shell and beam (it checks the key is present, not its value); the shipped
+   constellation entries are all `ASSUMED` placeholders and must be replaced from
+   the actual filing before any physical conclusion.
 3. **Angle convention:** antenna gains use off-boresight angles *at the antenna*,
    never ground distances. Count each antenna gain exactly once.
 4. **Figures/tables are generated only from `results/` files**, never from
@@ -57,11 +60,33 @@ Run an experiment directly:
 - `src/ngsi/` - library. Key modules: `constellation` (Walker-Delta), `propagation`
   (batched torch two-body + NumPy fallback), `frames`, `geometry`, `antennas`
   (ITU-R S.1528 / S.465 / S.1428), `interference` (I/N, Delta T/T), `events`,
-  `diversity`, `rules` (25.261 constants), `metrics`, `stats`, `io`.
+  `diversity`, `rules` (25.261 constants), `capacity`, `demand`, `metrics`,
+  `stats`, `io`.
 - `experiments/` - thin entrypoints; heavy logic belongs in `src/ngsi/`.
 - `results/<experiment>_<utc>_seed<N>/` - provenance: `run_meta.json` (git hash,
   seed, timestamp), copied `configs/`, raw tables. Created via `ngsi.io.new_run_dir`.
 - `data/raw/` is gitignored; record source URL + download date in `data/raw/README.md`.
+
+## Gotchas
+
+- **Gitignore keeps provenance but drops heavy artifacts.** Under `results/` the
+  `run_meta.json` and `summary*.csv` files *are* tracked; `*.parquet`, `*.arrow`,
+  `*.png`, `*.pdf`, and `raw_*.csv` are ignored. So a commit after `make run-all`
+  captures traceability, not the bulky tables. `data/raw/` and `data/processed/`
+  are ignored entirely (only their README/`.gitkeep` are kept).
+- **`ruff` is configured but not installed.** `pyproject.toml` has `[tool.ruff]`
+  (line-length 100), yet ruff is absent from `requirements.txt` and the image, and
+  the Makefile has no lint target. `python -m pytest -q` is the only verification
+  command that exists; do not assume a linter runs.
+- **Dependencies are baked into the image, not installed from `pyproject.toml`.**
+  `pyproject.toml` declares `dependencies = []`; add runtime deps to
+  `requirements.txt` and rebuild (`make build`) - a `pip install` inside a running
+  container is lost on the next `up`.
+- **The DTT threshold exists in two places** and both must stay in sync:
+  `ngsi.events.DTT_THRESHOLD` and `ngsi.rules.DTT_SHORT_TERM` (both 0.06); a test
+  pins `events.DTT_THRESHOLD == 0.06`.
+- `make shell`, `make test`, and `make run-all` all depend on the `up` target, so
+  they start the container if it is not already running.
 
 ## Current status
 

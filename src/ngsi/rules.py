@@ -14,13 +14,22 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-# --- 25.261(d) Delta T/T criteria ------------------------------------------
-DTT_LONG_TERM: float = 0.03
-DTT_SHORT_TERM: float = 0.06
-LONG_TERM_EXCEEDANCE_FRACTION: float = 0.004
+from .constants import DTT_LONG_TERM, LONG_TERM_EXCEEDANCE_FRACTION
+from .constants import DTT_THRESHOLD as DTT_SHORT_TERM
 
 # --- 25.261(c) band-splitting ----------------------------------------------
 BAND_SPLIT_FRACTION: float = 0.5
+
+__all__ = [
+    "DTT_LONG_TERM",
+    "DTT_SHORT_TERM",
+    "LONG_TERM_EXCEEDANCE_FRACTION",
+    "BAND_SPLIT_FRACTION",
+    "BandSplit",
+    "band_split",
+    "exceeds_long_term",
+    "exceeds_short_term",
+]
 
 
 @dataclass(frozen=True)
