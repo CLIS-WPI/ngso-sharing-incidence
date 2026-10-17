@@ -13,7 +13,6 @@ from ngsi.sanity import (
     walker_sub_latitude_density,
 )
 
-
 def test_polar_density_is_uniform() -> None:
     lats = np.linspace(-89.0, 89.0, 51)
     dens = walker_sub_latitude_density(90.0, lats)
@@ -51,3 +50,26 @@ def test_visible_count_monotonic_in_elevation() -> None:
     lo = analytic_visible_count(550.0, 53.0, 72, 22, 45.0, 35.0, 6371.0)
     hi = analytic_visible_count(550.0, 53.0, 72, 22, 45.0, 20.0, 6371.0)
     assert hi > lo > 0.0
+
+
+def test_visible_count_matches_monte_carlo() -> None:
+    alt, inc, n_sats, lat0, emin, radius = 550.0, 53.0, 1584, 45.0, 25.0, 6371.0
+    ana = analytic_visible_count(alt, inc, 1, n_sats, lat0, emin, radius)
+    rng = np.random.default_rng(12345)
+    n = 2_000_000
+    i = np.deg2rad(inc)
+    psi = earth_central_angle_cap(alt, emin, radius)
+    u = rng.uniform(0.0, 2.0 * np.pi, n)
+    delta = np.arcsin(np.sin(i) * np.sin(u))
+    lam = rng.uniform(0.0, 2.0 * np.pi, n)
+    cos_psi = np.sin(delta) * np.sin(np.deg2rad(lat0)) + np.cos(delta) * np.cos(
+        np.deg2rad(lat0)
+    ) * np.cos(lam)
+    mc = n_sats * float(np.mean(cos_psi >= np.cos(psi)))
+    assert ana == pytest.approx(mc, rel=0.03)
+
+
+def test_visible_count_retrograde_is_finite() -> None:
+    # inc = 97.6 deg is retrograde; band is |phi| < 82.4 deg.
+    val = analytic_visible_count(560.0, 97.6, 6, 58, 45.0, 25.0, 6371.0)
+    assert np.isfinite(val) and val > 0.0

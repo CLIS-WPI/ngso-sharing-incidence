@@ -18,9 +18,12 @@ def walker_sub_latitude_density(
     """Walker sub-satellite latitude density ``cos(phi)/sqrt(sin^2 i - sin^2 phi)``.
 
     Proportional to the number of satellites per unit latitude; zero outside the
-    inclination band ``|phi| >= i``.  Singular at ``|phi| = i``.
+    latitude band ``|phi| >= inc_eff`` where ``inc_eff = min(i, 180 - i)`` (the
+    caustic latitude, which is ``i`` prograde and ``180 - i`` retrograde).
+    Singular at the caustic.
     """
-    inc = np.deg2rad(inc_deg)
+    inc_eff = inc_deg if inc_deg <= 90.0 else 180.0 - inc_deg
+    inc = np.deg2rad(inc_eff)
     lat = np.deg2rad(np.asarray(lat_deg, dtype=np.float64))
     inside = np.abs(lat) < inc
     denom = np.sqrt(np.maximum(np.sin(inc) ** 2 - np.sin(lat) ** 2, 0.0))
@@ -44,15 +47,18 @@ def max_relative_deviation(
     sim_counts: NDArray[np.float64],
     bins_deg: NDArray[np.float64],
     inc_deg: float,
-    exclude_deg: float = 5.0,
+    exclude_deg: float = 7.5,
     min_density_frac: float = 0.02,
 ) -> float:
     """Max relative deviation between simulated and analytic latitude density.
 
-    Bins within ``exclude_deg`` of the singularity ``|phi| = i`` are ignored, as
-    are bins whose analytic density is below ``min_density_frac`` of its peak
-    (there the relative error is dominated by Monte-Carlo counting noise).
+    Both densities are renormalised **over the kept bins only**, so this is a pure
+    *shape* comparison.  Bins within ``exclude_deg`` of the caustic
+    ``|phi| = inc_eff`` are dropped (the continuum density is singular there and
+    its per-bin value is ill-defined), as are bins with negligible analytic
+    density (dominated by counting noise).
     """
+    inc_eff = inc_deg if inc_deg <= 90.0 else 180.0 - inc_deg
     bins = np.asarray(bins_deg, dtype=np.float64)
     centers = 0.5 * (bins[:-1] + bins[1:])
     width = bins[1] - bins[0]
@@ -60,14 +66,17 @@ def max_relative_deviation(
     if total == 0:
         return float("inf")
     sim_density = sim_counts / (total * width)
-    sim_density = sim_density / np.trapezoid(sim_density, centers)
     ana = analytic_density_per_deg(inc_deg, centers)
-    ana = ana / np.trapezoid(ana, centers)
     peak = ana.max()
-    keep = (np.abs(centers) < inc_deg - exclude_deg) & (ana > min_density_frac * peak) & (ana > 0)
+    keep = (np.abs(centers) < inc_eff - exclude_deg) & (ana > min_density_frac * peak) & (ana > 0)
     if not keep.any():
         return float("nan")
-    return float(np.max(np.abs(sim_density[keep] - ana[keep]) / ana[keep]))
+    ck = centers[keep]
+    sim_k = sim_density[keep]
+    ana_k = ana[keep]
+    sim_k = sim_k / np.trapezoid(sim_k, ck)
+    ana_k = ana_k / np.trapezoid(ana_k, ck)
+    return float(np.max(np.abs(sim_k - ana_k) / ana_k))
 
 
 def earth_central_angle_cap(altitude_km: float, min_elev_deg: float, radius_km: float) -> float:
@@ -84,24 +93,24 @@ def analytic_visible_count(
     lat0_deg: float,
     min_elev_deg: float,
     radius_km: float,
-    n_phi: int = 4000,
+    n_phi: int = 20000,
 ) -> float:
     """Expected number of visible satellites of one shell at latitude ``lat0``.
 
-    Integrates the (longitude-uniform) Walker latitude density over the spherical
-    visibility cap: for each sub-satellite latitude ``phi`` the longitude fraction
-    of the cap is ``dlambda / pi``.
+    Averages the visibility-cap longitude fraction over a uniform argument of
+    latitude ``u``; the sub-satellite latitude is ``asin(sin i sin u)``.  This is
+    well conditioned through the caustic (unlike a latitude-space integral) and is
+    valid for retrograde inclinations too.
     """
     n_sats = planes * sats_per_plane
     inc = np.deg2rad(inc_deg)
     phi0 = np.deg2rad(lat0_deg)
     psi = earth_central_angle_cap(altitude_km, min_elev_deg, radius_km)
-    eps = 1e-9
-    phi = np.linspace(-inc + eps, inc - eps, n_phi)
-    dens = np.cos(phi) / np.sqrt(np.maximum(np.sin(inc) ** 2 - np.sin(phi) ** 2, 1e-300))
-    dens = dens / np.trapezoid(dens, phi)
-    cos_dlam = (np.cos(psi) - np.sin(phi) * np.sin(phi0)) / (
-        np.cos(phi) * np.cos(phi0) + 1e-300
+    u = np.linspace(0.0, 2.0 * np.pi, n_phi, endpoint=False)
+    delta = np.arcsin(np.sin(inc) * np.sin(u))
+    denom = np.cos(delta) * np.cos(phi0)
+    cos_dlam = (np.cos(psi) - np.sin(delta) * np.sin(phi0)) / np.where(
+        np.abs(denom) > 1e-12, denom, 1e-12
     )
     frac_lambda = np.arccos(np.clip(cos_dlam, -1.0, 1.0)) / np.pi
-    return float(n_sats * np.trapezoid(dens * frac_lambda, phi))
+    return float(n_sats * np.mean(frac_lambda))

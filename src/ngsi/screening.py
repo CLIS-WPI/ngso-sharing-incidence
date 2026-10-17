@@ -78,6 +78,7 @@ def system_visibility(
     pool_sum = torch.zeros(g, dtype=torch.float64, device=dev)
     pool_sqsum = torch.zeros(g, dtype=torch.float64, device=dev)
     shell_vis = torch.zeros(system.n_shells, g, dtype=torch.float64, device=dev)
+    shell_hist = np.zeros((system.n_shells, len(lat_bins) - 1), dtype=np.int64)
     hist = np.zeros(len(lat_bins) - 1, dtype=np.int64)
     idx = torch.as_tensor(system.shell_index, device=dev)
 
@@ -90,9 +91,11 @@ def system_visibility(
         max_vis = max(max_vis, int(count.max()))
         pool_sum += count.sum(0)
         pool_sqsum += (count.to(torch.float64) ** 2).sum(0)
+        sat_lat = _sat_lat_deg(pos)  # [Tc, S]
         for i in range(system.n_shells):
             shell_vis[i] += vis[:, :, idx == i].sum(dim=(0, 2))
-        hist += np.histogram(_sat_lat_deg(pos).reshape(-1).cpu().numpy(), bins=lat_bins)[0]
+            shell_hist[i] += np.histogram(sat_lat[:, idx == i].reshape(-1).cpu().numpy(), bins=lat_bins)[0]
+        hist += np.histogram(sat_lat.reshape(-1).cpu().numpy(), bins=lat_bins)[0]
 
     return {
         "max_visible": max_vis,
@@ -101,6 +104,7 @@ def system_visibility(
         "n_samples": t_total,
         "shell_vis_sum": shell_vis.cpu().numpy(),
         "sub_lat_hist": hist,
+        "shell_lat_hist": shell_hist,
     }
 
 
