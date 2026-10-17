@@ -14,4 +14,7 @@ python experiments/e2_diversity.py
 echo "== figures =="
 python figures/make_figures.py
 
+echo "== gate1 report =="
+python scripts/make_gate1_report.py
+
 echo "done."

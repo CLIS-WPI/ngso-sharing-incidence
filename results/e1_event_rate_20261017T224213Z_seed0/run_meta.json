@@ -1,0 +1,11 @@
+{
+  "experiment": "e1_event_rate",
+  "seed": 0,
+  "timestamp_utc": "20261017T224213Z",
+  "git_hash": "e4258efeb6f6436d67952167ffc6a7d78f19424a",
+  "python": "3.11.10",
+  "platform": "Linux-6.8.0-138-generic-x86_64-with-glibc2.35",
+  "argv": [
+    "experiments/e1_event_rate.py"
+  ]
+}
