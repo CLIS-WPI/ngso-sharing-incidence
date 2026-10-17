@@ -18,6 +18,7 @@ import numpy as np
 import pandas as pd
 import torch
 
+from .bands import LINK_TYPES, co_frequency_pairs, load_bands, overlap
 from .config import (
     Constellation,
     ExperimentConfig,
@@ -100,8 +101,15 @@ def screen_phasings(
     min_elevation_deg: float,
     chunk: int,
     collect_series: bool = False,
+    pairs: list[tuple[str, str]] | None = None,
+    pair_meta: dict[tuple[str, str], dict] | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame, dict]:
     """Screen every ordered pair over ``n_phasings`` independent phasings.
+
+    ``pairs`` defaults to every ordered pair of ``names``; pass the co-frequency
+    subset to screen only pairs that share a band.  ``pair_meta`` maps each pair
+    to ``{"link_type": str, "shared_freq_ghz": float | None}`` recorded on every
+    event row.
 
     Returns ``(pair_events, vis_pool, sanity_material)`` where ``pair_events`` is a
     tidy table of per-cell fractions and ``vis_pool`` holds per-system visibility
@@ -110,7 +118,9 @@ def screen_phasings(
     radius = sim.earth.radius_km
     jd = epoch_jd(sim)
     thetas = tuple(float(t) for t in thetas_deg)
-    pairs = ordered_pairs(names)
+    if pairs is None:
+        pairs = ordered_pairs(names)
+    pair_meta = pair_meta or {}
     lats = np.asarray(sorted(set(grid.latitudes)), dtype=np.float64)
     nlon = int((grid.latitudes == grid.latitudes[0]).sum())
     event_rows: list[dict] = []
@@ -145,11 +155,15 @@ def screen_phasings(
                     for s in systems[n].shells
                 ]
             pool_mean = (vis[n]["pool_sum"] / vis[n]["n_samples"]).reshape(len(lats), nlon).mean(1)
+            served = vis[n]["served_frac"].reshape(len(lats), nlon).mean(1)
+            pool_hist = vis[n]["pool_hist"].reshape(len(lats), nlon, -1).sum(1)  # [nlat, B]
+            pool_p10 = np.array([_weighted_percentile(pool_hist[li], 10.0) for li in range(len(lats))])
             for li, la in enumerate(lats):
                 pool_rows.append(
                     {"phasing": p, "system": n, "mode": "pool", "shell_or_all": "all",
                      "latitude_deg": float(la), "pool_mean": float(pool_mean[li]),
-                     "shell_visible_mean": np.nan}
+                     "shell_visible_mean": np.nan, "served_frac": float(served[li]),
+                     "pool_p10": float(pool_p10[li])}
                 )
             shell_mean = vis[n]["shell_vis_sum"] / vis[n]["n_samples"]
             for si, sh in enumerate(systems[n].shells):
@@ -158,13 +172,19 @@ def screen_phasings(
                     pool_rows.append(
                         {"phasing": p, "system": n, "mode": "shell", "shell_or_all": sh.name,
                          "latitude_deg": float(la), "pool_mean": np.nan,
-                         "shell_visible_mean": float(shm[li])}
+                         "shell_visible_mean": float(shm[li]), "served_frac": np.nan,
+                         "pool_p10": np.nan}
                     )
         for a, b in pairs:
             res = screen_pair(
                 systems[a], systems[b], vis[a]["max_visible"], vis[b]["max_visible"],
                 grid.ecef, grid.up, times, cfg, collect_series=collect_series,
             )
+            meta = pair_meta.get((a, b), {})
+            link_type = meta.get("link_type")
+            shared_freq = meta.get("shared_freq_ghz")
+            svc_a = vis[a]["served_frac"]
+            svc_b = vis[b]["served_frac"]
             for ti, th in enumerate(thetas):
                 for vi in (0, 1):
                     ev, un = res["event_frac"][ti, vi], res["unres_frac"][ti, vi]
@@ -173,8 +193,10 @@ def screen_phasings(
                             {"phasing": p, "system_a": a, "system_b": b, "variant": vi,
                              "theta_deg": th, "latitude_deg": float(grid.latitudes[g]),
                              "longitude_deg": float(grid.longitudes[g]),
+                             "link_type": link_type, "shared_freq_ghz": shared_freq,
                              "event_frac": float(ev[g]), "unres_frac": float(un[g]),
                              "covisible_frac": float(res["covisible_frac"][g]),
+                             "service_a_frac": float(svc_a[g]), "service_b_frac": float(svc_b[g]),
                              "n_samples": int(res["n_samples"])}
                         )
             if collect_series:
@@ -216,6 +238,17 @@ def _series_durations(res, grid, thetas, a, b, p, times) -> list[dict]:
                             }
                         )
     return rows
+
+
+def _weighted_percentile(hist: np.ndarray, q: float) -> float:
+    """Percentile of a non-negative integer count distribution given as a histogram."""
+    h = np.asarray(hist, dtype=np.float64)
+    total = h.sum()
+    if total <= 0:
+        return float("nan")
+    cdf = np.cumsum(h) / total
+    idx = int(np.searchsorted(cdf, q / 100.0, side="left"))
+    return float(min(idx, h.size - 1))
 
 
 def _run_lengths(mask: np.ndarray) -> np.ndarray:
@@ -412,6 +445,31 @@ def _sub_latitude_table(sanity: dict, sim) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+def _band_overlap_table(names: list[str], bands) -> pd.DataFrame:
+    """Every ordered pair x link type with overlap, shared bandwidth and centre."""
+    rows = []
+    for a in names:
+        for b in names:
+            if a == b:
+                continue
+            for lt in LINK_TYPES:
+                ov = overlap(bands[a], bands[b], lt)
+                rows.append(
+                    {"system_a": a, "system_b": b, "link_type": lt,
+                     "overlaps": bool(ov.overlaps),
+                     "shared_bandwidth_ghz": ov.total_bandwidth_ghz,
+                     "center_ghz": ov.center_ghz,
+                     "segments_ghz": ";".join(f"{lo}-{hi}" for lo, hi in ov.segments_ghz)}
+                )
+    return pd.DataFrame(rows)
+
+
+def _service_pool_summary(pool: pd.DataFrame) -> pd.DataFrame:
+    """Per victim system and latitude: service availability and diversity pool."""
+    p = pool[pool["mode"] == "pool"]
+    return summarise(p, ("pool_mean", "served_frac", "pool_p10"), ["system", "latitude_deg"])
+
+
 def run_e1(
     exp_path: Path,
     results_root: Path,
@@ -422,6 +480,13 @@ def run_e1(
 ) -> Path:
     """Run E1 (event rate vs latitude). Returns the run directory."""
     sim, exp, grid_cfg, grid, sanity_grid = _load_inputs(exp_path, repo_root)
+    bands = load_bands(repo_root / "configs" / "bands.yaml")
+    udl_pairs = co_frequency_pairs(exp.constellations, bands, "user_downlink")
+    pair_meta = {
+        (a, b): {"link_type": "user_downlink",
+                 "shared_freq_ghz": overlap(bands[a], bands[b], "user_downlink").center_ghz}
+        for (a, b) in udl_pairs
+    }
     p = exp.params
     n_ph = int(n_phasings if n_phasings is not None else p.get("n_phasings", 8))
     dt = float(time_step_s if time_step_s is not None else p.get("time_step_s", 10.0))
@@ -433,8 +498,12 @@ def run_e1(
     run_dir = new_run_dir(
         results_root, exp.name, exp.seed,
         config_paths=[exp_path, repo_root / "configs" / "constellations.yaml",
+                      repo_root / "configs" / "bands.yaml",
                       repo_root / "configs" / exp.stations],
         repo_root=repo_root,
+    )
+    _band_overlap_table(exp.constellations, bands).to_csv(
+        run_dir / "summary_band_overlap.csv", index=False
     )
     device = device_str()
     checks = run_sanity(sim, exp, grid, sanity_grid, dt, dur, min_el, device, chunk=chunk)
@@ -449,19 +518,23 @@ def run_e1(
     times = np.arange(0.0, dur, dt)
     events, pool, _series, sanity_material = screen_phasings(
         sim, exp.constellations, grid, times, device, exp.seed, n_ph, thetas, min_el, chunk,
+        pairs=udl_pairs, pair_meta=pair_meta,
     )
     events.to_parquet(run_dir / "raw_pair_events.parquet", index=False)
     pool.to_parquet(run_dir / "raw_pool.parquet", index=False)
 
-    ev = summarise(events, ("event_frac", "unres_frac", "covisible_frac"),
-                   ["system_a", "system_b", "variant", "theta_deg", "latitude_deg"])
+    ev = summarise(events, ("event_frac", "unres_frac", "service_a_frac", "service_b_frac"),
+                   ["system_a", "system_b", "link_type", "shared_freq_ghz",
+                    "variant", "theta_deg", "latitude_deg"])
     ev["event_rate_per_hour"] = ev["event_frac_mean"] * 3600.0 / dt
     ev.to_csv(run_dir / "summary_event_rate.csv", index=False)
+    _service_pool_summary(pool).to_csv(run_dir / "summary_service_pool.csv", index=False)
 
     _write_json(run_dir, "status.json",
                 {"experiment": exp.name, "status": "ok", "n_phasings": n_ph,
                  "time_step_s": dt, "duration_s": dur, "thetas_deg": list(thetas),
-                 "min_elevation_deg": min_el, "device": device})
+                 "min_elevation_deg": min_el, "device": device,
+                 "user_downlink_pairs": [list(q) for q in udl_pairs]})
     return run_dir
 
 
@@ -511,6 +584,13 @@ def run_e2(
 ) -> Path:
     """Run E2 (diversity, durations, min-elevation sweep, F sensitivity, 25.261 loss)."""
     sim, exp, grid_cfg, grid, sanity_grid = _load_inputs(exp_path, repo_root)
+    bands = load_bands(repo_root / "configs" / "bands.yaml")
+    udl_pairs = co_frequency_pairs(exp.constellations, bands, "user_downlink")
+    pair_meta = {
+        (a, b): {"link_type": "user_downlink",
+                 "shared_freq_ghz": overlap(bands[a], bands[b], "user_downlink").center_ghz}
+        for (a, b) in udl_pairs
+    }
     p = exp.params
     n_ph = int(n_phasings if n_phasings is not None else p.get("n_phasings", 8))
     dt = float(time_step_s if time_step_s is not None else p.get("time_step_s", 10.0))
@@ -523,8 +603,12 @@ def run_e2(
     run_dir = new_run_dir(
         results_root, exp.name, exp.seed,
         config_paths=[exp_path, repo_root / "configs" / "constellations.yaml",
+                      repo_root / "configs" / "bands.yaml",
                       repo_root / "configs" / exp.stations],
         repo_root=repo_root,
+    )
+    _band_overlap_table(exp.constellations, bands).to_csv(
+        run_dir / "summary_band_overlap.csv", index=False
     )
     checks = run_sanity(sim, exp, grid, sanity_grid, dt, dur, min_el, device, chunk=chunk)
     _write_json(run_dir, "sanity.json", checks)
@@ -537,6 +621,7 @@ def run_e2(
     times = np.arange(0.0, dur, dt)
     events, pool, _s, sanity_material = screen_phasings(
         sim, exp.constellations, grid, times, device, exp.seed, n_ph, thetas, min_el, chunk,
+        pairs=udl_pairs, pair_meta=pair_meta,
     )
     events.to_parquet(run_dir / "raw_pair_events.parquet", index=False)
     pool.to_parquet(run_dir / "raw_pool.parquet", index=False)
@@ -544,19 +629,24 @@ def run_e2(
         run_dir / "summary_sub_latitude_density.csv", index=False
     )
 
-    # Diversity: unresolvable fraction (of time and conditional on an event).
-    un = summarise(events, ("event_frac", "unres_frac", "covisible_frac"),
-                   ["system_a", "system_b", "variant", "theta_deg", "latitude_deg"])
+    # Diversity: unresolvable fraction (of time and conditional on an event).  The
+    # 25.261(c) band-split loss is half the time the band is split: with diversity
+    # only unresolvable events split it, without diversity every event does.
+    un = summarise(events, ("event_frac", "unres_frac", "service_a_frac", "service_b_frac"),
+                   ["system_a", "system_b", "link_type", "shared_freq_ghz",
+                    "variant", "theta_deg", "latitude_deg"])
     un["unres_conditional"] = np.where(
         un["event_frac_mean"] > 0, un["unres_frac_mean"] / un["event_frac_mean"], np.nan
     )
-    un["band_split_loss_frac"] = BAND_SPLIT_FRACTION * un["covisible_frac_mean"]
+    un["band_split_loss_with_diversity"] = BAND_SPLIT_FRACTION * un["unres_frac_mean"]
+    un["band_split_loss_no_diversity"] = BAND_SPLIT_FRACTION * un["event_frac_mean"]
     un.to_csv(run_dir / "summary_unresolvable.csv", index=False)
 
     # Pool / visible summary and analytic check.
     pool_s = summarise(pool.drop(columns=["mode"]), ("pool_mean", "shell_visible_mean"),
                        ["system", "shell_or_all", "latitude_deg"])
     pool_s.to_csv(run_dir / "summary_pool.csv", index=False)
+    _service_pool_summary(pool).to_csv(run_dir / "summary_service_pool.csv", index=False)
     rows = []
     for n, specs in sanity_material["shell_specs"].items():
         for spec in specs:
@@ -575,6 +665,7 @@ def run_e2(
     for me in (20.0, 35.0):
         ev_me, _, _s2, _m = screen_phasings(
             sim, exp.constellations, grid, times, device, exp.seed, n_ph, thetas, me, chunk,
+            pairs=udl_pairs, pair_meta=pair_meta,
         )
         s = summarise(ev_me, ("event_frac", "unres_frac"),
                       ["system_a", "system_b", "variant", "theta_deg", "latitude_deg"])
@@ -586,7 +677,7 @@ def run_e2(
     dt_times = np.arange(0.0, duration_window_s, duration_step_s)
     _e, _p, series, _m = screen_phasings(
         sim, exp.constellations, grid, dt_times, device, exp.seed, n_ph, thetas, min_el, chunk,
-        collect_series=True,
+        collect_series=True, pairs=udl_pairs, pair_meta=pair_meta,
     )
     if not series.empty:
         series.to_parquet(run_dir / "raw_durations.parquet", index=False)
@@ -602,6 +693,7 @@ def run_e2(
         sim_f = _starlink_f_variant(sim, f_val)
         ev_f, _, _s3, _m = screen_phasings(
             sim_f, exp.constellations, grid, times, device, exp.seed, n_ph, thetas, min_el, chunk,
+            pairs=udl_pairs, pair_meta=pair_meta,
         )
         s = summarise(ev_f, ("event_frac",),
                       ["system_a", "system_b", "variant", "theta_deg", "latitude_deg"])
@@ -613,5 +705,6 @@ def run_e2(
                 {"experiment": exp.name, "status": "ok", "n_phasings": n_ph, "time_step_s": dt,
                  "duration_s": dur, "duration_step_s": duration_step_s,
                  "duration_window_s": duration_window_s, "thetas_deg": list(thetas),
-                 "min_elevation_deg": min_el, "device": device})
+                 "min_elevation_deg": min_el, "device": device,
+                 "user_downlink_pairs": [list(q) for q in udl_pairs]})
     return run_dir
