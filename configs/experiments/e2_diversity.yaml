@@ -1,0 +1,19 @@
+# Experiment 2 - satellite diversity and the burden of 25.261 rules.
+name: e2_diversity
+description: >
+  Compare in-line events that satellite diversity can resolve against those it
+  cannot, and quantify the spectrum lost to 25.261(c) band-splitting and the
+  burden imposed by 25.261(d) degraded-throughput protection.
+constellations: [EXAMPLE-LEO-A, EXAMPLE-LEO-B]
+stations: stations.yaml
+seed: 0
+params:
+  inline_threshold_deg: 1.0           # placeholder; replace with beamwidth-derived value
+  dtt_threshold: 0.06
+  long_term_dtt: 0.03                 # 47 CFR 25.261(d) long-term
+  long_term_exceedance_fraction: 0.004
+  band_split_fraction: 0.5            # 25.261(c)
+  n_phasings: 5
+  time_step_s: 60
+  duration_s: 86400
+  source: ASSUMED

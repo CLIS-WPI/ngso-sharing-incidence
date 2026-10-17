@@ -1,0 +1,28 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# --- Data ---
+# Raw TLE / population / BSL data are large or licensed: never commit them.
+# The README records the source URL and download date for each file.
+data/raw/*
+!data/raw/README.md
+data/processed/*
+!data/processed/.gitkeep
+
+# --- Results ---
+# Run directories are reproducible: heavy artifacts stay out of git, but the
+# small provenance files and summary CSVs are committed so numbers can be traced.
+results/**/*.parquet
+results/**/*.arrow
+results/**/*.png
+results/**/*.pdf
+results/**/raw_*.csv
+
+# --- Misc ---
+.DS_Store

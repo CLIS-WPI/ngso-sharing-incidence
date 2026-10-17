@@ -1,0 +1,41 @@
+# NGSO constellation parameters.
+#
+# RULE (AGENTS.md rule 2): every physical parameter MUST carry a `source:` that is
+# either an FCC filing reference (e.g. "FCC-2023-XXXX, Technical Annex p.12") or
+# the literal string ASSUMED.  Config validation rejects anything else.
+#
+# The entries below are PLACEHOLDERS (all ASSUMED).  Replace them with filed
+# parameters before drawing any physical conclusion.  Do not copy numbers from
+# memory: pull them from the filing.
+constellations:
+  - name: EXAMPLE-LEO-A
+    operator: EXAMPLE
+    shells:
+      - name: EXAMPLE-LEO-A-s1
+        altitude_km: 550.0           # ASSUMED placeholder
+        inclination_deg: 53.0        # ASSUMED placeholder
+        planes: 72                   # ASSUMED placeholder
+        sats_per_plane: 22           # ASSUMED placeholder
+        phasing_f: 1                 # ASSUMED placeholder
+        source: ASSUMED
+        beam:
+          peak_gain_dbi: 34.0                   # ASSUMED placeholder
+          beamwidth_deg: 2.0                    # ASSUMED placeholder (3 dB BW)
+          eirp_density_dbw_per_mhz: -18.0       # ASSUMED placeholder
+          source: ASSUMED
+
+  - name: EXAMPLE-LEO-B
+    operator: EXAMPLE
+    shells:
+      - name: EXAMPLE-LEO-B-s1
+        altitude_km: 1200.0          # ASSUMED placeholder
+        inclination_deg: 87.9        # ASSUMED placeholder
+        planes: 28                   # ASSUMED placeholder
+        sats_per_plane: 28           # ASSUMED placeholder
+        phasing_f: 1                 # ASSUMED placeholder
+        source: ASSUMED
+        beam:
+          peak_gain_dbi: 30.0                   # ASSUMED placeholder
+          beamwidth_deg: 3.0                    # ASSUMED placeholder (3 dB BW)
+          eirp_density_dbw_per_mhz: -20.0       # ASSUMED placeholder
+          source: ASSUMED

@@ -1,0 +1,10 @@
+# Earth-station grid.
+#
+# This is a modelled observation grid, not filed data, so it is tagged ASSUMED.
+# The incidence study sweeps latitude 0..65 deg in 5 deg steps; longitude is a
+# set of evenly spaced meridians per latitude band.
+station_grid:
+  latitudes_deg: [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65]
+  longitudes_deg: [0, 60, 120, 180, 240, 300]
+  min_elevation_deg: 25.0
+  source: ASSUMED

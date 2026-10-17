@@ -1,0 +1,19 @@
+# Experiment 1 - geographic incidence of NGSO-NGSO in-line interference events.
+name: e1_event_rate
+description: >
+  Screen NGSO-NGSO in-line interference events on the latitude grid and report
+  event rate per cell, unresolved rate under satellite diversity, and the
+  latitude profile of burden.  New research: no target values are assumed.
+constellations: [EXAMPLE-LEO-A, EXAMPLE-LEO-B]
+stations: stations.yaml
+seed: 0
+params:
+  # Screening / detection parameters (see ngsi.events and ngsi.rules).
+  # Placeholder inline half-angle in degrees; replace with a beamwidth-derived
+  # value once the beam model is fixed.
+  inline_threshold_deg: 1.0
+  dtt_threshold: 0.06                        # 47 CFR 25.261(d) short-term
+  n_phasings: 5                              # independent phasings to average over
+  time_step_s: 60                            # propagation sampling step
+  duration_s: 86400                          # simulated window length
+  source: ASSUMED

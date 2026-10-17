@@ -1,0 +1,16 @@
+# Python dependencies for the ngsi project.
+# NOTE: torch/torchvision are provided by the base Docker image
+# (pytorch/pytorch:2.5.1-cuda12.4-cudnn9-runtime) and are intentionally NOT
+# listed here, so pip cannot replace the CUDA build with a PyPI wheel.
+# Regenerate pins with:  docker compose -f docker/docker-compose.yml exec dev \
+#     python -m pip freeze
+numpy==2.0.2
+scipy==1.14.1
+pandas==2.2.3
+pyyaml==6.0.2
+pyarrow==17.0.0
+sgp4==2.23
+astropy==6.1.5
+matplotlib==3.9.2
+tqdm==4.66.5
+pytest==8.3.3
