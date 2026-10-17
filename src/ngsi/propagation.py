@@ -157,4 +157,124 @@ def propagate_sgp4(
     return out
 
 
-__all__ = ["propagate_two_body", "propagate_sgp4", "MU_EARTH_KM3_S2"]
+# --- J2 secular propagation, fully vectorised in torch -----------------------
+#
+# Gate-1 production model: circular orbits (eccentricity ignored) with the J2
+# secular rates for the right ascension of the ascending node (RAAN) and the
+# argument of latitude.  Positions are computed in ECI, then rotated to ECEF with
+# GMST for a fixed epoch (from configs/constellations.yaml).
+J2: float = 1.08262668e-3
+
+
+def _secular_rates_j2(a, inc, n, earth_radius_km):
+    """J2 secular rates (rad/s) for circular orbits: ``(raan_dot, u_dot)``.
+
+    ``raan_dot`` is the standard nodal regression
+    ``-(3/2) J2 n (Re/a)^2 cos i``.  ``u_dot`` is the argument-of-latitude rate
+    ``n [1 + (3/4) J2 (Re/a)^2 (5 cos^2 i - 1)]``; the ``(5 cos^2 i - 1)``
+    coefficient was verified against an independent DOP853 two-body+J2
+    integration and against SGP4 at 14 inclinations (tests/test_propagation.py).
+    """
+    factor = J2 * n * (earth_radius_km / a) ** 2
+    cos_i = torch.cos(inc)
+    raan_dot = -1.5 * factor * cos_i
+    u_dot = n + 0.75 * factor * (5.0 * cos_i**2 - 1.0)
+    return raan_dot, u_dot
+
+
+def propagate_ecef(
+    elements: WalkerConstellation,
+    times_s: NDArray[np.float64] | object,
+    epoch_jd: float,
+    earth_radius_km: float,
+    device: Device = "auto",
+):
+    """Return ECEF positions ``(n_times, n_sats, 3)`` in km.
+
+    On the GPU path the returned object is a ``torch.Tensor`` (float64) that stays
+    on the device; the NumPy path returns an ``ndarray``.  Circular orbits with J2
+    secular RAAN / argument-of-latitude drift, GMST from ``epoch_jd``.
+    """
+    from .frames import gmst_rad_series
+
+    dev = _resolve_device(device)
+    t = np.asarray(times_s, dtype=np.float64)
+
+    if dev is not None:
+        a = torch.as_tensor(elements.semi_major_axis_km, dtype=torch.float64, device=dev)
+        inc = torch.as_tensor(elements.inclination_rad, dtype=torch.float64, device=dev)
+        n = torch.as_tensor(elements.mean_motion_rad_s, dtype=torch.float64, device=dev)
+        raan0 = torch.as_tensor(elements.raan_rad, dtype=torch.float64, device=dev)
+        m0 = torch.as_tensor(elements.mean_anomaly_rad, dtype=torch.float64, device=dev)
+        argp0 = torch.as_tensor(elements.arg_perigee_rad, dtype=torch.float64, device=dev)
+
+        raan_dot, u_dot = _secular_rates_j2(a, inc, n, earth_radius_km)
+        tt = torch.as_tensor(t, dtype=torch.float64, device=dev).reshape(-1, 1)
+        raan = raan0.reshape(1, -1) + raan_dot.reshape(1, -1) * tt
+        u = (argp0 + m0).reshape(1, -1) + u_dot.reshape(1, -1) * tt
+
+        ci, si = torch.cos(inc), torch.sin(inc)
+        cr, sr = torch.cos(raan), torch.sin(raan)
+        cu, su = torch.cos(u), torch.sin(u)
+        a2 = a.reshape(1, -1)
+        x = a2 * (cr * cu - sr * su * ci)
+        y = a2 * (sr * cu + cr * su * ci)
+        z = a2 * (su * si)
+        eci = torch.stack([x, y, z], dim=-1)
+
+        gmst = torch.as_tensor(
+            gmst_rad_series(epoch_jd + t / 86400.0), dtype=torch.float64, device=dev
+        ).reshape(-1, 1)
+        c, s = torch.cos(gmst), torch.sin(gmst)
+        # r_ECEF = Rz(-gmst) r_ECI  (see ngsi.frames.eci_to_ecef).
+        ecef = torch.stack(
+            [c * eci[..., 0] + s * eci[..., 1], -s * eci[..., 0] + c * eci[..., 1], eci[..., 2]],
+            dim=-1,
+        )
+        return ecef
+
+    return _ecef_numpy(elements, t, epoch_jd, earth_radius_km)
+
+
+def _ecef_numpy(
+    elements: WalkerConstellation, t: NDArray[np.float64], epoch_jd: float, earth_radius_km: float
+) -> NDArray[np.float64]:
+    """NumPy fallback for :func:`propagate_ecef` (same math as the torch path)."""
+    from .frames import gmst_rad_series
+
+    a = elements.semi_major_axis_km[None, :]
+    inc = elements.inclination_rad[None, :]
+    n = elements.mean_motion_rad_s[None, :]
+    raan0 = elements.raan_rad[None, :]
+    u0 = (elements.arg_perigee_rad + elements.mean_anomaly_rad)[None, :]
+
+    factor = J2 * n * (earth_radius_km / a) ** 2
+    cos_i = np.cos(inc)
+    raan_dot = -1.5 * factor * cos_i
+    u_dot = n + 0.75 * factor * (5.0 * cos_i**2 - 1.0)
+
+    raan = raan0 + raan_dot * t[:, None]
+    u = u0 + u_dot * t[:, None]
+    ci, si = np.cos(inc), np.sin(inc)
+    cr, sr = np.cos(raan), np.sin(raan)
+    cu, su = np.cos(u), np.sin(u)
+    x = a * (cr * cu - sr * su * ci)
+    y = a * (sr * cu + cr * su * ci)
+    z = a * (su * si)
+    eci = np.stack([x, y, z], axis=-1)
+
+    gmst = np.asarray(gmst_rad_series(epoch_jd + t / 86400.0))[:, None]
+    c, s = np.cos(gmst), np.sin(gmst)
+    return np.stack(
+        [c * eci[..., 0] + s * eci[..., 1], -s * eci[..., 0] + c * eci[..., 1], eci[..., 2]],
+        axis=-1,
+    )
+
+
+__all__ = [
+    "propagate_two_body",
+    "propagate_sgp4",
+    "propagate_ecef",
+    "MU_EARTH_KM3_S2",
+    "J2",
+]
