@@ -31,14 +31,14 @@ from .frames import utc_to_jd
 from .geometry import station_ecef_spherical
 from .io import new_run_dir
 from .rules import BAND_SPLIT_FRACTION
-from .sanity import analytic_visible_count, max_relative_deviation
+from .sanity import analytic_density_per_deg, analytic_visible_count, max_relative_deviation
 from .screening import ScreenConfig, screen_pair, system_visibility
 from .systems import build_system
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
-_T95 = {1: 12.706, 2: 4.303, 3: 3.182, 4: 2.776, 5: 2.571, 6: 2.447, 7: 2.365, 8: 2.306,
-        9: 2.262, 10: 2.228, 12: 2.179, 15: 2.131, 20: 2.086, 30: 2.042}
+_T95 = {2: 12.706, 3: 4.303, 4: 3.182, 5: 2.776, 6: 2.571, 7: 2.447, 8: 2.365, 9: 2.306,
+        10: 2.262, 11: 2.228, 13: 2.179, 16: 2.131, 21: 2.086, 31: 2.042}
 
 
 def t95(n: int) -> float:
