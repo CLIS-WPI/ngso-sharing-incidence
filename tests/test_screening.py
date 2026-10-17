@@ -8,7 +8,7 @@ import torch
 from ngsi.config import Beam, Constellation, Shell
 from ngsi.geometry import angular_separation_deg, station_ecef_spherical
 from ngsi.propagation import propagate_ecef
-from ngsi.screening import ScreenConfig, screen_pair, visibility_stats
+from ngsi.screening import ScreenConfig, screen_pair, system_visibility
 from ngsi.systems import build_system
 
 EPOCH_JD = 2460676.5
@@ -102,9 +102,10 @@ def test_screen_pair_matches_reference() -> None:
         device="cpu",
     )
 
-    st = visibility_stats(a, b, torch.as_tensor(stations), torch.as_tensor(up), times, cfg, np.arange(-90, 91, 5))
+    st = system_visibility(a, torch.as_tensor(stations), torch.as_tensor(up), times, cfg, np.arange(-90, 91, 5))
+    sb = system_visibility(b, torch.as_tensor(stations), torch.as_tensor(up), times, cfg, np.arange(-90, 91, 5))
     res = screen_pair(
-        a, b, st["max_vis_a"], st["max_vis_b"],
+        a, b, st["max_visible"], sb["max_visible"],
         torch.as_tensor(stations), torch.as_tensor(up), times, cfg,
     )
     ref_event, ref_unres = _reference(a, b, stations, up, times, cfg)
@@ -113,3 +114,4 @@ def test_screen_pair_matches_reference() -> None:
     np.testing.assert_allclose(res["unres_frac"], ref_unres, atol=1e-12)
     # The scenario should actually exercise events/diversity, not just zeros.
     assert ref_event.sum() > 0
+    assert res["covisible_frac"].shape == (len(stations),)

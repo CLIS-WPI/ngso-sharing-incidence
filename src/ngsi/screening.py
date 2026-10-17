@@ -56,66 +56,51 @@ def _sat_lat_deg(pos: torch.Tensor) -> torch.Tensor:
     return torch.rad2deg(torch.asin(torch.clamp(pos[..., 2] / r, -1.0, 1.0)))
 
 
-def visibility_stats(
-    a: SystemModel,
-    b: SystemModel,
+def system_visibility(
+    system: SystemModel,
     station_ecef: torch.Tensor,
     up: torch.Tensor,
     times: np.ndarray,
     config: ScreenConfig,
     lat_bins: np.ndarray,
 ) -> dict:
-    """Visibility-only pass: max visible counts, per-shell means, pool stats, lat hist.
+    """Visibility-only pass for one system (independent of any pair).
 
-    Returns a dict with ``max_vis_a``/``max_vis_b`` (ints, used to size the exact
-    ``topk`` in :func:`screen_pair`), ``pool_sum``/``pool_sqsum``/``n_samples`` per
-    station, ``shell_vis_sum_a``/``shell_vis_sum_b`` of shape ``[n_shells, G]``, and
-    sub-satellite latitude histograms for both systems.
+    Returns ``max_visible`` (int, used to size the exact ``topk`` in
+    :func:`screen_pair`), ``shell_vis_sum`` of shape ``[n_shells, G]``, per-station
+    ``pool_sum``/``pool_sqsum`` over time, ``n_samples`` and the sub-satellite
+    latitude histogram.
     """
     dev = config.device
     g = station_ecef.shape[0]
     t_total = len(times)
-    max_a = max_b = 1
+    max_vis = 1
     pool_sum = torch.zeros(g, dtype=torch.float64, device=dev)
     pool_sqsum = torch.zeros(g, dtype=torch.float64, device=dev)
-    shell_a = torch.zeros(a.n_shells, g, dtype=torch.float64, device=dev)
-    shell_b = torch.zeros(b.n_shells, g, dtype=torch.float64, device=dev)
-    hist_a = np.zeros(len(lat_bins) - 1, dtype=np.int64)
-    hist_b = np.zeros(len(lat_bins) - 1, dtype=np.int64)
-    idx_a = torch.as_tensor(a.shell_index, device=dev)
-    idx_b = torch.as_tensor(b.shell_index, device=dev)
+    shell_vis = torch.zeros(system.n_shells, g, dtype=torch.float64, device=dev)
+    hist = np.zeros(len(lat_bins) - 1, dtype=np.int64)
+    idx = torch.as_tensor(system.shell_index, device=dev)
 
     for s, e in _chunk_ranges(t_total, config.chunk):
         tc = times[s:e]
-        pa = propagate_ecef(a.elements, tc, config.epoch_jd, config.earth_radius_km, dev)
-        pb = propagate_ecef(b.elements, tc, config.epoch_jd, config.earth_radius_km, dev)
-        ua, _ = unit_look_vectors(pa, station_ecef)
-        ub, _ = unit_look_vectors(pb, station_ecef)
-        vis_a = elevation_deg_batch(ua, up) >= config.min_elevation_deg
-        vis_b = elevation_deg_batch(ub, up) >= config.min_elevation_deg
-        count_a = vis_a.sum(-1)  # [Tc, G]
-        count_b = vis_b.sum(-1)
-        max_a = max(max_a, int(count_a.max()))
-        max_b = max(max_b, int(count_b.max()))
-        pool_sum += count_a.sum(0)
-        pool_sqsum += (count_a.to(torch.float64) ** 2).sum(0)
-        for i in range(a.n_shells):
-            shell_a[i] += vis_a[:, :, idx_a == i].sum(dim=(0, 2))
-        for i in range(b.n_shells):
-            shell_b[i] += vis_b[:, :, idx_b == i].sum(dim=(0, 2))
-        hist_a += np.histogram(_sat_lat_deg(pa).reshape(-1).cpu().numpy(), bins=lat_bins)[0]
-        hist_b += np.histogram(_sat_lat_deg(pb).reshape(-1).cpu().numpy(), bins=lat_bins)[0]
+        pos = propagate_ecef(system.elements, tc, config.epoch_jd, config.earth_radius_km, dev)
+        look, _ = unit_look_vectors(pos, station_ecef)
+        vis = elevation_deg_batch(look, up) >= config.min_elevation_deg
+        count = vis.sum(-1)  # [Tc, G]
+        max_vis = max(max_vis, int(count.max()))
+        pool_sum += count.sum(0)
+        pool_sqsum += (count.to(torch.float64) ** 2).sum(0)
+        for i in range(system.n_shells):
+            shell_vis[i] += vis[:, :, idx == i].sum(dim=(0, 2))
+        hist += np.histogram(_sat_lat_deg(pos).reshape(-1).cpu().numpy(), bins=lat_bins)[0]
 
     return {
-        "max_vis_a": max_a,
-        "max_vis_b": max_b,
+        "max_visible": max_vis,
         "pool_sum": pool_sum.cpu().numpy(),
         "pool_sqsum": pool_sqsum.cpu().numpy(),
         "n_samples": t_total,
-        "shell_vis_sum_a": shell_a.cpu().numpy(),
-        "shell_vis_sum_b": shell_b.cpu().numpy(),
-        "sub_lat_hist_a": hist_a,
-        "sub_lat_hist_b": hist_b,
+        "shell_vis_sum": shell_vis.cpu().numpy(),
+        "sub_lat_hist": hist,
     }
 
 
@@ -148,6 +133,7 @@ def screen_pair(
 
     event_count = torch.zeros(n_theta, 2, g, dtype=torch.float64, device=dev)
     unres_count = torch.zeros(n_theta, 2, g, dtype=torch.float64, device=dev)
+    covisible_count = torch.zeros(g, dtype=torch.float64, device=dev)
     if collect_series:
         event_series = torch.zeros(n_theta, 2, g, t_total, dtype=torch.bool, device=dev)
         unres_series = torch.zeros(n_theta, 2, g, t_total, dtype=torch.bool, device=dev)
@@ -164,6 +150,7 @@ def screen_pair(
         elev_b = elevation_deg_batch(ub, up)
         vis_a = elev_a >= config.min_elevation_deg
         vis_b = elev_b >= config.min_elevation_deg
+        covisible_count += (vis_a.any(-1) & vis_b.any(-1)).sum(0).to(torch.float64)
 
         va, ia = torch.topk(
             elev_a.masked_fill(~vis_a, float("-inf")), k_a, dim=-1
@@ -212,6 +199,7 @@ def screen_pair(
         "event_frac": (event_count / t_total).cpu().numpy(),
         "unres_frac": (unres_count / t_total).cpu().numpy(),
         "n_samples": t_total,
+        "covisible_frac": (covisible_count / t_total).cpu().numpy(),
         "event_series": event_series.cpu().numpy() if collect_series else None,
         "unres_series": unres_series.cpu().numpy() if collect_series else None,
         "peak_mem_bytes": torch.cuda.max_memory_allocated() if dev == "cuda" else 0,
