@@ -48,11 +48,14 @@ def walker_delta(
     planes: int,
     sats_per_plane: int,
     phasing_f: int,
+    earth_radius_km: float = EARTH_RADIUS_KM,
 ) -> WalkerConstellation:
     """Generate a Walker-Delta i:T/P/F constellation.
 
     ``F`` is the relative phasing between adjacent planes: satellite ``j`` in
     plane ``p`` has argument of latitude ``360/sats_per_plane * j + 360*F/T * p``.
+    ``earth_radius_km`` sets the orbital radius ``a = earth_radius_km + altitude``
+    (the Gate-1 spherical-earth choice is 6371 km).
     """
     if planes <= 0 or sats_per_plane <= 0:
         raise ValueError("planes and sats_per_plane must be positive")
@@ -61,7 +64,7 @@ def walker_delta(
 
     total = planes * sats_per_plane
     inc = np.deg2rad(inclination_deg)
-    a = EARTH_RADIUS_KM + altitude_km
+    a = earth_radius_km + altitude_km
     n = mean_motion_rad_s(a)
 
     plane_index = np.repeat(np.arange(planes), sats_per_plane)
@@ -87,7 +90,7 @@ def walker_delta(
     )
 
 
-def from_shell(shell: Shell) -> WalkerConstellation:
+def from_shell(shell: Shell, earth_radius_km: float = EARTH_RADIUS_KM) -> WalkerConstellation:
     """Build a :class:`WalkerConstellation` from a config :class:`~ngsi.config.Shell`."""
     return walker_delta(
         altitude_km=shell.altitude_km,
@@ -95,4 +98,5 @@ def from_shell(shell: Shell) -> WalkerConstellation:
         planes=shell.planes,
         sats_per_plane=shell.sats_per_plane,
         phasing_f=shell.phasing_f,
+        earth_radius_km=earth_radius_km,
     )
