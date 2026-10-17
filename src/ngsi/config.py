@@ -22,22 +22,47 @@ class ConfigError(ValueError):
 
 @dataclass(frozen=True)
 class Beam:
-    """Antenna / downlink beam parameters for one satellite shell."""
+    """Antenna / downlink link parameters for one satellite shell.
+
+    ``peak_gain_dbi`` and ``beamwidth_deg`` drive the ITU-R S.1528 space-station
+    pattern; ``eirp_density_dbw_per_mhz``, ``freq_ghz``, ``bandwidth_mhz`` and
+    ``system_noise_temp_k`` drive the I/N and Delta T/T link budget
+    (:mod:`ngsi.interference`).
+    """
 
     peak_gain_dbi: float
     beamwidth_deg: float
     eirp_density_dbw_per_mhz: float
+    freq_ghz: float
+    bandwidth_mhz: float
+    system_noise_temp_k: float
     source: str
+
+    _REQUIRED = (
+        "peak_gain_dbi",
+        "beamwidth_deg",
+        "eirp_density_dbw_per_mhz",
+        "freq_ghz",
+        "bandwidth_mhz",
+        "system_noise_temp_k",
+        "source",
+    )
 
     @classmethod
     def from_dict(cls, d: dict[str, Any]) -> "Beam":
-        for key in ("peak_gain_dbi", "beamwidth_deg", "eirp_density_dbw_per_mhz", "source"):
+        for key in cls._REQUIRED:
             if key not in d:
                 raise ConfigError(f"beam missing required key {key!r}: {d!r}")
+        for key in ("beamwidth_deg", "freq_ghz", "bandwidth_mhz", "system_noise_temp_k"):
+            if float(d[key]) <= 0.0:
+                raise ConfigError(f"beam {key!r} must be positive: {d!r}")
         return cls(
             peak_gain_dbi=float(d["peak_gain_dbi"]),
             beamwidth_deg=float(d["beamwidth_deg"]),
             eirp_density_dbw_per_mhz=float(d["eirp_density_dbw_per_mhz"]),
+            freq_ghz=float(d["freq_ghz"]),
+            bandwidth_mhz=float(d["bandwidth_mhz"]),
+            system_noise_temp_k=float(d["system_noise_temp_k"]),
             source=str(d["source"]),
         )
 
@@ -197,6 +222,74 @@ def load_stations(path: str | Path) -> StationGrid:
     return StationGrid.from_dict(grid)
 
 
+def load_sanity_stations(path: str | Path) -> StationGrid:
+    """Load the optional ``sanity_symmetry_grid`` from ``stations.yaml``."""
+    data = _load_yaml(path)
+    grid = data.get("sanity_symmetry_grid")
+    if not isinstance(grid, dict):
+        raise ConfigError("stations.yaml must define a 'sanity_symmetry_grid' mapping")
+    return StationGrid.from_dict(grid)
+
+
 def load_experiment(path: str | Path) -> ExperimentConfig:
     """Load one file under ``configs/experiments/``."""
     return ExperimentConfig.from_dict(_load_yaml(path))
+
+
+@dataclass(frozen=True)
+class EarthModel:
+    """Earth shape used for station geometry and orbital radius bookkeeping."""
+
+    shape: str
+    radius_km: float
+    source: str
+
+    @classmethod
+    def from_dict(cls, d: dict[str, Any]) -> "EarthModel":
+        for key in ("shape", "radius_km", "source"):
+            if key not in d:
+                raise ConfigError(f"earth_model missing required key {key!r}: {d!r}")
+        if d["shape"] != "spherical":
+            raise ConfigError(
+                f"earth_model.shape must be 'spherical' for Gate 1 (got {d['shape']!r})"
+            )
+        if float(d["radius_km"]) <= 0.0:
+            raise ConfigError("earth_model.radius_km must be positive")
+        return cls(shape=str(d["shape"]), radius_km=float(d["radius_km"]), source=str(d["source"]))
+
+
+@dataclass(frozen=True)
+class SimulationConfig:
+    """Everything needed to propagate: the systems, the earth model, the epoch."""
+
+    systems: dict[str, Constellation]
+    earth: EarthModel
+    epoch_utc: str
+    epoch_source: str
+
+
+def load_simulation(path: str | Path) -> SimulationConfig:
+    """Load ``constellations.yaml`` systems plus the earth model and GMST epoch."""
+    data = _load_yaml(path)
+    entries = data.get("constellations")
+    if not isinstance(entries, list) or not entries:
+        raise ConfigError("constellations.yaml must define a non-empty 'constellations' list")
+    systems: dict[str, Constellation] = {}
+    for entry in entries:
+        con = Constellation.from_dict(entry)
+        if con.name in systems:
+            raise ConfigError(f"duplicate constellation name {con.name!r}")
+        systems[con.name] = con
+
+    earth_raw = data.get("earth_model")
+    if not isinstance(earth_raw, dict):
+        raise ConfigError("constellations.yaml must define an 'earth_model' mapping")
+    epoch_raw = data.get("epoch")
+    if not isinstance(epoch_raw, dict) or "utc" not in epoch_raw:
+        raise ConfigError("constellations.yaml must define an 'epoch' mapping with 'utc'")
+    return SimulationConfig(
+        systems=systems,
+        earth=EarthModel.from_dict(earth_raw),
+        epoch_utc=str(epoch_raw["utc"]),
+        epoch_source=str(epoch_raw.get("source", ASSUMED)),
+    )

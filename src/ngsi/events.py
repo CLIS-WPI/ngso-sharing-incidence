@@ -12,8 +12,15 @@ from __future__ import annotations
 import numpy as np
 from numpy.typing import NDArray
 
-# 47 CFR 25.261(d) / ITU-R S.1323 short-term Delta T/T criterion.
-DTT_THRESHOLD: float = 0.06
+from .constants import DTT_THRESHOLD  # single definition (AGENTS.md rule 6)
+
+__all__ = [
+    "DTT_THRESHOLD",
+    "is_inline",
+    "detect_inline_events",
+    "detect_dtt_events",
+    "detect_events",
+]
 
 
 def is_inline(separation_deg: float, inline_threshold_deg: float) -> bool:

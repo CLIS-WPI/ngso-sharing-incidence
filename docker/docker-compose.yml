@@ -1,5 +1,8 @@
 # Run with:  docker compose -f docker/docker-compose.yml <cmd>
 # Relative paths are resolved against this file's directory (docker/).
+# Project name is pinned so the container is `ngsi-dev-1` (not `docker-dev-1`)
+# and cannot collide with other compose projects on the host.
+name: ngsi
 services:
   dev:
     build:

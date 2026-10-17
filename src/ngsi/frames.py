@@ -6,6 +6,8 @@ All positions are in kilometres, all angles in degrees unless the name says
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 import numpy as np
 from numpy.typing import NDArray
 
@@ -96,5 +98,45 @@ def gmst_rad(jd_ut1: float) -> float:
 
 
 def eci_to_ecef(r_eci: NDArray[np.float64], gmst: float) -> NDArray[np.float64]:
-    """Rotate an ECI position (km) into the ECEF frame at sidereal time ``gmst``."""
-    return rotation_z(gmst) @ np.asarray(r_eci, dtype=np.float64)
+    """Rotate an ECI position (km) into the ECEF frame at sidereal time ``gmst``.
+
+    A point on the Greenwich meridian has ECI right ascension equal to GMST, so
+    ``r_ECI = Rz(gmst) r_ECEF`` and therefore ``r_ECEF = Rz(-gmst) r_ECI``.
+    """
+    return rotation_z(-gmst) @ np.asarray(r_eci, dtype=np.float64)
+
+
+def utc_to_jd(dt: datetime) -> float:
+    """Julian date (UT1~UTC) from a timezone-aware or naive UTC ``datetime``.
+    Uses the standard Gregorian algorithm; accurate to <1 s for 1900-2100.
+    A naive datetime is interpreted as UTC.
+    """
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    dt = dt.astimezone(timezone.utc)
+    y, m = dt.year, dt.month
+    d = dt.day
+    frac = (dt.hour + (dt.minute + (dt.second + dt.microsecond / 1e6) / 60.0) / 60.0) / 24.0
+    if m <= 2:
+        y -= 1
+        m += 12
+    a = y // 100
+    b = 2 - a + a // 4
+    jd0 = int(365.25 * (y + 4716)) + int(30.6001 * (m + 1)) + d + b - 1524.5
+    return float(jd0 + frac)
+
+
+def gmst_rad_series(jd_ut1: NDArray[np.float64] | float) -> NDArray[np.float64] | float:
+    """Vectorised Greenwich mean sidereal time (rad) for an array of Julian dates."""
+    jd = np.asarray(jd_ut1, dtype=np.float64)
+    t = (jd - 2451545.0) / 36525.0
+    gmst_deg = (
+        280.46061837
+        + 360.98564736629 * (jd - 2451545.0)
+        + 0.000387933 * t**2
+        - t**3 / 38710000.0
+    )
+    out = np.deg2rad(np.mod(gmst_deg, 360.0))
+    if np.isscalar(jd_ut1):
+        return float(out)
+    return out

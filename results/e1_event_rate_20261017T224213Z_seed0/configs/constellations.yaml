@@ -1,0 +1,132 @@
+# NGSO constellation parameters.
+#
+# RULE (AGENTS.md rule 2): every physical parameter MUST carry a `source:` that is
+# either a filing / literature reference or the literal string ASSUMED. Config
+# validation requires the key on every shell and every beam.
+#
+# A "system" is ALL shells of one operator. In-line events are only ever computed
+# BETWEEN different systems (never between shells of the same operator).
+#
+# Orbital parameters verified against:
+#   Starlink - Pachler, Mutter, Behar et al. 2021, "An Updated Comparison of Four
+#              LEO Satellite Constellation Systems", Table II (FCC-derived).
+#   Kuiper   - Amazon Kuiper FCC Technical Appendix, SAT-LOA-20190704-00057 (2019).
+#   OneWeb   - altitude/inclination: FCC DA-23-362; the 18x36 plane layout is
+#              UNVERIFIED (filings give 18x40 originally, or 12x49+8x16 revised),
+#              so it is tagged ASSUMED (from prompt).
+# No operator states a Walker phasing factor F; every F defaults to 1 (ASSUMED).
+#
+# Earth model: SPHERICAL, R = 6371 km, used for station positions, visibility caps
+# and orbital radius bookkeeping. This is a modelling choice, tagged ASSUMED.
+
+earth_model:
+  shape: spherical
+  radius_km: 6371.0
+  source: ASSUMED (spherical earth model specified in Phase-2 prompt)
+
+# Fixed GMST epoch for all propagation (store here so runs are reproducible).
+epoch:
+  utc: "2025-01-01T00:00:00Z"
+  source: ASSUMED (arbitrary fixed epoch; GMST computed from it)
+
+constellations:
+  # ------------------------------------------------------------------ Starlink
+  - name: STARLINK
+    operator: SpaceX
+    shells:
+      - name: STARLINK-s1-550-53
+        altitude_km: 550.0
+        inclination_deg: 53.0
+        planes: 72
+        sats_per_plane: 22
+        phasing_f: 1
+        source: Pachler et al. 2021 Table II (FCC-derived)
+        beam: &beam_starlink
+          peak_gain_dbi: 34.0
+          beamwidth_deg: 2.0
+          eirp_density_dbw_per_mhz: -18.0
+          source: ASSUMED
+      - name: STARLINK-s2-540-53
+        altitude_km: 540.0
+        inclination_deg: 53.2
+        planes: 72
+        sats_per_plane: 22
+        phasing_f: 1
+        source: Pachler et al. 2021 Table II (FCC-derived)
+        beam: *beam_starlink
+      - name: STARLINK-s3-570-70
+        altitude_km: 570.0
+        inclination_deg: 70.0
+        planes: 36
+        sats_per_plane: 20
+        phasing_f: 1
+        source: Pachler et al. 2021 Table II (FCC-derived)
+        beam: *beam_starlink
+      - name: STARLINK-s4-560-97-a
+        altitude_km: 560.0
+        inclination_deg: 97.6
+        planes: 6
+        sats_per_plane: 58
+        phasing_f: 1
+        source: Pachler et al. 2021 Table II (FCC Group 3; FCC-derived)
+        beam: *beam_starlink
+      - name: STARLINK-s4-560-97-b
+        altitude_km: 560.0
+        inclination_deg: 97.6
+        planes: 4
+        sats_per_plane: 43
+        phasing_f: 1
+        source: Pachler et al. 2021 Table II (FCC Group 5; FCC-derived)
+        beam: *beam_starlink
+
+  # -------------------------------------------------------------------- Kuiper
+  - name: KUIPER
+    operator: Amazon
+    shells:
+      - name: KUIPER-s1-630-51
+        altitude_km: 630.0
+        inclination_deg: 51.9
+        planes: 34
+        sats_per_plane: 34
+        phasing_f: 1
+        source: Kuiper FCC Technical Appendix 2019, SAT-LOA-20190704-00057
+        beam: &beam_kuiper
+          peak_gain_dbi: 33.0
+          beamwidth_deg: 2.2
+          eirp_density_dbw_per_mhz: -19.0
+          source: ASSUMED
+      - name: KUIPER-s2-610-42
+        altitude_km: 610.0
+        inclination_deg: 42.0
+        planes: 36
+        sats_per_plane: 36
+        phasing_f: 1
+        source: Kuiper FCC Technical Appendix 2019, SAT-LOA-20190704-00057
+        beam: *beam_kuiper
+      - name: KUIPER-s3-590-33
+        altitude_km: 590.0
+        inclination_deg: 33.0
+        planes: 28
+        sats_per_plane: 28
+        phasing_f: 1
+        source: Kuiper FCC Technical Appendix 2019, SAT-LOA-20190704-00057
+        beam: *beam_kuiper
+
+  # -------------------------------------------------------------------- OneWeb
+  - name: ONEWEB
+    operator: Eutelsat OneWeb
+    shells:
+      - name: ONEWEB-s1-1200-87
+        altitude_km: 1200.0
+        inclination_deg: 87.9
+        planes: 18
+        sats_per_plane: 36
+        phasing_f: 1
+        source: >-
+          ASSUMED (from prompt); altitude/inclination per FCC DA-23-362, but the
+          18x36 plane layout is UNVERIFIED (filings give 18x40 or 12x49+8x16)
+        beam:
+          peak_gain_dbi: 30.0
+          beamwidth_deg: 3.0
+          eirp_density_dbw_per_mhz: -20.0
+          source: ASSUMED

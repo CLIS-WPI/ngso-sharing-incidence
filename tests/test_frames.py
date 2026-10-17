@@ -46,9 +46,11 @@ def test_eci_to_ecef_identity_at_zero_gmst() -> None:
 
 
 def test_eci_to_ecef_quarter_turn() -> None:
+    # At GMST = 90 deg the Greenwich meridian is at ECI RA = 90 deg, so a point on
+    # the ECI x-axis (RA = 0) sits at ECEF longitude -90 deg: [0, -7000, 0].
     r = np.array([7000.0, 0.0, 0.0])
     out = eci_to_ecef(r, np.pi / 2.0)
-    assert np.allclose(out, [0.0, 7000.0, 0.0], atol=1e-6)
+    assert np.allclose(out, [0.0, -7000.0, 0.0], atol=1e-6)
 
 
 def test_gmst_is_bounded() -> None:

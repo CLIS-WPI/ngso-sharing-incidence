@@ -44,3 +44,24 @@ def test_angular_separation_orthogonal_is_90() -> None:
 def test_visibility_mask() -> None:
     assert is_visible(30.0, 25.0)
     assert not is_visible(10.0, 25.0)
+
+
+def test_angular_separation_small_angles_atan2() -> None:
+    # Two unit vectors at a known small separation; atan2 form must recover it.
+    st = np.array([7000.0, 0.0, 0.0])
+    for theta_deg in (0.1, 1.0, 5.0):
+        th = np.deg2rad(theta_deg)
+        a = st + np.array([0.0, 0.0, 100.0])
+        b = st + 100.0 * np.array([0.0, np.sin(th), np.cos(th)])
+        assert abs(angular_separation_deg(a, b, st) - theta_deg) < 1e-6
+
+
+def test_angular_separation_batch_matches_known_angle() -> None:
+    import torch
+
+    from ngsi.geometry import angular_separation_batch
+
+    th = np.deg2rad(2.0)
+    u = torch.tensor([[1.0, 0.0, 0.0]], dtype=torch.float64)
+    v = torch.tensor([[np.cos(th), np.sin(th), 0.0]], dtype=torch.float64)
+    np.testing.assert_allclose(float(angular_separation_batch(u, v)[0]), 2.0, atol=1e-9)
