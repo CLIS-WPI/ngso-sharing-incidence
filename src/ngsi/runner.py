@@ -25,15 +25,18 @@ from .config import (
     ExperimentConfig,
     StationGrid,
     load_experiment,
+    load_link_budget,
     load_sanity_stations,
     load_simulation,
     load_stations,
 )
+from .link_budget import terminal_peak_gain_dbi
 from .frames import utc_to_jd
 from .geometry import station_ecef_spherical
 from .io import new_run_dir
 from .rules import BAND_SPLIT_FRACTION
 from .sanity import analytic_density_per_deg, analytic_visible_count, max_relative_deviation
+from .dtt_screen import screen_pair_dtt
 from .screening import ScreenConfig, screen_pair, system_visibility
 from .systems import build_system
 
@@ -764,6 +767,7 @@ def run_e3(
     """Run E3 (capacity-limited satellite diversity over regional cell grids)."""
     sim, exp, grid_cfg, grid, sanity_grid = _load_inputs(exp_path, repo_root)
     bands = load_bands(repo_root / "configs" / "bands.yaml")
+    lb = load_link_budget(repo_root / "configs" / "link_budget.yaml")
     udl_pairs = co_frequency_pairs(exp.constellations, bands, "user_downlink")
     p = exp.params
     n_ph = int(n_phasings if n_phasings is not None else p.get("n_phasings", 8))
@@ -774,9 +778,9 @@ def run_e3(
     region_size = float(p.get("region_size_km", 1000.0))
     spacing = float(p.get("cell_spacing_km", 20.0))
     lat_centers = [float(x) for x in p.get("lat_center_deg", [0, 10, 20, 30, 40, 50, 60])]
+    meridians = [float(x) for x in p.get("meridians_deg", [0, 90, 180, 270])]
     n_beams = [int(x) for x in p.get("n_beam_sweep", [8, 16, 32])]
-    theta = float(p.get("theta_deg", 2.0))
-    n_rank = int(p.get("n_rank", 4))
+    n_rank = int(p.get("n_rank", 6))
     device = device_str()
     radius = sim.earth.radius_km
     jd = epoch_jd(sim)
@@ -785,6 +789,7 @@ def run_e3(
         results_root, exp.name, exp.seed,
         config_paths=[exp_path, repo_root / "configs" / "constellations.yaml",
                       repo_root / "configs" / "bands.yaml",
+                      repo_root / "configs" / "link_budget.yaml",
                       repo_root / "configs" / exp.stations],
         repo_root=repo_root,
     )
@@ -800,9 +805,16 @@ def run_e3(
         raise SystemExit(f"[e3] sanity gate FAILED: {reasons}")
 
     times = np.arange(0.0, dur, dt)
+    # Four meridians per latitude, concatenated into one cell grid (Phase 3a).
     cells = {}
     for la in lat_centers:
-        ecef, up = regional_grid(la, 0.0, region_size, spacing, radius)
+        ecefs, ups = [], []
+        for lon in meridians:
+            ce, cu = regional_grid(la, lon, region_size, spacing, radius)
+            ecefs.append(ce)
+            ups.append(cu)
+        ecef = np.concatenate(ecefs, axis=0)
+        up = np.concatenate(ups, axis=0)
         cells[la] = (torch.as_tensor(ecef, dtype=torch.float64, device=device),
                      torch.as_tensor(up, dtype=torch.float64, device=device))
     rows = []
@@ -812,25 +824,31 @@ def run_e3(
         for a, b in udl_pairs:
             meta = {"link_type": "user_downlink",
                     "shared_freq_ghz": overlap(bands[a], bands[b], "user_downlink").center_ghz}
+            freq = float(meta["shared_freq_ghz"])
+            rx_peak = terminal_peak_gain_dbi(lb.diameter_m, freq, lb.aperture_efficiency)
+            victim_beam = systems[a].shells[0].beam
+            interf_beam = systems[b].shells[0].beam
             for la in lat_centers:
                 ce, cu = cells[la]
                 for nb in n_beams:
                     r = capacity_limited_unresolvable(
                         systems[a], systems[b], ce, cu, times, jd, radius, nb,
-                        theta_deg=theta, min_elevation_deg=min_el, device=device,
-                        chunk=chunk, n_rank=n_rank,
+                        victim_beam=victim_beam, interf_beam=interf_beam, freq_ghz=freq,
+                        rx_peak_gain_dbi=rx_peak, rx_diameter_m=lb.diameter_m,
+                        min_elevation_deg=min_el, device=device, chunk=chunk, n_rank=n_rank,
+                        pattern=lb.pattern,
                     )
                     rows.append(
                         {"phasing": pi, "system_a": a, "system_b": b,
                          "link_type": meta["link_type"], "shared_freq_ghz": meta["shared_freq_ghz"],
-                         "n_beam": nb, "theta_deg": theta, "latitude_deg": float(la), **r}
+                         "n_beam": nb, "latitude_deg": float(la), **r}
                     )
     df = pd.DataFrame(rows)
     df.to_parquet(run_dir / "raw_capacity_diversity.parquet", index=False)
     summ = summarise(
-        df, ("unres_cell_frac", "event_cell_frac", "served_frac"),
-        ["system_a", "system_b", "link_type", "shared_freq_ghz", "n_beam", "theta_deg",
-         "latitude_deg"],
+        df, ("event_cell_frac", "unres_cell_frac", "served_frac",
+             "event_per_served", "unres_per_served"),
+        ["system_a", "system_b", "link_type", "shared_freq_ghz", "n_beam", "latitude_deg"],
     )
     summ.to_csv(run_dir / "summary_capacity_diversity.csv", index=False)
 
@@ -838,6 +856,130 @@ def run_e3(
                 {"experiment": exp.name, "status": "ok", "n_phasings": n_ph, "time_step_s": dt,
                  "duration_s": dur, "min_elevation_deg": min_el, "device": device,
                  "region_size_km": region_size, "cell_spacing_km": spacing,
-                 "lat_center_deg": lat_centers, "n_beam_sweep": n_beams, "theta_deg": theta,
-                 "n_rank": n_rank, "user_downlink_pairs": [list(q) for q in udl_pairs]})
+                 "lat_center_deg": lat_centers, "meridians_deg": meridians,
+                 "n_beam_sweep": n_beams, "n_rank": n_rank, "dtt_threshold": 0.06,
+                 "user_terminal_diameter_m": lb.diameter_m,
+                 "user_downlink_pairs": [list(q) for q in udl_pairs]})
+    return run_dir
+
+
+def run_e4(
+    exp_path: Path,
+    results_root: Path,
+    repo_root: Path = REPO_ROOT,
+    n_phasings: int | None = None,
+    time_step_s: float | None = None,
+    duration_s: float | None = None,
+) -> Path:
+    """Run E4 (47 CFR 25.261(d) Delta T/T screening + throughput degradation).
+
+    The geometric theta proxy stays in E1/E2 as the secondary comparison; this
+    experiment uses the regulatory power criterion for every co-frequency
+    user-downlink pair and sweeps the ASSUMED terminal aperture.
+    """
+    sim, exp, grid_cfg, grid, sanity_grid = _load_inputs(exp_path, repo_root)
+    bands = load_bands(repo_root / "configs" / "bands.yaml")
+    lb = load_link_budget(repo_root / "configs" / "link_budget.yaml")
+    udl_pairs = co_frequency_pairs(exp.constellations, bands, "user_downlink")
+    p = exp.params
+    n_ph = int(n_phasings if n_phasings is not None else p.get("n_phasings", 8))
+    dt = float(time_step_s if time_step_s is not None else p.get("time_step_s", 10.0))
+    dur = float(duration_s if duration_s is not None else p.get("duration_s", 86400.0))
+    min_el = float(grid_cfg.min_elevation_deg)
+    chunk = int(p.get("chunk", 64))
+    device = device_str()
+    radius = sim.earth.radius_km
+    jd = epoch_jd(sim)
+
+    run_dir = new_run_dir(
+        results_root, exp.name, exp.seed,
+        config_paths=[exp_path, repo_root / "configs" / "constellations.yaml",
+                      repo_root / "configs" / "bands.yaml",
+                      repo_root / "configs" / "link_budget.yaml",
+                      repo_root / "configs" / exp.stations],
+        repo_root=repo_root,
+    )
+    _band_overlap_table(exp.constellations, bands).to_csv(
+        run_dir / "summary_band_overlap.csv", index=False
+    )
+    checks = run_sanity(sim, exp, grid, sanity_grid, dt, dur, min_el, device, chunk=chunk)
+    _write_json(run_dir, "sanity.json", checks)
+    ok, reasons = _sanity_ok(checks)
+    if not ok:
+        _write_json(run_dir, "status.json", {"experiment": exp.name, "status": "sanity_failed",
+                                             "reasons": reasons})
+        raise SystemExit(f"[e4] sanity gate FAILED: {reasons}")
+
+    times = np.arange(0.0, dur, dt)
+    cfg = ScreenConfig(min_elevation_deg=min_el, earth_radius_km=radius, epoch_jd=jd,
+                       thetas_deg=(2.0,), chunk=chunk, device=device)
+    rows = []
+    for pi in range(n_ph):
+        rng = np.random.default_rng(exp.seed + 137 * pi)
+        systems = _phase_systems(sim, exp.constellations, rng, radius)
+        vis = {n: system_visibility(systems[n], grid.ecef, grid.up, times, cfg,
+                                    np.arange(-90.0, 90.0 + 1e-9, 5.0))
+               for n in exp.constellations}
+        for a, b in udl_pairs:
+            ov = overlap(bands[a], bands[b], "user_downlink")
+            freq = float(ov.center_ghz)
+            victim_beam = systems[a].shells[0].beam
+            interf_beam = systems[b].shells[0].beam
+            for diam in lb.diameter_sweep_m:
+                rx_peak = terminal_peak_gain_dbi(diam, freq, lb.aperture_efficiency)
+                res = screen_pair_dtt(
+                    systems[a], systems[b], vis[a]["max_visible"], vis[b]["max_visible"],
+                    grid.ecef, grid.up, times, victim_beam, interf_beam, freq, rx_peak, diam,
+                    lb.implementation_margin_db, min_el, radius, jd, device=device, chunk=chunk,
+                    pattern=lb.pattern,
+                )
+                for vi in (0, 1):
+                    unavail_int = (res["unavail_nodiv_worst_frac"] if vi == 0
+                                   else res["unavail_nodiv_colo_frac"])
+                    for gi in range(grid.ecef.shape[0]):
+                        r0 = res["r0_mean"][gi]
+                        r1i = res["r_int_mean"][vi][gi]
+                        r1d = res["r_div_mean"][vi][gi]
+                        rows.append(
+                            {"phasing": pi, "system_a": a, "system_b": b,
+                             "link_type": "user_downlink", "shared_freq_ghz": freq,
+                             "diameter_m": float(diam), "rx_peak_gain_dbi": rx_peak,
+                             "variant": vi, "latitude_deg": float(grid.latitudes[gi]),
+                             "longitude_deg": float(grid.longitudes[gi]),
+                             "event_frac": float(res["event_frac"][vi, gi]),
+                             "unres_frac": float(res["unres_frac"][vi, gi]),
+                             "served_frac": float(res["served_frac"][gi]),
+                             "cn0_mean": float(res["cn0_mean"][gi]),
+                             "dtt_mean": float(res["dtt_colo_mean"][gi] if vi == 1
+                                               else res["dtt_worst_mean"][gi]),
+                             "r0_mean": float(r0), "r_int_mean": float(r1i),
+                             "r_div_mean": float(r1d),
+                             "degradation_nodiv": 1.0 - float(r1i) / float(r0) if r0 else np.nan,
+                             "degradation_div": 1.0 - float(r1d) / float(r0) if r0 else np.nan,
+                             "unavail0_frac": float(res["unavail0_frac"][gi]),
+                             "unavail_int_frac": float(unavail_int[gi])}
+                        )
+    df = pd.DataFrame(rows)
+    df.to_parquet(run_dir / "raw_dtt.parquet", index=False)
+    keys = ["system_a", "system_b", "link_type", "shared_freq_ghz", "diameter_m", "variant",
+            "latitude_deg"]
+    summ = summarise(
+        df, ("event_frac", "unres_frac", "served_frac", "cn0_mean", "dtt_mean",
+             "degradation_nodiv", "degradation_div", "unavail0_frac", "unavail_int_frac"),
+        keys,
+    )
+    summ.to_csv(run_dir / "summary_dtt.csv", index=False)
+
+    thr = summ[["system_a", "system_b", "diameter_m", "variant", "latitude_deg",
+                "degradation_nodiv_mean", "degradation_nodiv_ci95",
+                "degradation_div_mean", "degradation_div_ci95",
+                "unavail0_frac_mean", "unavail_int_frac_mean"]]
+    thr.to_csv(run_dir / "summary_throughput.csv", index=False)
+
+    _write_json(run_dir, "status.json",
+                {"experiment": exp.name, "status": "ok", "n_phasings": n_ph, "time_step_s": dt,
+                 "duration_s": dur, "min_elevation_deg": min_el, "device": device,
+                 "dtt_threshold": 0.06, "diameter_sweep_m": lb.diameter_sweep_m,
+                 "pattern": lb.pattern, "implementation_margin_db": lb.implementation_margin_db,
+                 "user_downlink_pairs": [list(q) for q in udl_pairs]})
     return run_dir

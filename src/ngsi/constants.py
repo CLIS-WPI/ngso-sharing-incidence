@@ -12,6 +12,9 @@ import numpy as np
 # 47 CFR 25.261(d) / ITU-R S.1323 short-term Delta T/T criterion.
 DTT_THRESHOLD: float = 0.06
 
+# Equivalent single-entry I/N threshold (dB), derived so the two cannot drift.
+IN_THRESHOLD_DB: float = float(10.0 * np.log10(DTT_THRESHOLD))
+
 # 47 CFR 25.261(d) long-term criterion and its permitted exceedance fraction.
 DTT_LONG_TERM: float = 0.03
 LONG_TERM_EXCEEDANCE_FRACTION: float = 0.004

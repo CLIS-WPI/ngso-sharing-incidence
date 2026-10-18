@@ -18,16 +18,24 @@ hard-coded):
   victim satellite.  Each victim satellite grants at most ``n_beam`` requests,
   keeping the highest-elevation requests (greedy by elevation).  A cell whose
   request is not granted is *unserved*.
-* An **event** is a served cell whose requested victim satellite is within
-  ``theta`` of the interferer's serving satellite at the same cell (co-located
-  variant).
-* The event is **resolvable** when some other visible victim satellite is at
-  least ``theta`` from the interferer *and* that satellite still has a free beam
-  (spare capacity after the primary grants).  Otherwise it is **unresolvable**:
-  the cell loses service for the duration of the in-line geometry.
+* An **event** is a served cell whose aggregate ``Delta T/T`` from the
+  interferer's serving satellite exceeds the 47 CFR 25.261(d) threshold
+  (co-located variant: the interferer serves the same cell).
+* The event is **resolvable** when some other visible victim satellite keeps
+  ``Delta T/T`` below the threshold *and* still has a free beam after the primary
+  grants.  Rescue **sequentially depletes** spare beams: a satellite that rescues
+  one cell has one fewer free beam for the next.  Otherwise the event is
+  **unresolvable**: the cell loses service for the duration of the in-line
+  geometry.
 
-Rescue does not sequentially deplete spare beams (a cell that rescues does not
-reduce another cell's spare) -- an optimistic bias noted in the report.
+The returned fractions exist on two denominators, both reported so the two
+effects cannot be confused (a larger ``n_beam`` serves more cells, so an absolute
+cell-time fraction can rise even as the conditional risk falls):
+
+* ``*_cell_frac`` uses every cell-time sample (numerator/denominator tilted by
+  service coverage);
+* ``*_per_served`` uses only served cell-time samples (conditional on a cell
+  being served at all).
 """
 
 from __future__ import annotations
@@ -35,9 +43,13 @@ from __future__ import annotations
 import numpy as np
 import torch
 
+from .constants import DTT_THRESHOLD
 from .geometry import angular_separation_batch, elevation_deg_batch, unit_look_vectors
+from .link_budget import noise_power_dbw_per_mhz, pattern_gain_batch
 from .propagation import propagate_ecef
 from .systems import SystemModel
+
+LIGHT_SPEED_M_S = 299792458.0
 
 
 def regional_grid(
@@ -109,6 +121,58 @@ def served_under_capacity(
     return served, granted, spare
 
 
+def _fspl_db(dist_km: torch.Tensor, freq_ghz: float) -> torch.Tensor:
+    lam = LIGHT_SPEED_M_S / (freq_ghz * 1e9)
+    return 20.0 * torch.log10(4.0 * np.pi * (dist_km * 1e3) / lam)
+
+
+def rescue_with_depletion(
+    event: torch.Tensor,
+    dtt_cand: torch.Tensor,
+    vis_ka: torch.Tensor,
+    ia: torch.Tensor,
+    va: torch.Tensor,
+    spare: torch.Tensor,
+    threshold: float,
+) -> torch.Tensor:
+    """Greedily rescue event cells, depleting one spare beam per rescue.
+
+    ``event`` ``[T,G]``; ``dtt_cand``/``vis_ka``/``va`` are ``[T,G,k]`` (candidate
+    ``Delta T/T``, visibility, elevation by rank); ``ia`` ``[T,G,k]`` candidate
+    satellite index; ``spare`` ``[T,S]``.  Within each time step the event cells
+    are processed in descending serving elevation; each takes its best candidate
+    satellite (highest elevation) that keeps ``Delta T/T`` at or below the
+    threshold **and still has a free beam**, consuming one spare beam.  Events are
+    sparse, so the exact greedy runs on CPU.  Returns the rescued mask ``[T,G]``.
+    """
+    t, g = event.shape
+    k = dtt_cand.shape[-1]
+    ev = event.detach().cpu().numpy()
+    ok = ((dtt_cand <= threshold) & vis_ka).detach().cpu().numpy()
+    ian = ia.detach().cpu().numpy()
+    van = np.where(np.isfinite(va.detach().cpu().numpy()), va.detach().cpu().numpy(), -np.inf)
+    sp = spare.detach().cpu().numpy().astype(np.float64, copy=True)
+    rescued = np.zeros((t, g), dtype=bool)
+    for ti in range(t):
+        cells = np.flatnonzero(ev[ti])
+        if cells.size == 0:
+            continue
+        for c in cells[np.argsort(-van[ti, cells, 0])]:
+            best_r, best_e = -1, -np.inf
+            for r in range(1, k):
+                if not ok[ti, c, r]:
+                    continue
+                s = int(ian[ti, c, r])
+                if sp[ti, s] <= 0:
+                    continue
+                if van[ti, c, r] > best_e:
+                    best_e, best_r = van[ti, c, r], r
+            if best_r >= 0:
+                sp[ti, int(ian[ti, c, best_r])] -= 1.0
+                rescued[ti, c] = True
+    return torch.from_numpy(rescued).to(event.device)
+
+
 def capacity_limited_unresolvable(
     victim: SystemModel,
     interferer: SystemModel,
@@ -118,29 +182,45 @@ def capacity_limited_unresolvable(
     epoch_jd: float,
     earth_radius_km: float,
     n_beam: int,
-    theta_deg: float = 2.0,
+    victim_beam,
+    interf_beam,
+    freq_ghz: float,
+    rx_peak_gain_dbi: float,
+    rx_diameter_m: float,
     min_elevation_deg: float = 25.0,
     device: str = "cuda",
     chunk: int = 16,
     n_rank: int = 4,
+    pattern: str = "S1428",
 ) -> dict:
-    """Cell-time fractions of event / served / unresolvable under beam capacity."""
+    """Cell-time event / served / unresolvable fractions under beam capacity.
+
+    Events use the 25.261(d) ``Delta T/T`` criterion (co-located variant).  Rescue
+    depletes spare beams sequentially.  See the module docstring for the two
+    denominators.
+    """
     g = cells_ecef.shape[0]
     t_total = len(times)
     k = min(int(n_rank), victim.n_sats)
-    theta = torch.tensor(theta_deg, dtype=torch.float64, device=device)
-    eye = torch.arange(k, device=device)
+    n_sats = victim.n_sats
+    noise_v = noise_power_dbw_per_mhz(victim_beam.system_noise_temp_k)
 
-    event_tot = 0.0
-    unres_tot = 0.0
-    served_tot = 0.0
+    event_tot = torch.zeros((), dtype=torch.float64, device=device)
+    unres_tot = torch.zeros((), dtype=torch.float64, device=device)
+    served_tot = torch.zeros((), dtype=torch.float64, device=device)
+
+    def _dtt(off_axis, dist):
+        g_rx = pattern_gain_batch(off_axis, rx_peak_gain_dbi, rx_diameter_m, freq_ghz, pattern)
+        i_over_n = interf_beam.eirp_density_dbw_per_mhz + g_rx - _fspl_db(dist, freq_ghz) - noise_v
+        return 10.0 ** (i_over_n / 10.0)
+
     for s in range(0, t_total, chunk):
         e = min(s + chunk, t_total)
         tc = times[s:e]
         pa = propagate_ecef(victim.elements, tc, epoch_jd, earth_radius_km, device)
         pb = propagate_ecef(interferer.elements, tc, epoch_jd, earth_radius_km, device)
-        ua, _ = unit_look_vectors(pa, cells_ecef)  # [Tc,G,Sa,3]
-        ub, _ = unit_look_vectors(pb, cells_ecef)  # [Tc,G,Sb,3]
+        ua, da = unit_look_vectors(pa, cells_ecef)  # [Tc,G,Sa,3], [Tc,G,Sa]
+        ub, db = unit_look_vectors(pb, cells_ecef)
         elev_a = elevation_deg_batch(ua, cells_up)
         vis_a = elev_a >= min_elevation_deg
         va, ia = torch.topk(elev_a.masked_fill(~vis_a, float("-inf")), k, dim=-1)
@@ -151,33 +231,43 @@ def capacity_limited_unresolvable(
         vb, ib = torch.topk(elev_b.masked_fill(~vis_b, float("-inf")), 1, dim=-1)
         has_b = vb[..., 0] >= min_elevation_deg
         ub0 = torch.gather(ub, 2, ib.unsqueeze(-1).expand(-1, -1, -1, 3)).squeeze(2)  # [Tc,G,3]
+        dist_b0 = torch.gather(db, 2, ib)[..., 0]  # [Tc,G]
 
         elev_best = va[..., 0]
         sat_best = ia[..., 0]
         visible = vis_ka[..., 0]
         served, _granted, spare = served_under_capacity(
-            elev_best, sat_best, visible, n_beam, victim.n_sats
+            elev_best, sat_best, visible, n_beam, n_sats
         )
 
         ua_k = torch.gather(ua, 2, ia.unsqueeze(-1).expand(-1, -1, -1, 3))  # [Tc,G,k,3]
+        dist_a_k = torch.gather(da, 2, ia)  # [Tc,G,k]
         serving_a = ua_k[..., 0, :]
-        sep0 = angular_separation_batch(serving_a, ub0)  # [Tc,G]
-        event = served & has_b & (sep0 < theta)
+        sep0 = angular_separation_batch(serving_a, ub0)
+        event = served & has_b & (_dtt(sep0, dist_b0) > DTT_THRESHOLD)
 
+        # Rescue: try candidate ranks 1..k-1 in order; each rescuing satellite
+        # accepts at most one cell per round and has one fewer spare thereafter.
         seps = angular_separation_batch(ua_k, ub0.unsqueeze(2))  # [Tc,G,k]
-        spare_r = spare.gather(1, ia.reshape(e - s, -1)).reshape(e - s, g, k)
-        cand = vis_ka & (eye.reshape(1, 1, -1) != 0)
-        rescuable = (cand & (seps >= theta) & (spare_r > 0)).any(-1)
-        unres = event & ~rescuable
+        dtt_cand = _dtt(seps, dist_a_k)  # [Tc,G,k]
+        rescued = rescue_with_depletion(event, dtt_cand, vis_ka, ia, va, spare, DTT_THRESHOLD)
+        unres = event & ~rescued
 
-        event_tot += float(event.sum())
-        unres_tot += float(unres.sum())
-        served_tot += float(served.sum())
+        event_tot += event.sum().to(torch.float64)
+        unres_tot += unres.sum().to(torch.float64)
+        served_tot += served.sum().to(torch.float64)
 
     n = t_total * g
+    ev = float(event_tot)
+    un = float(unres_tot)
+    sv = float(served_tot)
     return {
-        "unres_cell_frac": unres_tot / n,
-        "event_cell_frac": event_tot / n,
-        "served_frac": served_tot / n,
+        "event_cell_frac": ev / n,
+        "unres_cell_frac": un / n,
+        "served_frac": sv / n,
+        "event_per_served": ev / sv if sv else float("nan"),
+        "unres_per_served": un / sv if sv else float("nan"),
+        "unres_no_div_per_served": ev / sv if sv else float("nan"),
         "n_cell_samples": int(n),
+        "n_served_samples": int(sv),
     }

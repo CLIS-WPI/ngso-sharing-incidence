@@ -149,8 +149,10 @@ Traceability: every number below is read from `results/` by
   {st1['n_phasings']} independent phasings. Half-angles theta = {st1['thetas_deg']} deg.
 - E3 grid: regional hex cell lattices ({st3['region_size_km']:.0f} x {st3['region_size_km']:.0f} km,
   {st3['cell_spacing_km']:.0f} km spacing) at latitudes {st3['lat_center_deg']} deg,
-  beam sweep N_beam = {st3['n_beam_sweep']}, theta = {st3['theta_deg']} deg,
-  {st3['time_step_s']} s over {st3['duration_s']:.0f} s, {st3['n_phasings']} phasings.
+  meridians {st3.get('meridians_deg')} deg, beam sweep N_beam = {st3['n_beam_sweep']},
+  Delta T/T criterion, {st3['time_step_s']} s over {st3['duration_s']:.0f} s,
+  {st3['n_phasings']} phasings. (See `results/PHASE3A_REPORT.md` for the Phase 3a
+  re-analysis: both cell-time denominators and beam-depleting rescue.)
 
 ## 2. Frequency bands and co-frequency pairs
 
@@ -278,9 +280,9 @@ diversity pool (mean and p10 visible satellites) is reported per latitude in
 ## 8. E3 - capacity-limited diversity (regional cell grids)
 
 Each victim satellite grants at most N_beam cell requests, greedy by elevation; an
-event is resolvable only when another visible victim satellite is at least theta away
-**and** has a free beam (optimistic: rescue does not deplete spare beams). STARLINK
-<- ONEWEB, theta = 2 deg, co-located. **Unresolvable cell-time fraction** vs latitude
+event is resolvable only when another visible victim satellite keeps Delta T/T at or
+below the 25.261(d) threshold **and** has a free beam, with rescue depleting one beam per
+cell (Phase 3a). **Unresolvable cell-time fraction** (over all cell-time) vs latitude
 and N_beam:
 
 {md_table(cap_unres)}
@@ -290,12 +292,12 @@ Resulting **fraction of cells served** (capacity limit):
 {md_table(cap_serv)}
 
 Reading: with unlimited diversity the unresolvable fraction was exactly
-{cap_unlim:.4g}. Under beam capacity it becomes non-zero: the maximum is
-{cap_max:.4g} at latitude {cap_max_row['latitude_deg']:.0f} deg, N_beam =
+{cap_unlim:.4g}. Under beam capacity it becomes non-zero: the maximum (over all
+cell-time) is {cap_max:.4g} at latitude {cap_max_row['latitude_deg']:.0f} deg, N_beam =
 {int(cap_max_row['n_beam'])}, where only {cap_max_row['served_frac_mean']:.0%} of cells
-are served. The burden is capacity-induced, grows with N_beam (more cells served ->
-more cells exposed to in-line geometry), and peaks near 50 deg rather than at the
-highest latitude.
+are served. The absolute burden is capacity-induced and grows with N_beam because more
+cells are served; the conditional burden per served cell-time falls with N_beam (Phase 3a
+denominator split). See `results/PHASE3A_REPORT.md` Section 2.
 
 ## 9. Revised Gate 1 verdict
 

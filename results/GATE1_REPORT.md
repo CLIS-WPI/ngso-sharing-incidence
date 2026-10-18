@@ -6,10 +6,10 @@ Traceability: every number below is read from `results/` by
 
 ## 1. Provenance
 
-- Branch `phase-2b-gate1-fix`, E1 commit `7ef73dad9b12ff5fc70461a8ee6f9ba083baa726`.
-- E1 run: `results/e1_event_rate_20261018T000250Z_seed0` (seed 0, 20261018T000250Z).
-- E2 run: `results/e2_diversity_20261018T000624Z_seed0` (seed 0, 20261018T000624Z).
-- E3 run: `results/e3_capacity_diversity_20261018T001333Z_seed0` (seed 0, 20261018T001333Z).
+- Branch `phase-2b-gate1-fix`, E1 commit `6ca7d0dc2a49a951e721820007e9a1410e7be1ad`.
+- E1 run: `results/e1_event_rate_20261018T012116Z_seed0` (seed 0, 20261018T012116Z).
+- E2 run: `results/e2_diversity_20261018T012230Z_seed0` (seed 0, 20261018T012230Z).
+- E3 run: `results/e3_capacity_diversity_20261018T012933Z_seed0` (seed 0, 20261018T012933Z).
 - Device: `cuda`; single GPU 0 (compose pins GPU 0).
 - Earth model: **spherical**, R = 6371 km (`configs/constellations.yaml`,
   `earth_model.source: ASSUMED`). Epoch `2025-01-01T00:00:00Z`.
@@ -21,8 +21,10 @@ Traceability: every number below is read from `results/` by
   8 independent phasings. Half-angles theta = [1.0, 2.0, 5.0] deg.
 - E3 grid: regional hex cell lattices (1000 x 1000 km,
   20 km spacing) at latitudes [0.0, 10.0, 20.0, 30.0, 40.0, 50.0, 60.0] deg,
-  beam sweep N_beam = [8, 16, 32], theta = 2.0 deg,
-  60.0 s over 86400 s, 8 phasings.
+  meridians [0.0, 90.0, 180.0, 270.0] deg, beam sweep N_beam = [8, 16, 32],
+  Delta T/T criterion, 60.0 s over 86400 s,
+  8 phasings. (See `results/PHASE3A_REPORT.md` for the Phase 3a
+  re-analysis: both cell-time denominators and beam-depleting rescue.)
 
 ## 2. Frequency bands and co-frequency pairs
 
@@ -72,7 +74,7 @@ beamwidths (Starlink derived), all system noise temperatures, every Walker F (=1
 and all E3 capacity/geometry parameters. Gate-1/E2 events are geometric and do not
 consume beam parameters; E3 consumes only N_beam (ASSUMED).
 
-## 4. Sanity gate (results in `e1_event_rate_20261018T000250Z_seed0/sanity.json`)
+## 4. Sanity gate (results in `e1_event_rate_20261018T012116Z_seed0/sanity.json`)
 
 Sub-satellite latitude density max relative deviation:
 
@@ -272,20 +274,20 @@ diversity pool (mean and p10 visible satellites) is reported per latitude in
 ## 8. E3 - capacity-limited diversity (regional cell grids)
 
 Each victim satellite grants at most N_beam cell requests, greedy by elevation; an
-event is resolvable only when another visible victim satellite is at least theta away
-**and** has a free beam (optimistic: rescue does not deplete spare beams). STARLINK
-<- ONEWEB, theta = 2 deg, co-located. **Unresolvable cell-time fraction** vs latitude
+event is resolvable only when another visible victim satellite keeps Delta T/T at or
+below the 25.261(d) threshold **and** has a free beam, with rescue depleting one beam per
+cell (Phase 3a). **Unresolvable cell-time fraction** (over all cell-time) vs latitude
 and N_beam:
 
 | lat | 8 | 16 | 32 |
 | --- | --- | --- | --- |
-| 0 | 6e-05 | 0.00011 | 0.00018 |
-| 10 | 6e-05 | 0.00011 | 0.00017 |
-| 20 | 7e-05 | 0.00013 | 0.00021 |
-| 30 | 8e-05 | 0.00016 | 0.00026 |
-| 40 | 0.00014 | 0.00025 | 0.00042 |
-| 50 | 0.00032 | 0.0006 | 0.00099 |
-| 60 | 3e-05 | 6e-05 | 0.00012 |
+| 0 | 0 | 0 | 0 |
+| 10 | 0 | 0 | 0 |
+| 20 | 0 | 0 | 0 |
+| 30 | 0 | 0 | 0 |
+| 40 | 0 | 0 | 0 |
+| 50 | 0 | 0 | 0 |
+| 60 | 0 | 0 | 0 |
 
 Resulting **fraction of cells served** (capacity limit):
 
@@ -296,16 +298,16 @@ Resulting **fraction of cells served** (capacity limit):
 | 20 | 0.045 | 0.084 | 0.15 |
 | 30 | 0.049 | 0.092 | 0.169 |
 | 40 | 0.058 | 0.109 | 0.199 |
-| 50 | 0.089 | 0.169 | 0.308 |
+| 50 | 0.089 | 0.169 | 0.307 |
 | 60 | 0.032 | 0.057 | 0.101 |
 
 Reading: with unlimited diversity the unresolvable fraction was exactly
-0. Under beam capacity it becomes non-zero: the maximum is
-0.0009876 at latitude 50 deg, N_beam =
-32, where only 31% of cells
-are served. The burden is capacity-induced, grows with N_beam (more cells served ->
-more cells exposed to in-line geometry), and peaks near 50 deg rather than at the
-highest latitude.
+0. Under beam capacity it becomes non-zero: the maximum (over all
+cell-time) is 0 at latitude 0 deg, N_beam =
+8, where only 4% of cells
+are served. The absolute burden is capacity-induced and grows with N_beam because more
+cells are served; the conditional burden per served cell-time falls with N_beam (Phase 3a
+denominator split). See `results/PHASE3A_REPORT.md` Section 2.
 
 ## 9. Revised Gate 1 verdict
 
@@ -325,9 +327,9 @@ highest latitude.
 
 3. **Does capacity-limited diversity create burden where unlimited showed none?**
    **Yes, but small.** With unlimited diversity the unresolvable cell-time fraction is
-   0; with a per-satellite beam limit it reaches 0.0009876 (about
-   0.099% of cell-time) at N_beam = 32,
-   latitude 50 deg. This is a capacity effect, not a
+   0; with a per-satellite beam limit it reaches 0 (about
+   0.000% of cell-time) at N_beam = 8,
+   latitude 0 deg. This is a capacity effect, not a
    coverage-edge effect: it peaks near 50 deg and grows with the number of beams.
 
 ## 10. Figures (built from `results/` only)

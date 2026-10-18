@@ -221,7 +221,7 @@ def fig_f4(e2: Path) -> Path | None:
 
 
 def fig_f5(e3: Path) -> Path | None:
-    """Capacity-limited unresolvable cell-time fraction vs latitude and n_beam."""
+    """Capacity-limited unresolvable fraction vs latitude and n_beam (both denominators)."""
     try:
         df = _read(e3, "capacity_diversity")
     except FileNotFoundError:
@@ -236,17 +236,52 @@ def fig_f5(e3: Path) -> Path | None:
             g = g.sort_values("latitude_deg")
             axes[0][j].plot(g["latitude_deg"], g["unres_cell_frac_mean"], "-o", ms=3,
                             label=f"N_beam={int(nb)}")
-            axes[1][j].plot(g["latitude_deg"], g["served_frac_mean"], "-o", ms=3,
+            axes[1][j].plot(g["latitude_deg"], g["unres_per_served_mean"], "-o", ms=3,
                             label=f"N_beam={int(nb)}")
-        axes[0][j].set_title(f"{a} ← {b}: unresolvable cell-time", fontsize=8)
-        axes[1][j].set_title(f"{a} ← {b}: cells served (capacity)", fontsize=8)
+        axes[0][j].set_title(f"{a} ← {b}: unresolvable cell-time\n(all cell-time)", fontsize=8)
+        axes[1][j].set_title(f"{a} ← {b}: unresolvable per served cell-time", fontsize=8)
         for ax in (axes[0][j], axes[1][j]):
             ax.set_xlabel("latitude [deg]")
             ax.legend(fontsize=7)
             ax.grid(alpha=0.3)
-    fig.suptitle("E3 capacity-limited diversity (θ=2°, co-located, co-frequency user downlink)")
+    fig.suptitle("E3 capacity-limited diversity (ΔT/T > 6%, co-located, co-frequency user downlink); "
+                 "absolute rises with N_beam via service coverage, conditional falls")
     fig.tight_layout()
     out = FIGURES_DIR / "F5_capacity_diversity.png"
+    fig.savefig(out, dpi=130)
+    plt.close(fig)
+    return out
+
+
+def fig_f6(e4: Path) -> Path | None:
+    """47 CFR 25.261(d) Delta T/T event fraction and throughput degradation vs latitude."""
+    try:
+        df = _read(e4, "dtt")
+    except FileNotFoundError:
+        return None
+    diam = sorted(df["diameter_m"].unique())[len(df["diameter_m"].unique()) // 2]
+    pairs = list(dict.fromkeys(zip(df["system_a"], df["system_b"])))
+    fig, axes = plt.subplots(1, 2, figsize=(12, 4.5))
+    for a, b in pairs:
+        for vi, ls in ((1, "-"), (0, "--")):
+            sub = df[(df["system_a"] == a) & (df["system_b"] == b) & (df["variant"] == vi) &
+                     (df["diameter_m"] == diam)].sort_values("latitude_deg")
+            if sub.empty:
+                continue
+            axes[0].plot(sub["latitude_deg"], sub["event_frac_mean"], ls,
+                         label=f"{a}←{b} {'colo' if vi == 1 else 'worst'}")
+            axes[1].plot(sub["latitude_deg"], sub["unres_frac_mean"], ls,
+                         label=f"{a}←{b} {'colo' if vi == 1 else 'worst'}")
+    axes[0].set_title(f"ΔT/T > 6% event time-fraction (diameter={diam:g} m)")
+    axes[1].set_title("Unresolvable time-fraction (unlimited diversity)")
+    for ax in axes:
+        ax.set_xlabel("latitude [deg]")
+        ax.set_ylabel("fraction of time")
+        ax.legend(fontsize=7)
+        ax.grid(alpha=0.3)
+    fig.suptitle("E4 47 CFR 25.261(d) power criterion, co-frequency user downlink (mean ± 95% CI)")
+    fig.tight_layout()
+    out = FIGURES_DIR / "F6_dtt.png"
     fig.savefig(out, dpi=130)
     plt.close(fig)
     return out
@@ -260,8 +295,9 @@ def main(argv: list[str] | None = None) -> int:
     e1 = newest_run(args.results_root, "e1_event_rate")
     e2 = newest_run(args.results_root, "e2_diversity")
     e3 = newest_run(args.results_root, "e3_capacity_diversity")
-    if e1 is None and e2 is None and e3 is None:
-        print(f"[figures] no e1/e2/e3 run directories under {args.results_root}.")
+    e4 = newest_run(args.results_root, "e4_dtt")
+    if e1 is None and e2 is None and e3 is None and e4 is None:
+        print(f"[figures] no e1/e2/e3/e4 run directories under {args.results_root}.")
         return 0
 
     FIGURES_DIR.mkdir(parents=True, exist_ok=True)
@@ -280,6 +316,10 @@ def main(argv: list[str] | None = None) -> int:
         out = fig_f5(e3)
         if out:
             produced.append((out, e3))
+    if e4 is not None:
+        out = fig_f6(e4)
+        if out:
+            produced.append((out, e4))
 
     for out, run_dir in produced:
         shutil.copy2(out, run_dir / out.name)

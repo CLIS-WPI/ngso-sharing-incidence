@@ -12,11 +12,12 @@ stations: stations.yaml
 seed: 0
 params:
   lat_center_deg: [0, 10, 20, 30, 40, 50, 60]
+  meridians_deg: [0, 90, 180, 270]      # four meridians per latitude (Phase 3a)
   region_size_km: 1000                  # ASSUMED regional square
   cell_spacing_km: 20                   # ASSUMED nearest-neighbour cell spacing
   n_beam_sweep: [8, 16, 32]             # ASSUMED victim spot-beam count
-  theta_deg: 2.0                        # in-line resolution angle
-  n_rank: 4                             # candidate satellites considered for rescue
+  n_rank: 6                             # candidate satellites considered for rescue
+  # Events now use the 47 CFR 25.261(d) Delta T/T criterion (see link_budget.yaml).
   n_phasings: 8
   time_step_s: 60                       # baseline sampling step
   duration_s: 86400                     # 24 h baseline window

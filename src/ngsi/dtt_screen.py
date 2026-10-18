@@ -1,0 +1,207 @@
+"""Batched Delta T/T screening of a co-frequency pair (47 CFR 25.261(d)).
+
+For an ordered pair (A victim, B interferer) that is co-frequency in the user
+downlink, and each station/time sample:
+
+* A's serving satellite is the highest-elevation visible A satellite.
+* **Co-located variant**: the interferer is B's serving satellite at the same
+  site (both systems serve a terminal there), at B's peak EIRP density; the
+  off-axis angle is that between the two serving satellites.
+* **Worst-case variant (upper bound)**: every visible B satellite radiates at B's
+  peak EIRP density toward the site; the individual I/N add in linear units.
+* An **event** is aggregate ``Delta T/T > 0.06`` (``I/N > -12.2 dB``).
+* The event is **resolvable** when some *other* visible A satellite keeps
+  aggregate ``Delta T/T <= 0.06`` (diversity); otherwise it is unresolvable.
+
+The same geometry drives the 25.261(d) secondary result: the victim's own C/N,
+its Shannon throughput with and without interference, and the unavailability
+increase at C/N = 0 dB.
+"""
+
+from __future__ import annotations
+
+import numpy as np
+import torch
+
+from .constants import DTT_THRESHOLD
+from .geometry import angular_separation_batch, elevation_deg_batch, unit_look_vectors
+from .link_budget import noise_power_dbw_per_mhz, pattern_gain_batch
+from .propagation import propagate_ecef
+from .systems import SystemModel
+
+LIGHT_SPEED_M_S = 299792458.0
+VARIANT_NAMES = ("worst_case", "co_located")
+
+
+def _fspl_db(dist_km: torch.Tensor, freq_ghz: float) -> torch.Tensor:
+    lam = LIGHT_SPEED_M_S / (freq_ghz * 1e9)
+    return 20.0 * torch.log10(4.0 * np.pi * (dist_km * 1e3) / lam)
+
+
+def _dbw_to_linear(db):
+    return 10.0 ** (db / 10.0)
+
+
+def _cni_from_dtt(cn0_db, dtt):
+    return cn0_db - 10.0 * torch.log10(1.0 + dtt)
+
+
+def _shannon_rate(snr_db, bandwidth_hz: float, margin_db: float):
+    snr = 10.0 ** (snr_db / 10.0)
+    margin = 10.0 ** (float(margin_db) / 10.0)
+    return bandwidth_hz * torch.log2(1.0 + snr / margin)
+
+
+def screen_pair_dtt(
+    victim: SystemModel,
+    interferer: SystemModel,
+    k_a: int,
+    k_b: int,
+    station_ecef: torch.Tensor,
+    up: torch.Tensor,
+    times: np.ndarray,
+    victim_beam,
+    interf_beam,
+    freq_ghz: float,
+    rx_peak_gain_dbi: float,
+    rx_diameter_m: float,
+    margin_db: float,
+    min_elevation_deg: float,
+    earth_radius_km: float,
+    epoch_jd: float,
+    device: str = "cuda",
+    chunk: int = 64,
+    pattern: str = "S1428",
+) -> dict:
+    """Screen one ordered pair under the Delta T/T criterion.
+
+    Returns per-station ``event_frac``/``unres_frac`` of shape ``[2, G]`` (variants
+    0 worst case, 1 co-located), victim C/N, and accumulator sums for the
+    throughput secondary result (all means are ``sum / n_samples``).
+    """
+    g = station_ecef.shape[0]
+    t_total = len(times)
+    k_a = min(int(k_a), victim.n_sats)
+    k_b = min(int(k_b), interferer.n_sats)
+    eye_a = torch.arange(k_a, device=device)
+    noise_v = noise_power_dbw_per_mhz(victim_beam.system_noise_temp_k)
+    bw_hz = float(victim_beam.bandwidth_mhz) * 1e6
+
+    event_count = torch.zeros(2, g, dtype=torch.float64, device=device)
+    unres_count = torch.zeros(2, g, dtype=torch.float64, device=device)
+    served_count = torch.zeros(g, dtype=torch.float64, device=device)
+    r0_sum = torch.zeros(g, dtype=torch.float64, device=device)
+    r_int = {0: torch.zeros(g, dtype=torch.float64, device=device),
+             1: torch.zeros(g, dtype=torch.float64, device=device)}
+    r_div = {0: torch.zeros(g, dtype=torch.float64, device=device),
+             1: torch.zeros(g, dtype=torch.float64, device=device)}
+    unavail0 = torch.zeros(g, dtype=torch.float64, device=device)
+    unavail_int = {0: torch.zeros(g, dtype=torch.float64, device=device),
+                   1: torch.zeros(g, dtype=torch.float64, device=device)}
+    cn0_sum = torch.zeros(g, dtype=torch.float64, device=device)
+    dtt_colo_sum = torch.zeros(g, dtype=torch.float64, device=device)
+    dtt_worst_sum = torch.zeros(g, dtype=torch.float64, device=device)
+
+    for s in range(0, t_total, chunk):
+        e = min(s + chunk, t_total)
+        tc = times[s:e]
+        pa = propagate_ecef(victim.elements, tc, epoch_jd, earth_radius_km, device)
+        pb = propagate_ecef(interferer.elements, tc, epoch_jd, earth_radius_km, device)
+        ua, da = unit_look_vectors(pa, station_ecef)  # [Tc,G,Ka,3], [Tc,G,Ka]
+        ub, db = unit_look_vectors(pb, station_ecef)
+        elev_a = elevation_deg_batch(ua, up)
+        elev_b = elevation_deg_batch(ub, up)
+        vis_a = elev_a >= min_elevation_deg
+        vis_b = elev_b >= min_elevation_deg
+
+        va, ia = torch.topk(elev_a.masked_fill(~vis_a, float("-inf")), k_a, dim=-1)
+        vb, ib = torch.topk(elev_b.masked_fill(~vis_b, float("-inf")), k_b, dim=-1)
+        vis_ka = va >= min_elevation_deg
+        vis_kb = vb >= min_elevation_deg
+        ua_k = torch.gather(ua, 2, ia.unsqueeze(-1).expand(-1, -1, -1, 3))
+        ub_k = torch.gather(ub, 2, ib.unsqueeze(-1).expand(-1, -1, -1, 3))
+        da_k = torch.gather(da, 2, ia)
+        db_k = torch.gather(db, 2, ib)
+
+        serving_a = ua_k[:, :, 0, :]
+        serving_b = ub_k[:, :, 0, :]
+        dist_a = da_k[:, :, 0]
+        dist_b = db_k[:, :, 0]
+        has_a = vis_ka[:, :, 0]
+        has_b = vis_kb[:, :, 0]
+
+        # Victim own carrier: serving satellite at boresight (peak gain).
+        cn0 = victim_beam.eirp_density_dbw_per_mhz + rx_peak_gain_dbi - _fspl_db(dist_a, freq_ghz) - noise_v
+
+        def _in_db(off_axis, dist, eirp_density):
+            g_rx = pattern_gain_batch(off_axis, rx_peak_gain_dbi, rx_diameter_m, freq_ghz, pattern)
+            return eirp_density + g_rx - _fspl_db(dist, freq_ghz) - noise_v
+
+        # --- co-located: single interferer (B serving satellite) ---
+        sep_c = angular_separation_batch(serving_a, serving_b)
+        dtt_c = _dbw_to_linear(_in_db(sep_c, dist_b, interf_beam.eirp_density_dbw_per_mhz))
+        # --- worst case: aggregate over every visible B satellite ---
+        sep_w = angular_separation_batch(serving_a.unsqueeze(2), ub_k)  # [Tc,G,Kb]
+        dtt_w = (
+            _dbw_to_linear(_in_db(sep_w, db_k, interf_beam.eirp_density_dbw_per_mhz))
+            * vis_kb.to(torch.float64)
+        ).sum(-1)
+
+        dtts = {0: dtt_w, 1: dtt_c}
+        has_b_var = {0: vis_kb.any(-1), 1: has_b}
+        for vi in (0, 1):
+            event = has_a & has_b_var[vi] & (dtts[vi] > DTT_THRESHOLD)
+            event_count[vi] += event.sum(0).to(torch.float64)
+
+        # Diversity: alternate visible A satellites that keep DTT <= threshold.
+        cand = vis_ka & (eye_a.reshape(1, 1, -1) != 0)
+        sep_ca = angular_separation_batch(ua_k, serving_b.unsqueeze(2))  # [Tc,G,Ka]
+        dtt_ca = _dbw_to_linear(_in_db(sep_ca, da_k, interf_beam.eirp_density_dbw_per_mhz))
+        sep_wa = angular_separation_batch(ua_k.unsqueeze(3), ub_k.unsqueeze(2))  # [Tc,G,Ka,Kb]
+        dtt_wa = (
+            _dbw_to_linear(_in_db(sep_wa, da_k.unsqueeze(-1), interf_beam.eirp_density_dbw_per_mhz))
+            * vis_kb.reshape(vis_kb.shape[0], vis_kb.shape[1], 1, -1)
+        ).sum(-1)
+        resolvable = {
+            0: (cand & (dtt_wa <= DTT_THRESHOLD)).any(-1),
+            1: (cand & (dtt_ca <= DTT_THRESHOLD)).any(-1),
+        }
+        for vi in (0, 1):
+            event = has_a & has_b_var[vi] & (dtts[vi] > DTT_THRESHOLD)
+            unres = event & ~resolvable[vi]
+            unres_count[vi] += unres.sum(0).to(torch.float64)
+
+        # --- throughput secondary result ---
+        served = has_a
+        served_count += served.sum(0).to(torch.float64)
+        r0 = _shannon_rate(cn0, bw_hz, margin_db)
+        for vi in (0, 1):
+            event = has_a & has_b_var[vi] & (dtts[vi] > DTT_THRESHOLD)
+            unres = event & ~resolvable[vi]
+            cni = _cni_from_dtt(cn0, dtts[vi])
+            r1 = _shannon_rate(cni, bw_hz, margin_db)
+            r_int[vi] += (torch.where(event, r1, r0) * served).sum(0)
+            r_div[vi] += (torch.where(unres, r1, r0) * served).sum(0)
+            unavail_int[vi] += ((cni < 0.0) & event).sum(0).to(torch.float64)
+        r0_sum += (r0 * served).sum(0)
+        unavail0 += ((cn0 < 0.0) & served).sum(0).to(torch.float64)
+        cn0_sum += (cn0 * served).sum(0)
+        dtt_colo_sum += (dtt_c * served).sum(0)
+        dtt_worst_sum += (dtt_w * served).sum(0)
+
+    n = float(t_total)
+    return {
+        "event_frac": (event_count / n).cpu().numpy(),
+        "unres_frac": (unres_count / n).cpu().numpy(),
+        "served_frac": (served_count / n).cpu().numpy(),
+        "r0_mean": (r0_sum / served_count.clamp(min=1.0)).cpu().numpy(),
+        "r_int_mean": {vi: (r_int[vi] / served_count.clamp(min=1.0)).cpu().numpy() for vi in (0, 1)},
+        "r_div_mean": {vi: (r_div[vi] / served_count.clamp(min=1.0)).cpu().numpy() for vi in (0, 1)},
+        "cn0_mean": (cn0_sum / served_count.clamp(min=1.0)).cpu().numpy(),
+        "dtt_colo_mean": (dtt_colo_sum / served_count.clamp(min=1.0)).cpu().numpy(),
+        "dtt_worst_mean": (dtt_worst_sum / served_count.clamp(min=1.0)).cpu().numpy(),
+        "unavail_nodiv_colo_frac": (unavail_int[1] / n).cpu().numpy(),
+        "unavail_nodiv_worst_frac": (unavail_int[0] / n).cpu().numpy(),
+        "unavail0_frac": (unavail0 / n).cpu().numpy(),
+        "n_samples": t_total,
+    }
