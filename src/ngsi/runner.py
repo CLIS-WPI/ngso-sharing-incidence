@@ -19,6 +19,7 @@ import pandas as pd
 import torch
 
 from .bands import LINK_TYPES, co_frequency_pairs, load_bands, overlap
+from .capacity_diversity import capacity_limited_unresolvable, regional_grid
 from .config import (
     Constellation,
     ExperimentConfig,
@@ -555,6 +556,21 @@ def _starlink_f_variant(sim, f_value: int):
     return _replace(sim, systems=new_systems)
 
 
+def _oneweb_shell_variant(sim, planes: int, sats_per_plane: int):
+    """Copy of the simulation with the OneWeb shell re-sized (ASSUMED geometry)."""
+    from dataclasses import replace as _replace
+
+    new_systems = {}
+    for name, con in sim.systems.items():
+        if name == "ONEWEB":
+            shells = [_replace(s, planes=int(planes), sats_per_plane=int(sats_per_plane))
+                      for s in con.shells]
+            new_systems[name] = _replace(con, shells=shells)
+        else:
+            new_systems[name] = con
+    return _replace(sim, systems=new_systems)
+
+
 def _duration_summary(series: pd.DataFrame) -> pd.DataFrame:
     if series.empty:
         return pd.DataFrame(columns=["system_a", "system_b", "variant", "theta_deg", "kind",
@@ -640,6 +656,17 @@ def run_e2(
     )
     un["band_split_loss_with_diversity"] = BAND_SPLIT_FRACTION * un["unres_frac_mean"]
     un["band_split_loss_no_diversity"] = BAND_SPLIT_FRACTION * un["event_frac_mean"]
+    # Condition on the victim being in service (events already require it, so the
+    # ratio is exact: event_frac / service_a_frac = P(event | victim served)).
+    serv_a = un["service_a_frac_mean"].to_numpy()
+    un["event_when_served"] = np.where(serv_a > 0, un["event_frac_mean"] / serv_a, np.nan)
+    un["unres_when_served"] = np.where(serv_a > 0, un["unres_frac_mean"] / serv_a, np.nan)
+    pool_stats = _service_pool_summary(pool).rename(columns={"system": "system_a"})
+    un = un.merge(
+        pool_stats[["system_a", "latitude_deg", "pool_mean_mean", "pool_p10_mean",
+                    "served_frac_mean"]],
+        on=["system_a", "latitude_deg"], how="left",
+    )
     un.to_csv(run_dir / "summary_unresolvable.csv", index=False)
 
     # Pool / visible summary and analytic check.
@@ -701,10 +728,116 @@ def run_e2(
         sens_frames.append(s)
     pd.concat(sens_frames).to_csv(run_dir / "summary_sensitivity_f.csv", index=False)
 
+    # OneWeb shell-size sensitivity: shipped 18x36 (FCC 17-77) vs 12x49 (ASSUMED).
+    ow_frames = []
+    base_ow = summarise(events, ("event_frac", "unres_frac"),
+                        ["system_a", "system_b", "variant", "theta_deg", "latitude_deg"])
+    base_ow["oneweb_config"] = "18x36"
+    ow_frames.append(base_ow)
+    sim_ow = _oneweb_shell_variant(sim, 12, 49)
+    ev_ow, _, _s4, _m = screen_phasings(
+        sim_ow, exp.constellations, grid, times, device, exp.seed, n_ph, thetas, min_el, chunk,
+        pairs=udl_pairs, pair_meta=pair_meta,
+    )
+    s_ow = summarise(ev_ow, ("event_frac", "unres_frac"),
+                     ["system_a", "system_b", "variant", "theta_deg", "latitude_deg"])
+    s_ow["oneweb_config"] = "12x49"
+    ow_frames.append(s_ow)
+    pd.concat(ow_frames).to_csv(run_dir / "summary_sensitivity_oneweb.csv", index=False)
+
     _write_json(run_dir, "status.json",
                 {"experiment": exp.name, "status": "ok", "n_phasings": n_ph, "time_step_s": dt,
                  "duration_s": dur, "duration_step_s": duration_step_s,
                  "duration_window_s": duration_window_s, "thetas_deg": list(thetas),
                  "min_elevation_deg": min_el, "device": device,
                  "user_downlink_pairs": [list(q) for q in udl_pairs]})
+    return run_dir
+
+
+def run_e3(
+    exp_path: Path,
+    results_root: Path,
+    repo_root: Path = REPO_ROOT,
+    n_phasings: int | None = None,
+    duration_s: float | None = None,
+) -> Path:
+    """Run E3 (capacity-limited satellite diversity over regional cell grids)."""
+    sim, exp, grid_cfg, grid, sanity_grid = _load_inputs(exp_path, repo_root)
+    bands = load_bands(repo_root / "configs" / "bands.yaml")
+    udl_pairs = co_frequency_pairs(exp.constellations, bands, "user_downlink")
+    p = exp.params
+    n_ph = int(n_phasings if n_phasings is not None else p.get("n_phasings", 8))
+    dt = float(p.get("time_step_s", 60.0))
+    dur = float(duration_s if duration_s is not None else p.get("duration_s", 86400.0))
+    min_el = float(grid_cfg.min_elevation_deg)
+    chunk = int(p.get("chunk", 8))
+    region_size = float(p.get("region_size_km", 1000.0))
+    spacing = float(p.get("cell_spacing_km", 20.0))
+    lat_centers = [float(x) for x in p.get("lat_center_deg", [0, 10, 20, 30, 40, 50, 60])]
+    n_beams = [int(x) for x in p.get("n_beam_sweep", [8, 16, 32])]
+    theta = float(p.get("theta_deg", 2.0))
+    n_rank = int(p.get("n_rank", 4))
+    device = device_str()
+    radius = sim.earth.radius_km
+    jd = epoch_jd(sim)
+
+    run_dir = new_run_dir(
+        results_root, exp.name, exp.seed,
+        config_paths=[exp_path, repo_root / "configs" / "constellations.yaml",
+                      repo_root / "configs" / "bands.yaml",
+                      repo_root / "configs" / exp.stations],
+        repo_root=repo_root,
+    )
+    _band_overlap_table(exp.constellations, bands).to_csv(
+        run_dir / "summary_band_overlap.csv", index=False
+    )
+    checks = run_sanity(sim, exp, grid, sanity_grid, dt, dur, min_el, device, chunk=64)
+    _write_json(run_dir, "sanity.json", checks)
+    ok, reasons = _sanity_ok(checks)
+    if not ok:
+        _write_json(run_dir, "status.json", {"experiment": exp.name, "status": "sanity_failed",
+                                             "reasons": reasons})
+        raise SystemExit(f"[e3] sanity gate FAILED: {reasons}")
+
+    times = np.arange(0.0, dur, dt)
+    cells = {}
+    for la in lat_centers:
+        ecef, up = regional_grid(la, 0.0, region_size, spacing, radius)
+        cells[la] = (torch.as_tensor(ecef, dtype=torch.float64, device=device),
+                     torch.as_tensor(up, dtype=torch.float64, device=device))
+    rows = []
+    for pi in range(n_ph):
+        rng = np.random.default_rng(exp.seed + 137 * pi)
+        systems = _phase_systems(sim, exp.constellations, rng, radius)
+        for a, b in udl_pairs:
+            meta = {"link_type": "user_downlink",
+                    "shared_freq_ghz": overlap(bands[a], bands[b], "user_downlink").center_ghz}
+            for la in lat_centers:
+                ce, cu = cells[la]
+                for nb in n_beams:
+                    r = capacity_limited_unresolvable(
+                        systems[a], systems[b], ce, cu, times, jd, radius, nb,
+                        theta_deg=theta, min_elevation_deg=min_el, device=device,
+                        chunk=chunk, n_rank=n_rank,
+                    )
+                    rows.append(
+                        {"phasing": pi, "system_a": a, "system_b": b,
+                         "link_type": meta["link_type"], "shared_freq_ghz": meta["shared_freq_ghz"],
+                         "n_beam": nb, "theta_deg": theta, "latitude_deg": float(la), **r}
+                    )
+    df = pd.DataFrame(rows)
+    df.to_parquet(run_dir / "raw_capacity_diversity.parquet", index=False)
+    summ = summarise(
+        df, ("unres_cell_frac", "event_cell_frac", "served_frac"),
+        ["system_a", "system_b", "link_type", "shared_freq_ghz", "n_beam", "theta_deg",
+         "latitude_deg"],
+    )
+    summ.to_csv(run_dir / "summary_capacity_diversity.csv", index=False)
+
+    _write_json(run_dir, "status.json",
+                {"experiment": exp.name, "status": "ok", "n_phasings": n_ph, "time_step_s": dt,
+                 "duration_s": dur, "min_elevation_deg": min_el, "device": device,
+                 "region_size_km": region_size, "cell_spacing_km": spacing,
+                 "lat_center_deg": lat_centers, "n_beam_sweep": n_beams, "theta_deg": theta,
+                 "n_rank": n_rank, "user_downlink_pairs": [list(q) for q in udl_pairs]})
     return run_dir

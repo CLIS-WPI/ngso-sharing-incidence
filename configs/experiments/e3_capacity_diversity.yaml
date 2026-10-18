@@ -1,0 +1,24 @@
+# Experiment 3 - capacity-limited satellite diversity.
+name: e3_capacity_diversity
+description: >
+  Capacity-limited satellite diversity over a regional cell grid.  Each victim
+  satellite grants at most n_beam cell requests (greedy by elevation); an in-line
+  event is resolvable only when another visible victim satellite is at least
+  theta away from the interferer AND has a free beam.  Reports the unresolvable
+  cell-time fraction vs latitude and n_beam for the co-frequency user-downlink
+  pairs.
+constellations: [STARLINK, KUIPER, ONEWEB]
+stations: stations.yaml
+seed: 0
+params:
+  lat_center_deg: [0, 10, 20, 30, 40, 50, 60]
+  region_size_km: 1000                  # ASSUMED regional square
+  cell_spacing_km: 20                   # ASSUMED nearest-neighbour cell spacing
+  n_beam_sweep: [8, 16, 32]             # ASSUMED victim spot-beam count
+  theta_deg: 2.0                        # in-line resolution angle
+  n_rank: 4                             # candidate satellites considered for rescue
+  n_phasings: 8
+  time_step_s: 60                       # baseline sampling step
+  duration_s: 86400                     # 24 h baseline window
+  chunk: 8
+  source: ASSUMED

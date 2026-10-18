@@ -101,8 +101,8 @@ def fig_f1(e1: Path) -> Path | None:
     pairs = list(dict.fromkeys(zip(df["system_a"], df["system_b"])))
     fig, axes = plt.subplots(2, len(pairs), figsize=(3.6 * len(pairs), 7), squeeze=False)
     for j, (a, b) in enumerate(pairs):
-        for vi in (0, 1):
-            ax = axes[vi][j]
+        for vi in (1, 0):  # co-located (main estimate) first, worst case below
+            ax = axes[0 if vi == 1 else 1][j]
             sub = df[(df["system_a"] == a) & (df["system_b"] == b) & (df["variant"] == vi)]
             for th, g in sub.groupby("theta_deg"):
                 g = g.sort_values("latitude_deg")
@@ -116,7 +116,8 @@ def fig_f1(e1: Path) -> Path | None:
             ax.set_ylabel("event time-fraction")
             ax.legend(fontsize=7)
             ax.grid(alpha=0.3)
-    fig.suptitle("E1 in-line event time-fraction vs latitude (mean ± 95% CI over phasings)")
+    fig.suptitle("E1 in-line event time-fraction vs latitude (mean ± 95% CI over phasings); "
+                 "co-located = main estimate, worst case = upper bound")
     fig.tight_layout()
     out = FIGURES_DIR / "F1_event_rate.png"
     fig.savefig(out, dpi=130)
@@ -132,12 +133,12 @@ def fig_f2(e2: Path) -> Path | None:
     pairs = list(dict.fromkeys(zip(df["system_a"], df["system_b"])))
     fig, axes = plt.subplots(1, 2, figsize=(12, 4.5))
     for a, b in pairs:
-        for vi, ls in ((0, "-"), (1, "--")):
+        for vi, ls in ((1, "-"), (0, "--")):  # co-located solid (main), worst case dashed
             sub = df[(df["system_a"] == a) & (df["system_b"] == b) & (df["variant"] == vi) &
                      (df["theta_deg"] == 5.0)].sort_values("latitude_deg")
             if sub.empty:
                 continue
-            label = f"{a}←{b} {'worst' if vi == 0 else 'colo'}"
+            label = f"{a}←{b} {'colo' if vi == 1 else 'worst'}"
             axes[0].plot(sub["latitude_deg"], sub["unres_frac_mean"], ls, label=label)
             axes[1].plot(sub["latitude_deg"], sub["unres_conditional"], ls, label=label)
     axes[0].set_title("Unresolvable time-fraction (θ=5°)")
@@ -166,7 +167,7 @@ def fig_f3(e2: Path) -> Path | None:
         g = g.sort_values("latitude_deg")
         axes[0].plot(g["latitude_deg"], g["median_s"], "-o", ms=3, label=f"{a}←{b}")
         axes[1].plot(g["latitude_deg"], g["p90_s"], "-o", ms=3, label=f"{a}←{b}")
-    axes[0].set_title("Median unresolvable-event duration (θ=5°, worst case)")
+    axes[0].set_title("Median unresolvable-event duration (θ=5°, worst case upper bound)")
     axes[1].set_title("p90 unresolvable-event duration")
     for ax in axes:
         ax.set_xlabel("latitude [deg]")
@@ -180,6 +181,77 @@ def fig_f3(e2: Path) -> Path | None:
     return out
 
 
+def fig_f4(e2: Path) -> Path | None:
+    """Service availability, diversity pool size and service-conditioned burden."""
+    try:
+        svc = _read(e2, "service_pool")
+        un = _read(e2, "unresolvable")
+    except FileNotFoundError:
+        return None
+    fig, axes = plt.subplots(1, 3, figsize=(15, 4.5))
+    for sysname, g in svc.groupby("system"):
+        g = g.sort_values("latitude_deg")
+        axes[0].plot(g["latitude_deg"], g["served_frac_mean"], "-o", ms=3, label=sysname)
+        axes[1].plot(g["latitude_deg"], g["pool_mean_mean"], "-o", ms=3, label=f"{sysname} mean")
+        axes[1].plot(g["latitude_deg"], g["pool_p10_mean"], "--", lw=1.2,
+                     label=f"{sysname} p10")
+    pairs = list(dict.fromkeys(zip(un["system_a"], un["system_b"])))
+    for a, b in pairs:
+        sub = un[(un["system_a"] == a) & (un["system_b"] == b) & (un["variant"] == 1) &
+                 (un["theta_deg"] == 2.0)].sort_values("latitude_deg")
+        if sub.empty:
+            continue
+        axes[2].plot(sub["latitude_deg"], sub["unres_when_served"], "-o", ms=3,
+                     label=f"{a}←{b}")
+    axes[0].set_title("Victim service availability")
+    axes[0].set_ylabel("fraction of time served")
+    axes[1].set_title("Diversity pool size (mean and p10)")
+    axes[1].set_ylabel("visible victim satellites")
+    axes[2].set_title("P(unresolvable | event, victim served), θ=2°, co-located")
+    axes[2].set_ylabel("fraction of events")
+    for ax in axes:
+        ax.set_xlabel("latitude [deg]")
+        ax.legend(fontsize=7)
+        ax.grid(alpha=0.3)
+    fig.tight_layout()
+    out = FIGURES_DIR / "F4_service_pool.png"
+    fig.savefig(out, dpi=130)
+    plt.close(fig)
+    return out
+
+
+def fig_f5(e3: Path) -> Path | None:
+    """Capacity-limited unresolvable cell-time fraction vs latitude and n_beam."""
+    try:
+        df = _read(e3, "capacity_diversity")
+    except FileNotFoundError:
+        return None
+    pairs = list(dict.fromkeys(zip(df["system_a"], df["system_b"])))
+    if not pairs:
+        return None
+    fig, axes = plt.subplots(2, len(pairs), figsize=(4.2 * len(pairs), 8), squeeze=False)
+    for j, (a, b) in enumerate(pairs):
+        sub = df[(df["system_a"] == a) & (df["system_b"] == b)]
+        for nb, g in sub.groupby("n_beam"):
+            g = g.sort_values("latitude_deg")
+            axes[0][j].plot(g["latitude_deg"], g["unres_cell_frac_mean"], "-o", ms=3,
+                            label=f"N_beam={int(nb)}")
+            axes[1][j].plot(g["latitude_deg"], g["served_frac_mean"], "-o", ms=3,
+                            label=f"N_beam={int(nb)}")
+        axes[0][j].set_title(f"{a} ← {b}: unresolvable cell-time", fontsize=8)
+        axes[1][j].set_title(f"{a} ← {b}: cells served (capacity)", fontsize=8)
+        for ax in (axes[0][j], axes[1][j]):
+            ax.set_xlabel("latitude [deg]")
+            ax.legend(fontsize=7)
+            ax.grid(alpha=0.3)
+    fig.suptitle("E3 capacity-limited diversity (θ=2°, co-located, co-frequency user downlink)")
+    fig.tight_layout()
+    out = FIGURES_DIR / "F5_capacity_diversity.png"
+    fig.savefig(out, dpi=130)
+    plt.close(fig)
+    return out
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--results-root", type=Path, default=RESULTS_DIR)
@@ -187,8 +259,9 @@ def main(argv: list[str] | None = None) -> int:
 
     e1 = newest_run(args.results_root, "e1_event_rate")
     e2 = newest_run(args.results_root, "e2_diversity")
-    if e1 is None and e2 is None:
-        print(f"[figures] no e1/e2 run directories under {args.results_root}.")
+    e3 = newest_run(args.results_root, "e3_capacity_diversity")
+    if e1 is None and e2 is None and e3 is None:
+        print(f"[figures] no e1/e2/e3 run directories under {args.results_root}.")
         return 0
 
     FIGURES_DIR.mkdir(parents=True, exist_ok=True)
@@ -199,10 +272,14 @@ def main(argv: list[str] | None = None) -> int:
             if out:
                 produced.append((out, e1))
     if e2 is not None:
-        for fn in (fig_f0b, fig_f2, fig_f3):
+        for fn in (fig_f0b, fig_f2, fig_f3, fig_f4):
             out = fn(e2)
             if out:
                 produced.append((out, e2))
+    if e3 is not None:
+        out = fig_f5(e3)
+        if out:
+            produced.append((out, e3))
 
     for out, run_dir in produced:
         shutil.copy2(out, run_dir / out.name)

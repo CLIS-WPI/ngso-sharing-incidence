@@ -11,6 +11,9 @@ python experiments/e1_event_rate.py
 echo "== e2_diversity =="
 python experiments/e2_diversity.py
 
+echo "== e3_capacity_diversity =="
+python experiments/e3_capacity_diversity.py
+
 echo "== figures =="
 python figures/make_figures.py
 

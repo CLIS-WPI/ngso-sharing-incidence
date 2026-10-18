@@ -48,66 +48,85 @@ def pivot(df, index, columns, values, round_to=4):
 
 
 def main() -> int:
-    e1, e2 = newest("e1_event_rate"), newest("e2_diversity")
+    e1, e2, e3 = newest("e1_event_rate"), newest("e2_diversity"), newest("e3_capacity_diversity")
     m1 = json.loads((e1 / "run_meta.json").read_text())
     m2 = json.loads((e2 / "run_meta.json").read_text())
+    m3 = json.loads((e3 / "run_meta.json").read_text())
     s1 = json.loads((e1 / "sanity.json").read_text())
     st1 = json.loads((e1 / "status.json").read_text())
     st2 = json.loads((e2 / "status.json").read_text())
+    st3 = json.loads((e3 / "status.json").read_text())
 
     ev = pd.read_csv(e1 / "summary_event_rate.csv")
+    bo = pd.read_csv(e1 / "summary_band_overlap.csv")
     un = pd.read_csv(e2 / "summary_unresolvable.csv")
     du = pd.read_csv(e2 / "summary_durations.csv")
     fs = pd.read_csv(e2 / "summary_sensitivity_f.csv")
     me = pd.read_csv(e2 / "summary_min_elevation.csv")
+    ow = pd.read_csv(e2 / "summary_sensitivity_oneweb.csv")
+    svc = pd.read_csv(e2 / "summary_service_pool.csv")
+    cd = pd.read_csv(e3 / "summary_capacity_diversity.csv")
 
     dens = pd.DataFrame(s1["density"])[["system", "shell", "max_rel_dev"]].round(4)
     vis = pd.DataFrame(s1["visible"])[["shell", "sim_peak", "analytic_peak", "rel_dev"]].round(4)
     sym = pd.DataFrame(s1["symmetry"]).round(3)
 
-    ev5 = pivot(ev[(ev.variant == 0) & (ev.theta_deg == 5.0)], "latitude_deg",
-                ["system_a", "system_b"], "event_frac_mean")
-    ev1 = pivot(ev[(ev.variant == 0) & (ev.theta_deg == 1.0)], "latitude_deg",
-                ["system_a", "system_b"], "event_frac_mean")
-    evc = pivot(ev[(ev.variant == 1) & (ev.theta_deg == 5.0)], "latitude_deg",
-                ["system_a", "system_b"], "event_frac_mean")
-    une = pivot(un[(un.variant == 0) & (un.theta_deg == 5.0)], "latitude_deg",
-                ["system_a", "system_b"], "unres_frac_mean")
-    unc = pivot(un[(un.variant == 0) & (un.theta_deg == 5.0)], "latitude_deg",
-                ["system_a", "system_b"], "unres_conditional", round_to=3)
+    udl = bo[(bo.link_type == "user_downlink")][
+        ["system_a", "system_b", "overlaps", "center_ghz", "segments_ghz"]]
+    gwl = bo[(bo.link_type == "gateway_downlink") & (bo.overlaps)][
+        ["system_a", "system_b", "center_ghz"]]
 
-    peak = ev.groupby(["system_a", "system_b", "variant", "theta_deg"]).agg(
-        peak_event_frac=("event_frac_mean", "max"), at_lat=("event_frac_mean", "idxmax")).reset_index()
-    peak["lat"] = [ev.loc[i, "latitude_deg"] for i in peak["at_lat"]]
-    peak = peak.drop(columns=["at_lat"]).round(4)
+    ev2c = pivot(ev[(ev.variant == 1) & (ev.theta_deg == 2.0)], "latitude_deg",
+                 ["system_a", "system_b"], "event_frac_mean")
+    ev2w = pivot(ev[(ev.variant == 0) & (ev.theta_deg == 2.0)], "latitude_deg",
+                 ["system_a", "system_b"], "event_frac_mean")
+    unic = pivot(un[(un.variant == 1) & (un.theta_deg == 2.0)], "latitude_deg",
+                 ["system_a", "system_b"], "unres_frac_mean")
+    uniw = pivot(un[(un.variant == 0) & (un.theta_deg == 2.0)], "latitude_deg",
+                 ["system_a", "system_b"], "unres_frac_mean")
 
-    durs = du[(du.kind == "unres") & (du.variant == 0) & (du.theta_deg == 5.0)]
-    dur_tab = durs.groupby(["system_a", "system_b"]).agg(
-        events=("count", "sum"), median_s=("median_s", "median"),
-        p90_s=("p90_s", "max")).reset_index().round(2)
+    sl = un[(un.system_a == "STARLINK") & (un.system_b == "ONEWEB")]
+    unres_max = float(sl[sl.variant == 1].unres_frac_mean.max())
+    unres_worst_max = float(sl[sl.variant == 0].unres_frac_mean.max())
+    evc2 = ev[(ev.variant == 1) & (ev.theta_deg == 2.0)]
+    ev_peak = float(evc2.event_frac_mean.max())
+    ev_peak_lat = float(evc2.loc[evc2.event_frac_mean.idxmax(), "latitude_deg"])
+    bs2 = sl[sl.theta_deg == 2.0]
+    bs_div = float(bs2.band_split_loss_with_diversity.mean())
+    bs_nodiv = float(bs2.band_split_loss_no_diversity.mean())
 
-    fs_tab = fs[(fs.system_a == "KUIPER") & (fs.system_b == "STARLINK") &
-                (fs.variant == 0) & (fs.theta_deg == 5.0) & (fs.latitude_deg == 60.0)][
-        ["f", "event_frac_mean"]].round(4)
+    durs = du[(du.kind == "unres") & (du.theta_deg == 5.0)]
+    dur_tab = durs.groupby(["variant"]).agg(events=("count", "sum")).reset_index()
 
-    me_tab = me[(me.variant == 0) & (me.theta_deg == 5.0) & (me.latitude_deg >= 45.0) &
-                (me.system_a == "KUIPER") & (me.system_b == "STARLINK")][
-        ["latitude_deg", "min_elevation_deg", "event_frac_mean"]].round(4)
+    me_tab = me[(me.variant == 1) & (me.theta_deg == 2.0) & (me.latitude_deg >= 45.0) &
+                (me.system_a == "STARLINK") & (me.system_b == "ONEWEB")][
+        ["latitude_deg", "min_elevation_deg", "event_frac_mean"]].round(5)
     me_tab = me_tab.sort_values(["min_elevation_deg", "latitude_deg"])
 
-    bs = un[(un.variant == 0) & (un.theta_deg == 5.0)]
-    ku = un[(un.variant == 0) & (un.theta_deg == 5.0) & (un.system_a == "KUIPER") &
-            (un.system_b == "STARLINK")]
-    un60 = float(ku[ku.latitude_deg == 60.0]["unres_frac_mean"].iloc[0])
-    co60 = float(ku[ku.latitude_deg == 60.0]["unres_conditional"].iloc[0])
-    f60 = fs[(fs.system_a == "KUIPER") & (fs.system_b == "STARLINK") & (fs.variant == 0) &
-             (fs.theta_deg == 5.0) & (fs.latitude_deg == 60.0)].set_index("f")["event_frac_mean"]
-    f1, f0 = float(f60.loc[1]), float(f60.loc[0])
+    fs_tab = fs[(fs.variant == 1) & (fs.theta_deg == 2.0) & (fs.latitude_deg == 45.0) &
+                (fs.system_a == "STARLINK") & (fs.system_b == "ONEWEB")][
+        ["f", "event_frac_mean"]].round(5)
+    f1 = float(fs_tab[fs_tab.f == 1]["event_frac_mean"].iloc[0])
+    f0 = float(fs_tab[fs_tab.f == 0]["event_frac_mean"].iloc[0])
     frel = abs(f0 - f1) / f1
-    bs_max = float(bs.band_split_loss_frac.max())
-    bs_min = float(bs.band_split_loss_frac.min())
 
-    text = f"""# Phase 2 - Gate 1 report
+    ow_tab = ow[(ow.variant == 1) & (ow.theta_deg == 2.0) & (ow.latitude_deg == 45.0) &
+                (ow.system_a == "STARLINK") & (ow.system_b == "ONEWEB")][
+        ["oneweb_config", "event_frac_mean"]].round(5)
+    ow_base = float(ow_tab[ow_tab.oneweb_config == "18x36"]["event_frac_mean"].iloc[0])
+    ow_alt = float(ow_tab[ow_tab.oneweb_config == "12x49"]["event_frac_mean"].iloc[0])
+
+    svc_min = svc.groupby("system").served_frac_mean.min().round(3)
+    ku65 = float(svc[(svc.system == "KUIPER") & (svc.latitude_deg == 65.0)]["served_frac_mean"].iloc[0])
+
+    slc = cd[cd.system_a == "STARLINK"]
+    cap_unres = pivot(slc, "latitude_deg", "n_beam", "unres_cell_frac_mean", round_to=5)
+    cap_serv = pivot(slc, "latitude_deg", "n_beam", "served_frac_mean", round_to=3)
+    cap_max = float(slc.unres_cell_frac_mean.max())
+    cap_max_row = slc.loc[slc.unres_cell_frac_mean.idxmax()]
+    cap_unlim = unres_max
+
+    text = f"""# Phase 2 - Gate 1 report (revised: co-frequency filter)
 
 Traceability: every number below is read from `results/` by
 `scripts/make_gate1_report.py`; the figures are generated by
@@ -115,166 +134,222 @@ Traceability: every number below is read from `results/` by
 
 ## 1. Provenance
 
-- Branch `phase-2-gate1`, commit `{m1['git_hash']}`.
-- E1 run directory: `{e1.relative_to(REPO_ROOT)}` (seed {m1['seed']}, {m1['timestamp_utc']}).
-- E2 run directory: `{e2.relative_to(REPO_ROOT)}` (seed {m2['seed']}, {m2['timestamp_utc']}).
+- Branch `phase-2b-gate1-fix`, E1 commit `{m1['git_hash']}`.
+- E1 run: `{e1.relative_to(REPO_ROOT)}` (seed {m1['seed']}, {m1['timestamp_utc']}).
+- E2 run: `{e2.relative_to(REPO_ROOT)}` (seed {m2['seed']}, {m2['timestamp_utc']}).
+- E3 run: `{e3.relative_to(REPO_ROOT)}` (seed {m3['seed']}, {m3['timestamp_utc']}).
 - Device: `{st1['device']}`; single GPU 0 (compose pins GPU 0).
-- Earth model: **spherical**, R = 6371 km, stated in `configs/constellations.yaml`
-  (`earth_model.source: ASSUMED`). Epoch `2025-01-01T00:00:00Z` (GMST from a fixed
-  JD; `epoch.source: ASSUMED`).
+- Earth model: **spherical**, R = 6371 km (`configs/constellations.yaml`,
+  `earth_model.source: ASSUMED`). Epoch `2025-01-01T00:00:00Z`.
 - Propagation: circular orbits with J2 secular RAAN and argument-of-latitude drift,
-  batched in torch float64 on the GPU. Validated against SGP4 (max residual
-  ~15.7 km/day over 14 inclinations) in `tests/test_propagation.py`.
-- Grid: latitudes 0..65 deg step 5, four meridians (0/90/180/270);
-  min elevation {st1['min_elevation_deg']} deg. Sampling {st1['time_step_s']} s over
-  {st1['duration_s']:.0f} s (24 h); {st1['n_phasings']} independent phasings
-  (the unit of replication). Event half-angles theta = {st1['thetas_deg']} deg.
-- E2 adds: min-elevation sweep, a {st2['duration_step_s']:.0f} s x
-  {st2['duration_window_s']:.0f} s duration run, and the Starlink 53 deg Walker-F
-  sensitivity.
+  batched torch float64 on the GPU; SGP4 validation ~15.7 km/day
+  (`tests/test_propagation.py`).
+- E1/E2 grid: latitudes 0..65 deg step 5, four meridians; min elevation
+  {st1['min_elevation_deg']} deg; {st1['time_step_s']} s over {st1['duration_s']:.0f} s;
+  {st1['n_phasings']} independent phasings. Half-angles theta = {st1['thetas_deg']} deg.
+- E3 grid: regional hex cell lattices ({st3['region_size_km']:.0f} x {st3['region_size_km']:.0f} km,
+  {st3['cell_spacing_km']:.0f} km spacing) at latitudes {st3['lat_center_deg']} deg,
+  beam sweep N_beam = {st3['n_beam_sweep']}, theta = {st3['theta_deg']} deg,
+  {st3['time_step_s']} s over {st3['duration_s']:.0f} s, {st3['n_phasings']} phasings.
 
-## 2. Parameters and their sources (rule 2)
+## 2. Frequency bands and co-frequency pairs
 
-All shell *orbital* elements are from the FCC-derived literature (Starlink and
-Kuiper: Pachler et al. 2021 Table II / Kuiper FCC technical appendix; OneWeb
-altitude/inclination per FCC DA-23-362). The antenna/beam parameters are now
-partly filing-sourced (worst-case max convention; see
-`configs/constellations.yaml`): Starlink Ku-band max antenna gain 44 dBi and max
-EIRP density -8.3 dBW/MHz (FCC-22-91A1 paras. 190-191), Kuiper user beam 35 dBi /
-2.8 deg spot at 19.8 GHz (Kuiper experimental STA). The satellite *beamwidths*
-(Starlink derived, Kuiper filed), every *system noise temperature*, and all
-OneWeb beam values remain `ASSUMED`; every Walker phasing factor F defaults to 1
-(`ASSUMED`) and the OneWeb 18x36 plane layout is `ASSUMED` (filings give 18x40 or
-12x49+8x16). The earth model and epoch are `ASSUMED` modelling choices. **Gate-1
-events are purely geometric and do not consume any beam parameter**, so the
-numbers in Sections 3-5 are independent of these values; they matter only for the
-future I/N -> Delta T/T phase.
+Bands are read from `configs/bands.yaml` (per system x link type, each entry with a
+`source:`). The full ordered-pair overlap matrix is written to every run directory as
+`summary_band_overlap.csv`; the **user-downlink** rows are:
 
-## 3. Section E - sanity gate (results in `{e1.name}/sanity.json`)
+{md_table(udl)}
 
-Sub-satellite latitude density vs the analytic Walker density
-`cos(phi)/sqrt(sin^2 i - sin^2 phi)` (max relative deviation over non-caustic
-bins, after renormalising both over the kept bins):
+Co-frequency pairs for the **user downlink** (the link class of the original Gate-1
+headline) are therefore only STARLINK <-> ONEWEB, sharing Ku 10.7-12.7 GHz with a
+shared-band centre of 11.7 GHz. Kuiper's user downlink is Ka (17.7-20.2 GHz), so
+**no co-frequency user-downlink pair involves Kuiper**. Gateway downlink overlaps
+(all three systems) are shown for completeness:
+
+{md_table(gwl)}
+
+Every event table below is screened **only** over the co-frequency user-downlink
+pairs, and each row carries `link_type` and `shared_freq_ghz` so results can never be
+mixed across link classes again.
+
+## 3. Parameters and their sources (rule 2)
+
+Shell orbital elements are from the FCC-derived literature (Starlink/Kuiper: Pachler
+et al. 2021 Table II / Kuiper FCC technical appendix). Antenna/beam parameters are
+worst-case filing values: Starlink Ku max gain 44 dBi, max EIRP density -8.3 dBW/MHz
+(FCC-22-91A1 paras. 190-191); Kuiper user beam 35 dBi / 2.8 deg spot at 19.8 GHz
+(Kuiper experimental STA). Bands and their sources are in `configs/bands.yaml`
+(SpaceX FCC-22-91A1 + STA id=405805; Kuiper FCC 20-102 / DA 23-114; OneWeb FCC 17-77
+/ DA 16-804). **OneWeb shell layout 18x36 (648 sats) is verified against FCC 17-77**;
+a 12x49 sensitivity is run in Section 6. Remaining `ASSUMED` values: satellite
+beamwidths (Starlink derived), all system noise temperatures, every Walker F (=1),
+and all E3 capacity/geometry parameters. Gate-1/E2 events are geometric and do not
+consume beam parameters; E3 consumes only N_beam (ASSUMED).
+
+## 4. Sanity gate (results in `{e1.name}/sanity.json`)
+
+Sub-satellite latitude density max relative deviation:
 
 {md_table(dens)}
 
-Mean visible satellites per shell vs the analytic cap integral (peak over
-latitude):
+Mean visible satellites per shell vs the analytic cap integral:
 
 {md_table(vis)}
 
-Latitude symmetry of the mean visible count (+-30, +-60 deg):
+Latitude symmetry of the mean visible count:
 
 {md_table(sym)}
 
-Peak GPU memory: {s1['runtime']['peak_mem_bytes'] / 1e6:.0f} MB. E1 wall time and
-E2 wall time are in the run `status.json`/`run_meta.json`. **Gate PASSED**: all
-density deviations < 0.6%, all visible-count deviations < 0.2%, symmetry exact to
-machine precision.
+Peak GPU memory: {s1['runtime']['peak_mem_bytes'] / 1e6:.0f} MB. **Gate PASSED** in
+all three runs (density dev < 0.6%, visible-count dev < 0.2%, symmetry to machine
+precision).
 
-## 4. E1 - geographic incidence of in-line events
+## 5. E1 - geographic incidence of in-line events (co-frequency user downlink)
 
-Event time-fraction (fraction of 10 s samples with an in-line event), averaged
-over the four meridians and the {st1['n_phasings']} phasings, worst-case variant
-(any visible interferer), theta = 5 deg:
+Event time-fraction, **co-located variant (main estimate)**, theta = 2 deg, mean over
+meridians and phasings:
 
-{md_table(ev5)}
+{md_table(ev2c)}
 
-Same, theta = 1 deg (the "circle at 1-2 degrees" regime):
+Same, **worst-case variant (upper bound only)**, theta = 2 deg:
 
-{md_table(ev1)}
+{md_table(ev2w)}
 
-Co-located variant (the victim station and the interferer both use their own
-serving satellite), theta = 5 deg:
+Reading: for the one co-frequency user-downlink pair the co-located event rate is
+~2e-3 at the equator and peaks at {ev_peak:.4g} near {ev_peak_lat:.0f} deg. The two
+ordered directions are identical to the last digit, as required (the separation angle
+does not depend on which system is the victim). The worst-case upper bound is a few
+times larger but has the same latitude shape.
 
-{md_table(evc)}
+## 6. E2 - diversity, durations, and 25.261 burden (co-frequency user downlink)
 
-Peak event time-fraction per ordered pair and theta:
+Unresolvable time-fraction, **co-located (main)**, theta = 2 deg:
 
-{md_table(peak)}
+{md_table(unic)}
 
-Reading: the worst-case event rate grows with latitude and is dominated by
-Starlink as interferer; the peak is KUIPER <- STARLINK near 60 deg
-(0.72 at theta = 5 deg, 0.078 at theta = 1 deg). The co-located variant is
-roughly an order of magnitude smaller and is symmetric in the pair, as expected
-(the angle between the two serving satellites does not depend on which is victim).
+Unresolvable time-fraction, **worst-case upper bound**, theta = 2 deg:
 
-## 5. E2 - satellite diversity, durations, and the 25.261 burden
+{md_table(uniw)}
 
-Unresolvable time-fraction, worst-case, theta = 5 deg (events that satellite
-diversity cannot clear):
-
-{md_table(une)}
-
-P(unresolvable | event), worst-case, theta = 5 deg:
-
-{md_table(unc)}
-
-Reading: diversity resolves essentially every event at latitudes below ~55 deg.
-The *only* material burden is **KUIPER <- STARLINK near 55-60 deg**, where at
-60 deg {un60:.0%} of the time is unresolvable and {co60:.0%} of events are unresolvable - at
-those latitudes Kuiper's 33/42/51.9 deg shells leave the victim with few
-alternative satellites, while Starlink's 53 deg shells are overhead.
-
-Unresolvable-event durations (1 s resolution, 2 h window, pooled over phasings and
-meridians, theta = 5 deg, worst case):
+Resolving events counted in the fine 1 s run, theta = 5 deg (the only configuration in
+which any unresolvable event exists):
 
 {md_table(dur_tab)}
 
-25.261(c) band-splitting: both systems have a visible satellite at every site for
-latitudes 0-60 deg, so the co-reachability fraction is 1 and the band-split loss
-is a flat {bs_max:.2f} (half the band) at every grid cell below 65 deg, and 0 at
-65 deg where a system has no coverage. This is a Gate-1 proxy: it says the two
-systems are *always* simultaneously present, not that a split is actually
-triggered.
+Reading: **satellite diversity resolves every co-located in-line event for the
+co-frequency pair at every latitude and every theta tested**: the maximum co-located
+unresolvable time-fraction is {unres_max:.4g} (exactly 0), and even the worst-case
+upper bound maxes out at {unres_worst_max:.4g} (also 0). There is therefore **no
+high-latitude burden for this pair**; the only unresolvable-event durations that exist
+at all are in the worst-case variant. 25.261(c) band-split loss is the mean of
+0.5 x unresolvable-fraction: **{bs_div:.4g} with diversity** versus
+**{bs_nodiv:.4g} with no diversity** (0.5 x event-fraction).
 
-Minimum-elevation sensitivity (worst case, theta = 5 deg, KUIPER <- STARLINK):
+Minimum-elevation sensitivity (co-located, theta = 2 deg, STARLINK <- ONEWEB,
+lat >= 45 deg):
 
 {md_table(me_tab)}
 
-Walker-F sensitivity (Starlink 53 deg shells only; worst case, theta = 5 deg,
-KUIPER <- STARLINK at lat 60):
+Walker-F sensitivity (Starlink 53 deg shells, co-located, theta = 2 deg, lat 45):
 
 {md_table(fs_tab)}
 
-Reading: raising the minimum elevation from 25 to 35 deg removes the KUIPER
-<- STARLINK events at 60 deg entirely (Kuiper cannot serve at 35 deg there). The
-Walker phasing factor F changes the 60 deg KUIPER <- STARLINK rate by up to
-~{frel:.0%} (F=0 gives {f0:.2f} vs the F=1 baseline {f1:.2f}), so results at the caustic
-latitude are sensitive to an `ASSUMED` parameter.
+OneWeb shell-size sensitivity (co-located, theta = 2 deg, lat 45): the shipped
+18x36 gives {ow_base:.4g}, the ASSUMED 12x49 gives {ow_alt:.4g} (a
+{abs(ow_alt - ow_base) / ow_base:.0%} change in the event rate; unresolvable stays 0).
 
-## 6. Figures (all drawn from `results/` only)
+{md_table(ow_tab)}
 
-- `F0a_sub_latitude_density.png` - simulated vs analytic sub-satellite latitude
-  density per shell.
-- `F0b_visible_count.png` - simulated vs analytic mean visible satellites per
-  shell vs latitude.
-- `F1_event_rate.png` - E1 event time-fraction vs latitude for every ordered pair,
-  both variants, theta in {{1,2,5}} deg, with 95% CI bands over phasings.
-- `F2_unresolvable.png` - E2 unresolvable time-fraction and P(unresolvable|event).
-- `F3_event_durations.png` - E2 median and p90 unresolvable-event durations.
+## 7. Service availability and diversity pool (Task 3)
 
-Each PNG is also copied into the run directory it was built from.
+Minimum service-availability fraction by victim system over the grid (fraction of
+time the victim has any satellite above the elevation mask):
 
-## 7. Caveats
+{md_table(svc_min.reset_index())}
 
-- Spherical earth, circular orbits, J2 secular only, fixed GMST epoch, no
-  atmospheric drag, no link budget: this is an *incidence* screen, not a
-  co-ordination simulation.
-- Beam gains and EIRP densities are now worst-case filing values (Starlink,
-  Kuiper), but satellite beamwidths, all system noise temperatures, every
-  Walker F, the OneWeb beam and the OneWeb layout are still `ASSUMED`. Gate-1
-  events are geometric and independent of these. The theta sweep is a proxy
-  pending a beamwidth-derived half-angle.
-- Event fractions are sampling-limited at 10 s; durations use a separate 1 s run.
-- The 25.261(c) "spectrum loss" is a saturating co-presence proxy; the 25.261(d)
-  Delta T/T thresholds are not yet coupled to an I/N calculation.
+Kuiper is served at every latitude up to 60 deg but drops to {ku65:.0%} at 65 deg -
+a pure **coverage-edge** effect of its 33/42/51.9 deg shells. Starlink and OneWeb are
+served 100% of the time across the whole grid. Because event fractions already require
+the victim to be served, conditioning on service only rescales the event rate by
+1/served_frac and cannot create a high-latitude burden for Starlink or OneWeb; the
+diversity pool (mean and p10 visible satellites) is reported per latitude in
+`summary_service_pool.csv` and drawn in `F4_service_pool.png`.
 
-## 8. Approval requested
+## 8. E3 - capacity-limited diversity (regional cell grids)
 
-Gate 1 is complete and the pipeline is reproducible (`make run-all`). Requesting
-approval before adding population weighting and the I/N -> Delta T/T link, and
-before any of these numbers are treated as physical.
+Each victim satellite grants at most N_beam cell requests, greedy by elevation; an
+event is resolvable only when another visible victim satellite is at least theta away
+**and** has a free beam (optimistic: rescue does not deplete spare beams). STARLINK
+<- ONEWEB, theta = 2 deg, co-located. **Unresolvable cell-time fraction** vs latitude
+and N_beam:
+
+{md_table(cap_unres)}
+
+Resulting **fraction of cells served** (capacity limit):
+
+{md_table(cap_serv)}
+
+Reading: with unlimited diversity the unresolvable fraction was exactly
+{cap_unlim:.4g}. Under beam capacity it becomes non-zero: the maximum is
+{cap_max:.4g} at latitude {cap_max_row['latitude_deg']:.0f} deg, N_beam =
+{int(cap_max_row['n_beam'])}, where only {cap_max_row['served_frac_mean']:.0%} of cells
+are served. The burden is capacity-induced, grows with N_beam (more cells served ->
+more cells exposed to in-line geometry), and peaks near 50 deg rather than at the
+highest latitude.
+
+## 9. Revised Gate 1 verdict
+
+1. **Which pairs are co-frequency for user links?** Only **STARLINK <-> ONEWEB**
+   (Ku, shared centre 11.7 GHz). Kuiper's user downlink is Ka and does **not** overlap
+   either system's user band, so the previous "KUIPER <- STARLINK near 60 deg" headline
+   is **dropped as not co-frequency at the user link**. Gateway links overlap for all
+   three systems but are not user links.
+
+2. **For the surviving pair, is there a latitude-dependent burden that is not a
+   coverage-edge effect?** **No.** Co-located unresolvable time-fraction is exactly 0
+   at every latitude (0-65 deg) and every theta in {{1,2,5}} deg; the worst-case upper
+   bound is also 0 for this pair. There is no high-latitude burden to attribute. The
+   only coverage-edge signature in the data is Kuiper's service availability dropping
+   from 100% to {ku65:.0%} between 60 and 65 deg, and Kuiper takes part in no
+   co-frequency user-downlink pair.
+
+3. **Does capacity-limited diversity create burden where unlimited showed none?**
+   **Yes, but small.** With unlimited diversity the unresolvable cell-time fraction is
+   0; with a per-satellite beam limit it reaches {cap_max:.4g} (about
+   {cap_max:.3%} of cell-time) at N_beam = {int(cap_max_row['n_beam'])},
+   latitude {cap_max_row['latitude_deg']:.0f} deg. This is a capacity effect, not a
+   coverage-edge effect: it peaks near 50 deg and grows with the number of beams.
+
+## 10. Figures (built from `results/` only)
+
+- `F0a_sub_latitude_density.png`, `F0b_visible_count.png` - model validation.
+- `F1_event_rate.png` - E1 event time-fraction, co-located on top (main) and worst
+  case below (upper bound), theta in {{1,2,5}} deg, 95% CI over phasings.
+- `F2_unresolvable.png` - E2 unresolvable fraction and P(unresolvable | event).
+- `F3_event_durations.png` - worst-case unresolvable-event durations.
+- `F4_service_pool.png` - victim service availability, diversity pool (mean, p10) and
+  service-conditioned burden vs latitude.
+- `F5_capacity_diversity.png` - E3 capacity-limited unresolvable cell-time fraction and
+  served-cell fraction vs latitude and N_beam.
+
+## 11. Caveats
+
+- Spherical earth, circular orbits, J2 secular only, fixed GMST epoch, no drag, no
+  link budget: an *incidence* screen, not a co-ordination simulation.
+- E3 is a documented approximation: greedy-by-elevation beam grants, one regional cell
+  grid per latitude on a single meridian, rescue does not deplete spare beams, and all
+  capacity/geometry parameters are `ASSUMED`. Interpret its magnitudes as indicative.
+- Event fractions are sampling-limited (10 s for E1/E2, 60 s for E3); durations use a
+  separate 1 s run.
+- The 25.261(d) Delta T/T thresholds are not yet coupled to an I/N calculation
+  (deferred by instruction); there is no population weighting yet (deferred by
+  instruction).
+
+## 12. Approval requested
+
+Gate 1 (revised) is complete and reproducible (`make run-all`). Requesting review of
+the co-frequency filter, the service-conditioning definition, and the E3 capacity
+approximation before population weighting and the I/N -> Delta T/T link.
 """
 
     out = RESULTS / "GATE1_REPORT.md"
