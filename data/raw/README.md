@@ -5,7 +5,8 @@ For every file downloaded, record here:
 
 | file | source URL | download date (UTC) | notes / licence |
 |------|------------|---------------------|-----------------|
-| _(none yet)_ | | | |
+| `tle/oneweb.tle` | https://celestrak.org/NORAD/elements/gp.php?GROUP=oneweb&FORMAT=tle | 2026-10-18 | CelesTrak GP data, public; snapshot of the OneWeb constellation (651 sats), used by E5 (Phase 3b). Cached; CelesTrak refreshes once every 2 h. |
+| `tle/starlink.tle` | https://celestrak.org/NORAD/elements/gp.php?GROUP=starlink&FORMAT=tle | 2026-10-18 | CelesTrak GP data, public; snapshot of the Starlink constellation, used by E5 (Phase 3b). Cached; CelesTrak refreshes once every 2 h. |
 
 Expected sources (fill in when downloaded, do not guess URLs):
 

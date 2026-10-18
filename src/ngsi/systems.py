@@ -16,6 +16,13 @@ from numpy.typing import NDArray
 
 from .config import Constellation, Shell
 from .constellation import WalkerConstellation, walker_delta
+from .tle import (
+    TleRecord,
+    cluster_records,
+    common_epoch_jd,
+    elements_from_records,
+    shells_from_clusters,
+)
 
 TWO_PI = 2.0 * np.pi
 
@@ -84,4 +91,35 @@ def build_system(
         elements=_concatenate(els),
         shell_index=np.concatenate(idx),
         shells=tuple(system.shells),
+    )
+
+
+def build_as_deployed_system(
+    system: Constellation,
+    records: list[TleRecord],
+    earth_radius_km: float = 6371.0,
+) -> SystemModel:
+    """Build a :class:`SystemModel` from a real TLE snapshot (Phase 3b).
+
+    Satellites keep their own TLE mean elements (advanced to the snapshot's common
+    epoch by the J2 secular rates); shells are the observed inclination/altitude
+    clusters and inherit the modelled constellation's beam (no filing states a
+    per-generation beam).  There is no random phasing: the constellation is fixed
+    and replication is over simulation start times.
+    """
+    if not records:
+        raise ValueError(f"{system.name}: empty TLE snapshot")
+    clusters = cluster_records(records)
+    source = f"CelesTrak TLE snapshot, {len(records)} satellites ({system.name} group)"
+    shells, shell_index = shells_from_clusters(
+        records, clusters, system.shells[0].beam, source, earth_radius_km
+    )
+    elements = elements_from_records(
+        records, common_epoch_jd(records), earth_radius_km, plane_index=shell_index
+    )
+    return SystemModel(
+        name=system.name,
+        elements=elements,
+        shell_index=shell_index,
+        shells=tuple(shells),
     )

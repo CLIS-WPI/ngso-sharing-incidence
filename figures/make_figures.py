@@ -287,6 +287,78 @@ def fig_f6(e4: Path) -> Path | None:
     return out
 
 
+def fig_f7(e5: Path) -> Path | None:
+    """E5 as-deployed event time-fraction vs latitude (real TLE snapshot)."""
+    try:
+        df = _read(e5, "event_rate")
+    except FileNotFoundError:
+        return None
+    pairs = list(dict.fromkeys(zip(df["system_a"], df["system_b"])))
+    if not pairs:
+        return None
+    fig, axes = plt.subplots(2, len(pairs), figsize=(3.6 * len(pairs), 7), squeeze=False)
+    for j, (a, b) in enumerate(pairs):
+        for vi in (1, 0):
+            ax = axes[0 if vi == 1 else 1][j]
+            sub = df[(df["system_a"] == a) & (df["system_b"] == b) & (df["variant"] == vi)]
+            for th, g in sub.groupby("theta_deg"):
+                g = g.sort_values("latitude_deg")
+                m = g["event_frac_mean"].to_numpy()
+                c = g["event_frac_ci95"].to_numpy()
+                ax.plot(g["latitude_deg"], m, color=THETA_COLORS.get(th), label=f"θ={th:g}°")
+                ax.fill_between(g["latitude_deg"], m - c, m + c,
+                                color=THETA_COLORS.get(th), alpha=0.2)
+            ax.set_title(f"{a} ← {b}\n{VARIANT_LABEL[vi]}", fontsize=8)
+            ax.set_xlabel("latitude [deg]")
+            ax.set_ylabel("event time-fraction")
+            ax.legend(fontsize=7)
+            ax.grid(alpha=0.3)
+    fig.suptitle("E5 as-deployed (CelesTrak TLE) in-line event time-fraction vs latitude "
+                 "(mean ± 95% CI over start times)")
+    fig.tight_layout()
+    out = FIGURES_DIR / "F7_as_deployed_event_rate.png"
+    fig.savefig(out, dpi=130)
+    plt.close(fig)
+    return out
+
+
+def fig_f8(e5: Path, e1: Path) -> Path | None:
+    """As-deployed vs modelled Walker event rate (co-located, θ=2°)."""
+    try:
+        d5 = _read(e5, "event_rate")
+        d1 = _read(e1, "event_rate")
+    except FileNotFoundError:
+        return None
+    pairs = list(dict.fromkeys(zip(d5["system_a"], d5["system_b"])))
+    if not pairs:
+        return None
+    fig, axes = plt.subplots(1, len(pairs), figsize=(5 * len(pairs), 4.2), squeeze=False)
+    for j, (a, b) in enumerate(pairs):
+        ax = axes[0][j]
+        s5 = d5[(d5["system_a"] == a) & (d5["system_b"] == b) & (d5["variant"] == 1) &
+                (d5["theta_deg"] == 2.0)].sort_values("latitude_deg")
+        s1 = d1[(d1["system_a"] == a) & (d1["system_b"] == b) & (d1["variant"] == 1) &
+                (d1["theta_deg"] == 2.0)].sort_values("latitude_deg")
+        if not s5.empty:
+            ax.plot(s5["latitude_deg"], s5["event_frac_mean"], "-o", ms=3,
+                    label="as-deployed (TLE)")
+        if not s1.empty:
+            ax.plot(s1["latitude_deg"], s1["event_frac_mean"], "--s", ms=3,
+                    label="modelled Walker")
+        ax.set_title(f"{a} ← {b}", fontsize=9)
+        ax.set_xlabel("latitude [deg]")
+        ax.set_ylabel("event time-fraction")
+        ax.legend(fontsize=7)
+        ax.grid(alpha=0.3)
+    fig.suptitle("E5 vs E1: as-deployed TLE snapshot against the modelled Walker pattern "
+                 "(co-located, θ=2°)")
+    fig.tight_layout()
+    out = FIGURES_DIR / "F8_as_deployed_vs_walker.png"
+    fig.savefig(out, dpi=130)
+    plt.close(fig)
+    return out
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--results-root", type=Path, default=RESULTS_DIR)
@@ -296,8 +368,9 @@ def main(argv: list[str] | None = None) -> int:
     e2 = newest_run(args.results_root, "e2_diversity")
     e3 = newest_run(args.results_root, "e3_capacity_diversity")
     e4 = newest_run(args.results_root, "e4_dtt")
-    if e1 is None and e2 is None and e3 is None and e4 is None:
-        print(f"[figures] no e1/e2/e3/e4 run directories under {args.results_root}.")
+    e5 = newest_run(args.results_root, "e5_as_deployed")
+    if e1 is None and e2 is None and e3 is None and e4 is None and e5 is None:
+        print(f"[figures] no e1/e2/e3/e4/e5 run directories under {args.results_root}.")
         return 0
 
     FIGURES_DIR.mkdir(parents=True, exist_ok=True)
@@ -320,6 +393,15 @@ def main(argv: list[str] | None = None) -> int:
         out = fig_f6(e4)
         if out:
             produced.append((out, e4))
+    if e5 is not None:
+        for fn in (fig_f7,):
+            out = fn(e5)
+            if out:
+                produced.append((out, e5))
+        if e1 is not None:
+            out = fig_f8(e5, e1)
+            if out:
+                produced.append((out, e5))
 
     for out, run_dir in produced:
         shutil.copy2(out, run_dir / out.name)

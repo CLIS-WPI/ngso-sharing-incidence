@@ -38,7 +38,8 @@ from .rules import BAND_SPLIT_FRACTION
 from .sanity import analytic_density_per_deg, analytic_visible_count, max_relative_deviation
 from .dtt_screen import screen_pair_dtt
 from .screening import ScreenConfig, screen_pair, system_visibility
-from .systems import build_system
+from .systems import build_as_deployed_system, build_system
+from .tle import celestrak_url, common_epoch_jd, fetch_group, parse_tle
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
@@ -981,5 +982,167 @@ def run_e4(
                  "duration_s": dur, "min_elevation_deg": min_el, "device": device,
                  "dtt_threshold": 0.06, "diameter_sweep_m": lb.diameter_sweep_m,
                  "pattern": lb.pattern, "implementation_margin_db": lb.implementation_margin_db,
+                 "user_downlink_pairs": [list(q) for q in udl_pairs]})
+    return run_dir
+
+
+def run_e5(
+    exp_path: Path,
+    results_root: Path,
+    repo_root: Path = REPO_ROOT,
+    n_start_times: int | None = None,
+    time_step_s: float | None = None,
+    duration_s: float | None = None,
+) -> Path:
+    """Run E5 (Phase 3b: as-deployed CelesTrak TLE scenario).
+
+    Replaces the modelled Walker pattern + random phasing with a real snapshot:
+    every satellite's TLE mean elements are advanced to a common epoch and the
+    analytic J2 propagator is run from N independent *start times* (AGENTS.md
+    rule 5).  Event-rate (geometric theta) and Delta T/T (power) screens are
+    produced on the same station grid as E1/E4.
+    """
+    from datetime import datetime, timezone
+
+    sim, exp, grid_cfg, grid, sanity_grid = _load_inputs(exp_path, repo_root)
+    bands = load_bands(repo_root / "configs" / "bands.yaml")
+    lb = load_link_budget(repo_root / "configs" / "link_budget.yaml")
+    udl_pairs = co_frequency_pairs(exp.constellations, bands, "user_downlink")
+    p = exp.params
+    n_st = int(n_start_times if n_start_times is not None else p.get("n_start_times", 8))
+    dt = float(time_step_s if time_step_s is not None else p.get("time_step_s", 10.0))
+    dur = float(duration_s if duration_s is not None else p.get("duration_s", 86400.0))
+    offset = float(p.get("start_offset_s", 18000.0))
+    thetas = tuple(float(t) for t in p.get("thetas_deg", [1.0, 2.0, 5.0]))
+    chunk = int(p.get("chunk", 64))
+    groups = dict(p.get("tle_groups", {}))
+    cache_dir = repo_root / str(p.get("tle_cache_dir", "data/raw/tle"))
+    min_el = float(grid_cfg.min_elevation_deg)
+    device = device_str()
+    radius = sim.earth.radius_km
+    lat_bins = np.arange(-90.0, 90.0 + 1e-9, 5.0)
+
+    run_dir = new_run_dir(
+        results_root, exp.name, exp.seed,
+        config_paths=[exp_path, repo_root / "configs" / "constellations.yaml",
+                      repo_root / "configs" / "bands.yaml",
+                      repo_root / "configs" / "link_budget.yaml",
+                      repo_root / "configs" / exp.stations],
+        repo_root=repo_root,
+    )
+    _band_overlap_table(exp.constellations, bands).to_csv(
+        run_dir / "summary_band_overlap.csv", index=False
+    )
+
+    fetched = str(datetime.now(timezone.utc).isoformat())
+    records: dict[str, list] = {}
+    tle_meta: dict = {"fetched_utc": fetched, "cache_dir": str(cache_dir), "groups": {}}
+    for n in exp.constellations:
+        grp = str(groups.get(n, n.lower()))
+        text = fetch_group(grp, cache_dir)
+        recs = parse_tle(text)
+        records[n] = recs
+        tle_meta["groups"][n] = {
+            "group": grp, "url": celestrak_url(grp), "n_sats": len(recs),
+            "epoch_jd_min": float(min(r.epoch_jd for r in recs)),
+            "epoch_jd_max": float(max(r.epoch_jd for r in recs)),
+        }
+    epoch = float(max(common_epoch_jd(records[n]) for n in exp.constellations))
+    tle_meta["common_epoch_jd"] = epoch
+    _write_json(run_dir, "tle_meta.json", tle_meta)
+
+    systems = {
+        n: build_as_deployed_system(sim.systems[n], records[n], radius)
+        for n in exp.constellations
+    }
+    shell_rows = []
+    for n, model in systems.items():
+        for si, sh in enumerate(model.shells):
+            shell_rows.append(
+                {"system": n, "shell": sh.name, "n_sats": int((model.shell_index == si).sum()),
+                 "altitude_km": sh.altitude_km, "inclination_deg": sh.inclination_deg,
+                 "planes": sh.planes, "sats_per_plane": sh.sats_per_plane,
+                 "source": sh.source}
+            )
+    pd.DataFrame(shell_rows).to_csv(run_dir / "summary_as_deployed_shells.csv", index=False)
+
+    cfg = ScreenConfig(min_elevation_deg=min_el, earth_radius_km=radius, epoch_jd=epoch,
+                       thetas_deg=thetas, chunk=chunk, device=device)
+    event_rows: list[dict] = []
+    dtt_rows: list[dict] = []
+    for k in range(n_st):
+        times = k * offset + np.arange(0.0, dur, dt)
+        vis = {n: system_visibility(systems[n], grid.ecef, grid.up, times, cfg, lat_bins)
+               for n in exp.constellations}
+        for a, b in udl_pairs:
+            freq = float(overlap(bands[a], bands[b], "user_downlink").center_ghz)
+            res = screen_pair(systems[a], systems[b], vis[a]["max_visible"],
+                              vis[b]["max_visible"], grid.ecef, grid.up, times, cfg)
+            for ti, th in enumerate(thetas):
+                for vi in (0, 1):
+                    for g in range(grid.ecef.shape[0]):
+                        event_rows.append(
+                            {"phasing": k, "system_a": a, "system_b": b, "variant": vi,
+                             "theta_deg": th, "latitude_deg": float(grid.latitudes[g]),
+                             "longitude_deg": float(grid.longitudes[g]),
+                             "event_frac": float(res["event_frac"][ti, vi, g]),
+                             "unres_frac": float(res["unres_frac"][ti, vi, g]),
+                             "covisible_frac": float(res["covisible_frac"][g]),
+                             "service_a_frac": float(vis[a]["served_frac"][g]),
+                             "service_b_frac": float(vis[b]["served_frac"][g])}
+                        )
+            victim_beam = systems[a].shells[0].beam
+            interf_beam = systems[b].shells[0].beam
+            for diam in lb.diameter_sweep_m:
+                rx_peak = terminal_peak_gain_dbi(diam, freq, lb.aperture_efficiency)
+                dres = screen_pair_dtt(
+                    systems[a], systems[b], vis[a]["max_visible"], vis[b]["max_visible"],
+                    grid.ecef, grid.up, times, victim_beam, interf_beam, freq, rx_peak, diam,
+                    lb.implementation_margin_db, min_el, radius, epoch, device=device,
+                    chunk=chunk, pattern=lb.pattern,
+                )
+                for vi in (0, 1):
+                    for g in range(grid.ecef.shape[0]):
+                        r0 = dres["r0_mean"][g]
+                        r1i = dres["r_int_mean"][vi][g]
+                        r1d = dres["r_div_mean"][vi][g]
+                        dtt_rows.append(
+                            {"phasing": k, "system_a": a, "system_b": b,
+                             "shared_freq_ghz": freq, "diameter_m": float(diam),
+                             "variant": vi, "latitude_deg": float(grid.latitudes[g]),
+                             "longitude_deg": float(grid.longitudes[g]),
+                             "event_frac": float(dres["event_frac"][vi, g]),
+                             "unres_frac": float(dres["unres_frac"][vi, g]),
+                             "cn0_mean": float(dres["cn0_mean"][g]),
+                             "dtt_mean": float(dres["dtt_worst_mean"][g] if vi == 0
+                                               else dres["dtt_colo_mean"][g]),
+                             "degradation_nodiv": 1.0 - float(r1i) / float(r0) if r0 else np.nan,
+                             "degradation_div": 1.0 - float(r1d) / float(r0) if r0 else np.nan}
+                        )
+
+    ev = pd.DataFrame(event_rows)
+    ev.to_parquet(run_dir / "raw_as_deployed_events.parquet", index=False)
+    ev_s = summarise(ev, ("event_frac", "unres_frac", "service_a_frac", "service_b_frac"),
+                     ["system_a", "system_b", "variant", "theta_deg", "latitude_deg"])
+    ev_s["event_rate_per_hour"] = ev_s["event_frac_mean"] * 3600.0 / dt
+    ev_s.to_csv(run_dir / "summary_event_rate.csv", index=False)
+
+    dtt = pd.DataFrame(dtt_rows)
+    dtt.to_parquet(run_dir / "raw_as_deployed_dtt.parquet", index=False)
+    dtt_s = summarise(
+        dtt, ("event_frac", "unres_frac", "cn0_mean", "dtt_mean",
+              "degradation_nodiv", "degradation_div"),
+        ["system_a", "system_b", "diameter_m", "variant", "latitude_deg"],
+    )
+    dtt_s.to_csv(run_dir / "summary_dtt.csv", index=False)
+
+    _write_json(run_dir, "status.json",
+                {"experiment": exp.name, "status": "ok", "n_start_times": n_st,
+                 "start_offset_s": offset, "time_step_s": dt, "duration_s": dur,
+                 "thetas_deg": list(thetas), "min_elevation_deg": min_el,
+                 "device": device, "common_epoch_jd": epoch,
+                 "n_sats": {n: len(records[n]) for n in exp.constellations},
+                 "dtt_threshold": 0.06, "diameter_sweep_m": lb.diameter_sweep_m,
+                 "tle_groups": {n: str(groups.get(n, n.lower())) for n in exp.constellations},
                  "user_downlink_pairs": [list(q) for q in udl_pairs]})
     return run_dir
