@@ -35,6 +35,27 @@ def newest_run(results_root: Path, prefix: str) -> Path | None:
     return runs[-1] if runs else None
 
 
+def newest_primary(results_root: Path, prefix: str) -> Path | None:
+    """Newest run whose status.json shows primary (per-beam) steering.
+
+    The constant-EIRP sensitivity runs override ``steering``; the primary
+    conclusions use the PFD-constant run, so paper figures must read that one.
+    """
+    import json
+
+    for run_dir in reversed(sorted(results_root.glob(f"{prefix}_*"))):
+        status = run_dir / "status.json"
+        if not run_dir.is_dir() or not status.exists():
+            continue
+        try:
+            data = json.loads(status.read_text(encoding="utf-8"))
+        except (ValueError, OSError):
+            continue
+        if data.get("steering") in (None, "config", "null"):
+            return run_dir
+    return newest_run(results_root, prefix)
+
+
 def _read(run_dir: Path, name: str) -> pd.DataFrame:
     return pd.read_csv(run_dir / f"summary_{name}.csv")
 
@@ -484,6 +505,36 @@ def fig_p4_theta(e1: Path, e5: Path) -> Path | None:
     return out
 
 
+def fig_p5_analytic(e7: Path) -> Path | None:
+    """Fig. 5: analytic vs simulated co-located event fraction vs latitude."""
+    try:
+        d = _read(e7, "compare")
+    except FileNotFoundError:
+        return None
+    if d.empty:
+        return None
+    colors = {0.45: "#1f77b4", 0.6: "#2ca02c", 0.75: "#9467bd"}
+    fig, ax = plt.subplots(figsize=(3.5, 2.7))
+    for diam in sorted(d["diameter_m"].unique()):
+        s = d[d["diameter_m"] == diam].sort_values("latitude_deg")
+        ax.plot(s["latitude_deg"], s["analytic_frac"] * 100.0, "-", color=colors.get(diam),
+                lw=1.5, label=f"analytic, {diam:g} m")
+        ax.plot(s["latitude_deg"], s["sim_frac"] * 100.0, "o", ms=3,
+                color=colors.get(diam), mfc="none", label=f"simulated, {diam:g} m")
+    ax.set_xlabel("latitude [deg]")
+    ax.set_ylabel(r"co-located $\Delta T/T>6\%$ [% of time]")
+    ax.set_xlim(0, 65)
+    ax.set_ylim(bottom=0)
+    ax.grid(alpha=0.3)
+    ax.legend(fontsize=6, loc="upper left")
+    fig.tight_layout()
+    out = PAPER_FIG_DIR / "P5_analytic_validation.png"
+    PAPER_FIG_DIR.mkdir(parents=True, exist_ok=True)
+    fig.savefig(out, dpi=200)
+    plt.close(fig)
+    return out
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--results-root", type=Path, default=RESULTS_DIR)
@@ -492,8 +543,9 @@ def main(argv: list[str] | None = None) -> int:
     e1 = newest_run(args.results_root, "e1_event_rate")
     e2 = newest_run(args.results_root, "e2_diversity")
     e3 = newest_run(args.results_root, "e3_capacity_diversity")
-    e4 = newest_run(args.results_root, "e4_dtt")
-    e5 = newest_run(args.results_root, "e5_as_deployed")
+    e4 = newest_primary(args.results_root, "e4_dtt")
+    e5 = newest_primary(args.results_root, "e5_as_deployed")
+    e7 = newest_run(args.results_root, "e7_analytic")
     if e1 is None and e2 is None and e3 is None and e4 is None and e5 is None:
         print(f"[figures] no e1/e2/e3/e4/e5 run directories under {args.results_root}.")
         return 0
@@ -538,6 +590,11 @@ def main(argv: list[str] | None = None) -> int:
                    fig_p3_capacity(e3), fig_p4_theta(e1, e5) if e1 is not None else None):
             if fn is not None:
                 print(f"[figures] wrote {fn} (paper)")
+
+    if e7 is not None:
+        out = fig_p5_analytic(e7)
+        if out is not None:
+            print(f"[figures] wrote {out} (paper)")
 
     if not produced:
         print("[figures] no plottable summary tables found.")

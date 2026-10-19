@@ -1,0 +1,11 @@
+{
+  "experiment": "e7_analytic",
+  "seed": 0,
+  "timestamp_utc": "20261019T162832Z",
+  "git_hash": "e891db40997fd0759c122043c8950c5b832755bf",
+  "python": "3.11.10",
+  "platform": "Linux-6.8.0-138-generic-x86_64-with-glibc2.35",
+  "argv": [
+    "experiments/e7_analytic.py"
+  ]
+}

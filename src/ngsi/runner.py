@@ -30,7 +30,13 @@ from .config import (
     load_simulation,
     load_stations,
 )
-from .link_budget import terminal_peak_gain_dbi
+from .analytic import (
+    ShellSpec,
+    equivalent_angle_deg,
+    event_fraction_vs_latitude,
+    pfd_constant_dbw_per_m2_per_mhz,
+)
+from .link_budget import noise_power_dbw_per_mhz, terminal_peak_gain_dbi
 from .frames import utc_to_jd
 from .geometry import station_ecef_spherical
 from .io import new_run_dir
@@ -1415,4 +1421,159 @@ def run_e6(
                  "n_sats": {n: int(tle_meta["groups"][n]["n_kept"])
                             for n in exp.constellations},
                  "user_downlink_pairs": [list(q) for q in udl_pairs]})
+    return run_dir
+
+
+def _newest_run(results_root: Path, prefix: str) -> Path | None:
+    runs = sorted(p for p in Path(results_root).glob(f"{prefix}_*") if p.is_dir())
+    return runs[-1] if runs else None
+
+
+def _newest_primary_e4(results_root: Path) -> Path | None:
+    """Newest E4 run whose status.json shows the primary (per-beam) steering.
+
+    The constant-EIRP sensitivity runs override ``steering``; the analytic model
+    is anchored to the primary PFD-constant run, so skip the overrides.
+    """
+    import json
+
+    for run_dir in reversed(sorted(Path(results_root).glob("e4_dtt_*"))):
+        if not run_dir.is_dir():
+            continue
+        status = run_dir / "status.json"
+        if not status.exists():
+            continue
+        try:
+            data = json.loads(status.read_text(encoding="utf-8"))
+        except (ValueError, OSError):
+            continue
+        if data.get("steering") in (None, "config", "null"):
+            return run_dir
+    return None
+
+
+def run_e7(
+    exp_path: Path,
+    results_root: Path,
+    repo_root: Path = REPO_ROOT,
+    n_grid: int | None = None,
+) -> Path:
+    """Run E7: analytic vs simulated co-located Delta T/T event fraction.
+
+    Reconstructs the E4 co-located (serving-satellite) event fraction from
+    :mod:`ngsi.analytic` for every co-frequency user-downlink pair whose
+    interferer uses PFD-constant beam steering (the range-independent case the
+    model assumes), then writes the analytic and simulated curves side by side
+    with their absolute/relative discrepancies.  The model is not tuned.
+    """
+    exp = load_experiment(exp_path)
+    sim = load_simulation(repo_root / "configs" / "constellations.yaml")
+    bands = load_bands(repo_root / "configs" / "bands.yaml")
+    lb = load_link_budget(repo_root / "configs" / "link_budget.yaml")
+    grid_cfg = load_stations(repo_root / "configs" / exp.stations)
+    pairs = co_frequency_pairs(exp.constellations, bands, "user_downlink")
+    ng = int(n_grid if n_grid is not None else exp.params.get("n_grid", 240))
+    min_el = float(grid_cfg.min_elevation_deg)
+    radius = sim.earth.radius_km
+    lats = np.asarray(grid_cfg.latitudes_deg, dtype=np.float64)
+
+    run_dir = new_run_dir(
+        results_root, exp.name, exp.seed,
+        config_paths=[exp_path, repo_root / "configs" / "constellations.yaml",
+                      repo_root / "configs" / "bands.yaml",
+                      repo_root / "configs" / "link_budget.yaml",
+                      repo_root / "configs" / exp.stations],
+        repo_root=repo_root,
+    )
+
+    e4_dir = _newest_primary_e4(results_root)
+    sim_df = None
+    if e4_dir is not None:
+        try:
+            sim_df = pd.read_csv(e4_dir / "summary_dtt.csv")
+        except FileNotFoundError:
+            sim_df = None
+
+    analytic_rows: list[dict] = []
+    compare_rows: list[dict] = []
+    theta_rows: list[dict] = []
+    for a, b in pairs:
+        sa, sb = sim.systems[a], sim.systems[b]
+        shells_a = [ShellSpec(s.altitude_km, s.inclination_deg, s.planes, s.sats_per_plane)
+                    for s in sa.shells]
+        shells_b = [ShellSpec(s.altitude_km, s.inclination_deg, s.planes, s.sats_per_plane)
+                    for s in sb.shells]
+        fb = sb.shells[0].beam
+        ov = overlap(bands[a], bands[b], "user_downlink")
+        freq = float(ov.center_ghz)
+        pfd_constant = (fb.beam_steering == "pfd_constant"
+                        and fb.pfd_anchor_elevation_deg is not None)
+        pfd = (pfd_constant_dbw_per_m2_per_mhz(
+                   fb.eirp_density_dbw_per_mhz, sb.shells[0].altitude_km,
+                   float(fb.pfd_anchor_elevation_deg), radius)
+               if pfd_constant else float("nan"))
+        for diam in lb.diameter_sweep_m:
+            rx_peak = terminal_peak_gain_dbi(diam, freq, lb.aperture_efficiency)
+            if pfd_constant:
+                theta = equivalent_angle_deg(
+                    rx_peak, diam, freq, pfd,
+                    noise_power_dbw_per_mhz(sa.shells[0].beam.system_noise_temp_k))
+                fracs = event_fraction_vs_latitude(
+                    lats, theta, shells_a, shells_b,
+                    min_el, earth_radius_km=radius, n_grid=ng)
+            else:
+                theta = float("nan")
+                fracs = np.full(lats.shape, np.nan)
+            theta_rows.append({"victim": a, "interferer": b, "diameter_m": float(diam),
+                               "theta_star_deg": float(theta), "pfd_dbw_per_m2_per_mhz": pfd})
+            for phi, fr in zip(lats, fracs):
+                analytic_rows.append({"victim": a, "interferer": b, "diameter_m": float(diam),
+                                      "latitude_deg": float(phi), "theta_star_deg": float(theta),
+                                      "analytic_frac": float(fr)})
+                if sim_df is None or not pfd_constant:
+                    continue
+                sel = sim_df[(sim_df["system_a"] == a) & (sim_df["system_b"] == b)
+                             & (sim_df["diameter_m"] == float(diam))
+                             & (sim_df["variant"] == 1)
+                             & (sim_df["latitude_deg"] == float(phi))]
+                if sel.empty:
+                    continue
+                sm = float(sel["event_frac_mean"].iloc[0])
+                compare_rows.append({
+                    "victim": a, "interferer": b, "diameter_m": float(diam),
+                    "latitude_deg": float(phi), "theta_star_deg": float(theta),
+                    "analytic_frac": float(fr), "sim_frac": sm,
+                    "abs_err": float(fr) - sm,
+                    "rel_err": (float(fr) - sm) / sm if sm > 0.0 else np.nan})
+
+    adf = pd.DataFrame(analytic_rows)
+    adf.to_csv(run_dir / "summary_analytic.csv", index=False)
+    cdf = pd.DataFrame(compare_rows)
+    cdf.to_csv(run_dir / "summary_compare.csv", index=False)
+
+    summary = {}
+    if not cdf.empty:
+        for diam, g in cdf.groupby("diameter_m"):
+            finite = g[np.isfinite(g["analytic_frac"]) & np.isfinite(g["sim_frac"])]
+            rel = finite[np.isfinite(finite["rel_err"])]
+            summary[str(diam)] = {
+                "max_abs_err": float(g["abs_err"].abs().max()),
+                "max_rel_err": float(rel["rel_err"].abs().max()) if not rel.empty else None,
+            }
+    tdf = pd.DataFrame(theta_rows)
+    theta_spread = None
+    pc = tdf[tdf["diameter_m"].notna() & np.isfinite(tdf["theta_star_deg"])]
+    if not pc.empty and pc["victim"].nunique() and pc["interferer"].nunique():
+        theta_spread = float(pc["theta_star_deg"].max() - pc["theta_star_deg"].min())
+
+    _write_json(run_dir, "status.json",
+                {"experiment": exp.name, "status": "ok", "n_grid": ng,
+                 "min_elevation_deg": min_el, "earth_radius_km": radius,
+                 "e4_run": e4_dir.name if e4_dir is not None else None,
+                 "theta_star_deg": {f"{r['victim']}<-{r['interferer']}@{r['diameter_m']:g}m":
+                                    r["theta_star_deg"] for _, r in tdf.iterrows()},
+                 "theta_star_aperture_spread_deg": theta_spread,
+                 "comparison": summary,
+                 "note": ("analytic model assumes PFD-constant interferer steering and "
+                          "range-independent I/N; only those pairs are reported")})
     return run_dir
