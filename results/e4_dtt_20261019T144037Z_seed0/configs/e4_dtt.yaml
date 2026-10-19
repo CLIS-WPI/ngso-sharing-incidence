@@ -1,0 +1,25 @@
+# Experiment 4 - 47 CFR 25.261(d) Delta T/T link-budget screening.
+name: e4_dtt
+description: >
+  Replace the geometric in-line proxy with the regulatory power criterion:
+  aggregate Delta T/T > 0.06 (I/N > -12.2 dB) for the co-frequency user-downlink
+  pairs, using the shared-band centre frequency, the ITU-R S.1428/S.465 receive
+  pattern at the off-axis angle between serving and interfering satellites, and
+  the victim system noise temperature.  Reports the event / unresolvable time
+  fraction and the 25.261(d) throughput degradation vs latitude, for both
+  interferer variants and a sweep of ASSUMED terminal apertures.
+constellations: [STARLINK, KUIPER, ONEWEB]
+stations: stations.yaml
+seed: 0
+params:
+  n_phasings: 8            # independent constellation phasings (unit of replication)
+  time_step_s: 10          # propagation / detection sampling step
+  duration_s: 86400        # simulated window (24 h)
+  chunk: 64                # time-chunk size for the batched GPU pipeline
+  # Interferer beam-steering model: constant-EIRP (false) or PFD-constant (true,
+  # EIRP scaled with slant range so the ground PFD stays at its nadir value).
+  pfd_constant: false
+  # Diversity path-loss: "interferer" (station->interferer range, correct);
+  # "victim" reproduces the earlier victim-range approximation for attribution.
+  diversity_fspl: interferer
+  source: ASSUMED

@@ -23,9 +23,14 @@ def main(argv: list[str] | None = None) -> int:
         default=REPO_ROOT / "configs" / "experiments" / "e4_dtt.yaml",
     )
     parser.add_argument("--results-root", type=Path, default=REPO_ROOT / "results")
+    parser.add_argument("--diversity-fspl", choices=("interferer", "victim"), default=None,
+                        help="diversity path loss: 'interferer' (default) or legacy 'victim'")
+    parser.add_argument("--pfd-constant", action="store_true", default=None,
+                        help="model PFD-constant interferer beam steering")
     args = parser.parse_args(argv)
 
-    run_dir = run_e4(args.config, args.results_root)
+    run_dir = run_e4(args.config, args.results_root, diversity_fspl=args.diversity_fspl,
+                     pfd_constant=args.pfd_constant)
     print(f"[e4] run complete: {run_dir}")
     return 0
 

@@ -1,24 +1,25 @@
-# Experiment 6 - pre-paper check: sensitivity to the calibrated OneWeb EIRP density.
+# Experiment 6 - sensitivity of the Delta T/T results to the EIRP assumptions.
 #
-# The OneWeb Ku user-downlink EIRP density is ASSUMED (calibrated) at +0.2 dBW/MHz
-# (configs/constellations.yaml; scripts/calibrate_oneweb_eirp.py calibrates the
-# 0.6 m reference terminal to a 5 dB time-median clear-sky C/N at 45 deg, target
-# band 4-6 dB, so the OneWeb link closes).  No unambiguous public value exists
-# (candidate filings disagree by >10 dB), so this experiment holds the as-deployed
-# CelesTrak snapshot fixed and sweeps that value over the calibrated value +/-6 dB
-# in 3 dB steps, reporting the 25.261(d) Delta T/T exceedance and the
-# baseline-availability-qualified throughput degradation for both ordered
-# user-downlink pairs.  It shows which conclusions depend on the calibrated value,
-# including whether the binding direction can reverse.  Replication is over
-# independent simulation start times (constellation fixed); fewer than E5 to bound
-# runtime.
+# Each case overrides one or more systems' Ku user-downlink EIRP density (dBW/MHz)
+# and selects constant-EIRP or PFD-constant interferer beam steering.  The
+# as-deployed CelesTrak snapshot is held fixed; replication is over independent
+# simulation start times (constellation fixed).  Cases:
+#
+#   primary              Starlink +15.68 (FCC-22-91A1 Ku, unit-corrected from
+#                        dBW/4kHz), OneWeb +10.6 (Del Portillo 2019, Table 3).
+#   starlink_low_end     Starlink at the low end of the filed 4-kHz range
+#                        (-11.9 dBW/4kHz = +12.1 dBW/MHz).
+#   delportillo_common   both systems from Del Portillo 2019 (Starlink +12.7).
+#   oneweb_cn_calibrated OneWeb at the earlier C/N-target calibration (+0.2),
+#                        retained only as a sensitivity row (not a design rule).
+#   primary_pfd_constant the primary values with PFD-constant beam steering.
 name: e6_eirp_sweep
 description: >
-  Sweep the calibrated OneWeb downlink EIRP density (+0.2 dBW/MHz) by +/-6 dB on
-  the as-deployed TLE snapshot and report both ordered user-downlink Delta T/T
-  exceedance fractions and the qualified 25.261(d) throughput degradation, to test
-  whether the direction asymmetry found in Phases 3a/3b is an artefact of the
-  calibrated value.
+  Sensitivity of both ordered co-frequency user-downlink Delta T/T exceedance
+  fractions and the qualified 25.261(d) throughput degradation to the EIRP
+  assumptions: the FCC unit-corrected Starlink value, the low end of the filed
+  range, a single common (Del Portillo) source for both systems, the retired
+  C/N-calibrated OneWeb value, and constant-EIRP vs PFD-constant beam steering.
 constellations: [STARLINK, ONEWEB]
 stations: stations.yaml
 seed: 0
@@ -36,6 +37,20 @@ params:
   operational_altitude_km:
     STARLINK: [450, 600]
     ONEWEB: [1100, 1300]
-  sweep_system: ONEWEB
-  eirp_sweep_dbw_per_mhz: [-5.8, -2.8, 0.2, 3.2, 6.2]  # calibrated 0.2 dBW/MHz +/-6
+  cases:
+    - name: primary
+      eirp_dbw_per_mhz: {STARLINK: 15.68, ONEWEB: 10.6}
+      pfd_constant: false
+    - name: starlink_low_end
+      eirp_dbw_per_mhz: {STARLINK: 12.1, ONEWEB: 10.6}
+      pfd_constant: false
+    - name: delportillo_common
+      eirp_dbw_per_mhz: {STARLINK: 12.7, ONEWEB: 10.6}
+      pfd_constant: false
+    - name: oneweb_cn_calibrated
+      eirp_dbw_per_mhz: {STARLINK: 15.68, ONEWEB: 0.2}
+      pfd_constant: false
+    - name: primary_pfd_constant
+      eirp_dbw_per_mhz: {STARLINK: 15.68, ONEWEB: 10.6}
+      pfd_constant: true
   source: ASSUMED

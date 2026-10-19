@@ -74,6 +74,8 @@ def screen_pair_dtt(
     device: str = "cuda",
     chunk: int = 64,
     pattern: str = "S1428",
+    pfd_constant: bool = False,
+    diversity_fspl: str = "interferer",
 ) -> dict:
     """Screen one ordered pair under the Delta T/T criterion.
 
@@ -82,7 +84,23 @@ def screen_pair_dtt(
     ``cn0_median``, ``cn0_p10``) and its baseline availability at C/N = 0 dB
     (``avail0_frac``), and accumulator sums for the throughput secondary result
     (all means are ``sum / n_samples``).
+
+    ``pfd_constant=False`` (default) holds the interferer EIRP density fixed
+    (constant-EIRP).  ``pfd_constant=True`` models the SpaceX/SpaceX-style
+    beam-steering power control: the interferer raises its EIRP with slant range
+    so the PFD on the ground stays at its nadir value.  The interferer
+    contribution then uses ``FSPL(altitude)`` instead of ``FSPL(actual range)``
+    and is range-independent.  The victim's own carrier is left constant-EIRP so
+    the baseline C/N distribution (and the availability denominators used by
+    25.261(d)) is identical between the two models.
+
+    ``diversity_fspl="interferer"`` (correct) evaluates the interference in the
+    diversity test at the interferer's slant range.  ``"victim"`` reproduces the
+    earlier behaviour that (incorrectly) reused the candidate victim satellite's
+    range, retained only for attribution of that fix.
     """
+    if diversity_fspl not in ("interferer", "victim"):
+        raise ValueError("diversity_fspl must be 'interferer' or 'victim'")
     g = station_ecef.shape[0]
     t_total = len(times)
     k_a = min(int(k_a), victim.n_sats)
@@ -140,17 +158,30 @@ def screen_pair_dtt(
         # Victim own carrier: serving satellite at boresight (peak gain).
         cn0 = victim_beam.eirp_density_dbw_per_mhz + rx_peak_gain_dbi - _fspl_db(dist_a, freq_ghz) - noise_v
 
-        def _in_db(off_axis, dist, eirp_density):
+        # Interferer path loss.  With PFD-constant beam steering the satellite
+        # raises EIRP with slant range so the PFD on the ground stays at its
+        # nadir value; the received interference is then range-independent and
+        # uses FSPL(altitude) in place of FSPL(actual range).
+        if pfd_constant:
+            alt_b = torch.linalg.norm(pb, dim=-1) - earth_radius_km  # [Tc, Nb] km
+            alt_b_k = torch.gather(alt_b.unsqueeze(1).expand(-1, g, -1), 2, ib)
+            fspl_serving_b = _fspl_db(alt_b_k[:, :, 0], freq_ghz)
+            fspl_all_b = _fspl_db(alt_b_k, freq_ghz)
+        else:
+            fspl_serving_b = _fspl_db(dist_b, freq_ghz)
+            fspl_all_b = _fspl_db(db_k, freq_ghz)
+
+        def _in_db(off_axis, fspl_db, eirp_density):
             g_rx = pattern_gain_batch(off_axis, rx_peak_gain_dbi, rx_diameter_m, freq_ghz, pattern)
-            return eirp_density + g_rx - _fspl_db(dist, freq_ghz) - noise_v
+            return eirp_density + g_rx - fspl_db - noise_v
 
         # --- co-located: single interferer (B serving satellite) ---
         sep_c = angular_separation_batch(serving_a, serving_b)
-        dtt_c = _dbw_to_linear(_in_db(sep_c, dist_b, interf_beam.eirp_density_dbw_per_mhz))
+        dtt_c = _dbw_to_linear(_in_db(sep_c, fspl_serving_b, interf_beam.eirp_density_dbw_per_mhz))
         # --- worst case: aggregate over every visible B satellite ---
         sep_w = angular_separation_batch(serving_a.unsqueeze(2), ub_k)  # [Tc,G,Kb]
         dtt_w = (
-            _dbw_to_linear(_in_db(sep_w, db_k, interf_beam.eirp_density_dbw_per_mhz))
+            _dbw_to_linear(_in_db(sep_w, fspl_all_b, interf_beam.eirp_density_dbw_per_mhz))
             * vis_kb.to(torch.float64)
         ).sum(-1)
 
@@ -161,12 +192,22 @@ def screen_pair_dtt(
             event_count[vi] += event.sum(0).to(torch.float64)
 
         # Diversity: alternate visible A satellites that keep DTT <= threshold.
+        # The interfering signal travels from the interferer, so the correct path
+        # loss is the station->interferer range.  ``"victim"`` reproduces the
+        # earlier (incorrect) reuse of the candidate victim range for attribution.
         cand = vis_ka & (eye_a.reshape(1, 1, -1) != 0)
+        if diversity_fspl == "victim":
+            fspl_div = _fspl_db(da_k, freq_ghz)  # [Tc,G,Ka]
+            fspl_div_serving = fspl_div
+            fspl_div_all = fspl_div.unsqueeze(-1)  # [Tc,G,Ka,1]
+        else:
+            fspl_div_serving = fspl_serving_b.unsqueeze(2)  # [Tc,G,1]
+            fspl_div_all = fspl_all_b.unsqueeze(2)  # [Tc,G,1,Kb]
         sep_ca = angular_separation_batch(ua_k, serving_b.unsqueeze(2))  # [Tc,G,Ka]
-        dtt_ca = _dbw_to_linear(_in_db(sep_ca, da_k, interf_beam.eirp_density_dbw_per_mhz))
+        dtt_ca = _dbw_to_linear(_in_db(sep_ca, fspl_div_serving, interf_beam.eirp_density_dbw_per_mhz))
         sep_wa = angular_separation_batch(ua_k.unsqueeze(3), ub_k.unsqueeze(2))  # [Tc,G,Ka,Kb]
         dtt_wa = (
-            _dbw_to_linear(_in_db(sep_wa, da_k.unsqueeze(-1), interf_beam.eirp_density_dbw_per_mhz))
+            _dbw_to_linear(_in_db(sep_wa, fspl_div_all, interf_beam.eirp_density_dbw_per_mhz))
             * vis_kb.reshape(vis_kb.shape[0], vis_kb.shape[1], 1, -1)
         ).sum(-1)
         resolvable = {

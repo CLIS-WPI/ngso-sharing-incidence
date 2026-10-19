@@ -31,6 +31,22 @@ LIGHT_SPEED_M_S: float = 299792458.0
 
 PATTERN_FUNCS = {"S465": s465_gain, "S1428": s1428_gain}
 
+# 47 CFR 25.218 states Ku-band (below 15 GHz) EIRP-density masks per 4 kHz,
+# whereas this model stores every beam EIRP density per MHz.  A per-4-kHz EIRP
+# becomes a per-MHz EIRP density by adding 10 log10(1000/4) = +23.9794 dB.
+EIRP_DENSITY_4KHZ_TO_MHZ_DB: float = float(10.0 * np.log10(1000.0 / 4.0))
+
+
+def eirp_density_dbw_per_mhz_from_dbw_per_4khz(eirp_dbw_per_4khz: float) -> float:
+    """Convert a filed per-4-kHz EIRP (dBW) to a per-MHz EIRP density (dBW/MHz).
+
+    Ku-band filings (``47 CFR 25.218``, and SpaceX's Ku technical attachments)
+    tabulate maximum EIRP per 4 kHz, not per MHz.  This helper makes the unit
+    conversion explicit and testable so a per-4-kHz value can never be silently
+    read as a per-MHz density.
+    """
+    return float(eirp_dbw_per_4khz) + EIRP_DENSITY_4KHZ_TO_MHZ_DB
+
 
 def terminal_peak_gain_dbi(diameter_m: float, freq_ghz: float, efficiency: float) -> float:
     """Peak gain (dBi) of a circular aperture: ``eta (pi D / lambda)^2``."""

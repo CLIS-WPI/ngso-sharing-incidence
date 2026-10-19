@@ -871,6 +871,8 @@ def run_e4(
     n_phasings: int | None = None,
     time_step_s: float | None = None,
     duration_s: float | None = None,
+    pfd_constant: bool | None = None,
+    diversity_fspl: str | None = None,
 ) -> Path:
     """Run E4 (47 CFR 25.261(d) Delta T/T screening + throughput degradation).
 
@@ -891,6 +893,9 @@ def run_e4(
     device = device_str()
     radius = sim.earth.radius_km
     jd = epoch_jd(sim)
+    pfd_const = bool(p.get("pfd_constant", False)) if pfd_constant is None else bool(pfd_constant)
+    div_fspl = (str(p.get("diversity_fspl", "interferer"))
+                if diversity_fspl is None else str(diversity_fspl))
 
     run_dir = new_run_dir(
         results_root, exp.name, exp.seed,
@@ -932,7 +937,7 @@ def run_e4(
                     systems[a], systems[b], vis[a]["max_visible"], vis[b]["max_visible"],
                     grid.ecef, grid.up, times, victim_beam, interf_beam, freq, rx_peak, diam,
                     lb.implementation_margin_db, min_el, radius, jd, device=device, chunk=chunk,
-                    pattern=lb.pattern,
+                    pattern=lb.pattern, pfd_constant=pfd_const, diversity_fspl=div_fspl,
                 )
                 for vi in (0, 1):
                     unavail_int = (res["unavail_nodiv_worst_frac"] if vi == 0
@@ -990,6 +995,7 @@ def run_e4(
                  "duration_s": dur, "min_elevation_deg": min_el, "device": device,
                  "dtt_threshold": 0.06, "diameter_sweep_m": lb.diameter_sweep_m,
                  "pattern": lb.pattern, "implementation_margin_db": lb.implementation_margin_db,
+                 "pfd_constant": pfd_const, "diversity_fspl": div_fspl,
                  "beam_eirp_dbw_per_mhz": {
                      n: float(sim.systems[n].shells[0].beam.eirp_density_dbw_per_mhz)
                      for n in exp.constellations},
@@ -1054,6 +1060,8 @@ def run_e5(
     n_start_times: int | None = None,
     time_step_s: float | None = None,
     duration_s: float | None = None,
+    pfd_constant: bool | None = None,
+    diversity_fspl: str | None = None,
 ) -> Path:
     """Run E5 (Phase 3b: as-deployed CelesTrak TLE scenario).
 
@@ -1078,6 +1086,9 @@ def run_e5(
     device = device_str()
     radius = sim.earth.radius_km
     lat_bins = np.arange(-90.0, 90.0 + 1e-9, 5.0)
+    pfd_const = bool(p.get("pfd_constant", False)) if pfd_constant is None else bool(pfd_constant)
+    div_fspl = (str(p.get("diversity_fspl", "interferer"))
+                if diversity_fspl is None else str(diversity_fspl))
 
     run_dir = new_run_dir(
         results_root, exp.name, exp.seed,
@@ -1143,7 +1154,8 @@ def run_e5(
                     systems[a], systems[b], vis[a]["max_visible"], vis[b]["max_visible"],
                     grid.ecef, grid.up, times, victim_beam, interf_beam, freq, rx_peak, diam,
                     lb.implementation_margin_db, min_el, radius, epoch, device=device,
-                    chunk=chunk, pattern=lb.pattern,
+                    chunk=chunk, pattern=lb.pattern, pfd_constant=pfd_const,
+                    diversity_fspl=div_fspl,
                 )
                 for vi in (0, 1):
                     for g in range(grid.ecef.shape[0]):
@@ -1200,6 +1212,7 @@ def run_e5(
                   "operational_altitude_km": {n: tle_meta["groups"][n]["operational_band_km"]
                                               for n in exp.constellations},
                   "dtt_threshold": 0.06, "diameter_sweep_m": lb.diameter_sweep_m,
+                  "pfd_constant": pfd_const, "diversity_fspl": div_fspl,
                   "beam_eirp_dbw_per_mhz": {
                       n: float(systems[n].shells[0].beam.eirp_density_dbw_per_mhz)
                       for n in exp.constellations},
@@ -1215,13 +1228,14 @@ def run_e6(
     repo_root: Path = REPO_ROOT,
     n_start_times: int | None = None,
 ) -> Path:
-    """Run E6 (pre-paper check 1): sweep one system's EIRP density.
+    """Run E6 (sensitivity): named EIRP / beam-steering cases, as-deployed snapshot.
 
-    The OneWeb downlink EIRP density is ASSUMED (-20 dBW/MHz).  This experiment
-    holds the as-deployed CelesTrak snapshot fixed and sweeps the target system's
-    EIRP density, reporting the Delta T/T power-screen exceedance for *both*
-    ordered user-downlink pairs, so we can state which conclusions depend on the
-    ASSUMED value.  Replication is over independent start times (AGENTS.md rule 5).
+    Each case overrides one or more systems' downlink EIRP density (dBW/MHz) and
+    selects constant-EIRP or PFD-constant interferer beam steering.  It reports the
+    Delta T/T power-screen exceedance (and the qualified 25.261(d) throughput
+    degradation) for *both* ordered user-downlink pairs, so we can state which
+    conclusions depend on the EIRP values.  Replication is over independent start
+    times (AGENTS.md rule 5).
     """
     from dataclasses import replace
 
@@ -1230,8 +1244,24 @@ def run_e6(
     lb = load_link_budget(repo_root / "configs" / "link_budget.yaml")
     udl_pairs = co_frequency_pairs(exp.constellations, bands, "user_downlink")
     p = exp.params
-    target = str(p.get("sweep_system", "ONEWEB"))
-    eirps = [float(x) for x in p.get("eirp_sweep_dbw_per_mhz", [-26.0, -20.0, -14.0, -8.3])]
+    cases_raw = p.get("cases")
+    if cases_raw:
+        cases = [
+            {
+                "name": str(c.get("name", f"case{i}")),
+                "eirp": {str(k): float(v)
+                         for k, v in (c.get("eirp_dbw_per_mhz") or {}).items()},
+                "pfd_constant": bool(c.get("pfd_constant", False)),
+            }
+            for i, c in enumerate(cases_raw)
+        ]
+    else:
+        target = str(p.get("sweep_system", "ONEWEB"))
+        cases = [
+            {"name": f"{target}_{float(x):+.2f}", "eirp": {target: float(x)},
+             "pfd_constant": bool(p.get("pfd_constant", False))}
+            for x in p.get("eirp_sweep_dbw_per_mhz", [-26.0, -20.0, -14.0, -8.3])
+        ]
     n_st = int(n_start_times if n_start_times is not None else p.get("n_start_times", 4))
     dt = float(p.get("time_step_s", 10.0))
     dur = float(p.get("duration_s", 86400.0))
@@ -1257,8 +1287,7 @@ def run_e6(
     systems0, tle_meta, filter_rows = _as_deployed_inputs(exp, sim, repo_root, radius)
     epoch = float(tle_meta["common_epoch_jd"])
     tle_meta["experiment"] = exp.name
-    tle_meta["sweep_system"] = target
-    tle_meta["eirp_sweep_dbw_per_mhz"] = eirps
+    tle_meta["cases"] = cases
     _write_json(run_dir, "tle_meta.json", tle_meta)
     pd.DataFrame(filter_rows).to_csv(run_dir / "summary_satellite_filter.csv", index=False)
 
@@ -1266,13 +1295,14 @@ def run_e6(
                        thetas_deg=tuple(float(t) for t in p.get("thetas_deg", [5.0])),
                        chunk=chunk, device=device)
     rows: list[dict] = []
-    for eirp in eirps:
+    for case in cases:
         sysd = {}
         for n in exp.constellations:
             m = systems0[n]
-            if n == target:
+            eirp = case["eirp"].get(n)
+            if eirp is not None:
                 beam = replace(m.shells[0].beam, eirp_density_dbw_per_mhz=eirp,
-                               source="ASSUMED (swept)")
+                               source="E6 sensitivity case")
                 sysd[n] = replace(m, shells=tuple(replace(sh, beam=beam) for sh in m.shells))
             else:
                 sysd[n] = m
@@ -1291,6 +1321,7 @@ def run_e6(
                         grid.ecef, grid.up, times, victim_beam, interf_beam, freq, rx_peak,
                         diam, lb.implementation_margin_db, min_el, radius, epoch,
                         device=device, chunk=chunk, pattern=lb.pattern,
+                        pfd_constant=case["pfd_constant"],
                     )
                     r0 = dres["r0_mean"]
                     avail0 = dres["avail0_frac"]
@@ -1303,7 +1334,11 @@ def run_e6(
                         degr = np.where(r0 > 0.0, 1.0 - dres["r_int_mean"][vi] / np.where(r0 > 0.0, r0, 1.0), np.nan)
                         dq = degr[qual]
                         rows.append({
-                            "eirp_dbw_per_mhz": eirp, "phasing": k,
+                            "case": case["name"],
+                            "pfd_constant": case["pfd_constant"],
+                            "starlink_eirp_dbw_per_mhz": case["eirp"].get("STARLINK", np.nan),
+                            "oneweb_eirp_dbw_per_mhz": case["eirp"].get("ONEWEB", np.nan),
+                            "phasing": k,
                             "victim": a, "interferer": b, "diameter_m": float(diam),
                             "variant": vi,
                             "event_frac_mean": float(ef.mean()),
@@ -1321,10 +1356,9 @@ def run_e6(
 
     df = pd.DataFrame(rows)
     df.to_parquet(run_dir / "raw_eirp_sweep.parquet", index=False)
-    sw = df.groupby(
-        ["victim", "interferer", "diameter_m", "variant", "eirp_dbw_per_mhz"],
-        as_index=False,
-    ).agg(
+    grp = ["case", "pfd_constant", "starlink_eirp_dbw_per_mhz", "oneweb_eirp_dbw_per_mhz",
+           "victim", "interferer", "diameter_m", "variant"]
+    sw = df.groupby(grp, as_index=False, dropna=False).agg(
         event_frac_mean=("event_frac_mean", "mean"),
         event_frac_max=("event_frac_max", "max"),
         unres_frac_max=("unres_frac_max", "max"),
@@ -1343,26 +1377,18 @@ def run_e6(
             return 0.0
         return float(t95(v.size) * np.std(v, ddof=1) / np.sqrt(v.size))
 
-    ci = df.groupby(
-        ["victim", "interferer", "diameter_m", "variant", "eirp_dbw_per_mhz"],
-        as_index=False,
-    ).agg(
+    ci = df.groupby(grp, as_index=False, dropna=False).agg(
         event_frac_mean_ci95=("event_frac_mean", _ci95),
         degr_max_qual_ci95=("degr_max_qual", _ci95),
     )
-    sw = sw.merge(
-        ci,
-        on=["victim", "interferer", "diameter_m", "variant", "eirp_dbw_per_mhz"],
-        how="left",
-    )
+    sw = sw.merge(ci, on=grp, how="left")
     sw.to_csv(run_dir / "summary_eirp_sweep.csv", index=False)
 
     _write_json(run_dir, "status.json",
                 {"experiment": exp.name, "status": "ok", "n_start_times": n_st,
                  "start_offset_s": offset, "time_step_s": dt, "duration_s": dur,
                  "min_elevation_deg": min_el, "device": device,
-                 "common_epoch_jd": epoch, "sweep_system": target,
-                 "eirp_sweep_dbw_per_mhz": eirps,
+                 "common_epoch_jd": epoch, "cases": cases,
                  "n_sats": {n: int(tle_meta["groups"][n]["n_kept"])
                             for n in exp.constellations},
                  "user_downlink_pairs": [list(q) for q in udl_pairs]})

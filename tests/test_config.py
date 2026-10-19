@@ -60,11 +60,13 @@ def test_shipped_beams_declare_the_new_fields_and_a_source():
 
 
 def test_flight_provenance_of_sourced_beams():
-    """STARLINK/KUIPER beams cite filings; ONEWEB is still ASSUMED."""
+    """STARLINK/KUIPER beams cite filings; ONEWEB EIRP cites Del Portillo 2019."""
     cons = load_constellations(CONFIGS / "constellations.yaml")
     for name in ("STARLINK", "KUIPER"):
         for shell in cons[name].shells:
             assert "ASSUMED" != shell.beam.source.strip(), shell.name
             assert "FCC" in shell.beam.source or "fcc" in shell.beam.source, shell.name
     for shell in cons["ONEWEB"].shells:
-        assert shell.beam.source.strip().startswith("ASSUMED"), shell.name
+        src = shell.beam.source
+        assert "Del Portillo" in src, shell.name  # EIRP density is sourced
+        assert "ASSUMED" in src, shell.name       # gain / beamwidth remain ASSUMED

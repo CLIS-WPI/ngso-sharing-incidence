@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import numpy as np
+import pytest
 import torch
 
 from ngsi.antennas import s1428_gain
@@ -10,7 +11,12 @@ from ngsi.config import Beam, Constellation, Shell
 from ngsi.constants import DTT_THRESHOLD
 from ngsi.dtt_screen import screen_pair_dtt
 from ngsi.geometry import angular_separation_deg, station_ecef_spherical
-from ngsi.link_budget import noise_power_dbw_per_mhz, shannon_throughput, terminal_peak_gain_dbi
+from ngsi.link_budget import (
+    noise_power_dbw_per_mhz,
+    pattern_gain_batch,
+    shannon_throughput,
+    terminal_peak_gain_dbi,
+)
 from ngsi.propagation import propagate_ecef
 from ngsi.systems import build_system
 
@@ -130,3 +136,45 @@ def test_screen_pair_dtt_matches_reference() -> None:
     np.testing.assert_allclose(res["served_frac"], ref_served, atol=1e-12)
     np.testing.assert_allclose(res["r0_mean"], ref_r0, rtol=1e-9)
     assert ref_event.sum() > 0.0
+
+
+def test_pfd_constant_uses_altitude_instead_of_range() -> None:
+    """PFD-constant co-located DTT must use FSPL(altitude), not FSPL(slant range).
+
+    The victim and interferer share identical orbits, so the serving victim and
+    interferer satellites coincide: the co-located off-axis angle is 0 and the
+    receive gain is the peak.  The co-located Delta T/T is then
+    ``EIRP + G_peak - FSPL - noise`` with FSPL at the actual slant range
+    (constant-EIRP) or at the satellite altitude (PFD-constant).
+    """
+    a, b = _systems()
+    stations = np.asarray(station_ecef_spherical(np.array([45.0]), np.array([0.0]),
+                                                 R_EARTH, "cpu"))
+    up = stations / np.linalg.norm(stations, axis=-1, keepdims=True)
+    times = np.array([0.0])
+    peak = terminal_peak_gain_dbi(DIAMETER, FREQ, EFF)
+
+    def _run(pfd: bool) -> dict:
+        return screen_pair_dtt(
+            a, b, a.n_sats, b.n_sats, torch.as_tensor(stations), torch.as_tensor(up), times,
+            VICTIM_BEAM, INTERF_BEAM, FREQ, peak, DIAMETER, MARGIN,
+            min_elevation_deg=-90.0, earth_radius_km=R_EARTH, epoch_jd=EPOCH_JD,
+            device="cpu", chunk=32, pfd_constant=pfd,
+        )
+
+    res_e = _run(False)
+    res_p = _run(True)
+
+    pa = np.asarray(propagate_ecef(a.elements, times, EPOCH_JD, R_EARTH, "cpu"))[0]
+    rel = pa - stations[0]
+    rng = np.linalg.norm(rel, axis=-1)
+    k = int(np.argmax((rel / rng[:, None]) @ up[0]))  # highest-elevation satellite
+    noise = noise_power_dbw_per_mhz(VICTIM_BEAM.system_noise_temp_k)
+    g0 = float(pattern_gain_batch(torch.zeros(1, dtype=torch.float64), peak, DIAMETER, FREQ,
+                                  kind="S1428")[0])
+    eirp = INTERF_BEAM.eirp_density_dbw_per_mhz
+    exp_e = 10.0 ** ((eirp + g0 - _fspl(rng[k]) - noise) / 10.0)
+    exp_p = 10.0 ** ((eirp + g0 - _fspl(np.linalg.norm(pa[k]) - R_EARTH) - noise) / 10.0)
+    assert res_e["dtt_colo_mean"][0] == pytest.approx(exp_e, rel=1e-9)
+    assert res_p["dtt_colo_mean"][0] == pytest.approx(exp_p, rel=1e-9)
+    assert exp_p > exp_e  # altitude < slant range everywhere except nadir

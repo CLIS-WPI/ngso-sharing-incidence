@@ -33,6 +33,24 @@ def newest(prefix: str) -> Path | None:
     return runs[-1] if runs else None
 
 
+def newest_where(prefix: str, **status_kv) -> Path | None:
+    """Newest run of ``prefix`` whose ``status.json`` matches every key/value.
+
+    Used to pin the headline E4/E5 macros to the primary configuration
+    (correct interferer-range diversity, constant-EIRP) when sensitivity reruns
+    (legacy ``diversity_fspl=victim``, ``pfd_constant=true``) share the prefix.
+    """
+    runs = sorted(p for p in RESULTS.glob(f"{prefix}_*") if p.is_dir())
+    for run in reversed(runs):
+        try:
+            st = json.loads((run / "status.json").read_text())
+        except (OSError, ValueError):
+            continue
+        if all(st.get(k) == v for k, v in status_kv.items()):
+            return run
+    return runs[-1] if runs else None
+
+
 def _num(v, fmt: str = "{:.4g}") -> str:
     return fmt.format(float(v))
 
@@ -126,7 +144,7 @@ def main() -> int:
     # availability is >= 99% (the domain in which the rule is defined);
     # `avail0_frac_mean` is the mean over phasings/longitudes of the fraction of
     # time the victim link keeps C/N >= 0 dB.
-    e4 = newest("e4_dtt")
+    e4 = newest_where("e4_dtt", diversity_fspl="interferer", pfd_constant=False)
     if e4 is not None:
         d = pd.read_csv(e4 / "summary_dtt.csv")
         st4 = json.loads((e4 / "status.json").read_text())
@@ -183,7 +201,7 @@ def main() -> int:
         add("UnavailIncCi", _pct(_ci_at(qb, "unavail_incr_frac"), 3) if len(qb) else "n/a", e4)
 
     # --- E5: as-deployed CelesTrak snapshot ---
-    e5 = newest("e5_as_deployed")
+    e5 = newest_where("e5_as_deployed", diversity_fspl="interferer", pfd_constant=False)
     if e5 is not None:
         st = json.loads((e5 / "status.json").read_text())
         add("NStarlinkRaw", str(int(st["n_sats_raw"]["STARLINK"])), e5)
@@ -252,41 +270,76 @@ def main() -> int:
             add("BindRatioEquator", _num(dep_eq / fil_eq, "{:.1f}"), e5)
             add("BindRatioPeak", _num(dep_pk / fil_pk, "{:.1f}"), e5)
 
-    # --- E6: EIRP-density sweep (pre-paper check 1) ---
+    # --- E6: EIRP-density cases (pre-paper check 1) ---
+    # The experiment is run over named cases (interferer EIRP densities and the
+    # constant-EIRP vs PFD-constant beam-steering model), not a single one-system
+    # sweep.  The macros the manuscript already uses are preserved by name and
+    # remapped to the primary case / across-case extremes; the per-case macros
+    # expose the sensitivity rows.
     e6 = newest("e6_eirp_sweep")
     if e6 is not None:
         s = pd.read_csv(e6 / "summary_eirp_sweep.csv")
-        rev = s[(s["victim"] == "STARLINK") & (s["interferer"] == VICTIM)
-                & (s["variant"] == 0) & (s["diameter_m"] == HEAD_DIAM)]
-        fwd = s[(s["victim"] == VICTIM) & (s["variant"] == 0) & (s["diameter_m"] == HEAD_DIAM)]
-        add("EirpSweepValues", ", ".join(_num(v, "{:g}") for v in sorted(s["eirp_dbw_per_mhz"].unique())), e6)
+
+        def cg(case, victim, variant, diam=HEAD_DIAM):
+            return s[(s["case"] == case) & (s["victim"] == victim)
+                     & (s["variant"] == variant) & (s["diameter_m"] == diam)]
+
+        fwd0 = cg("primary", VICTIM, 0)          # binding direction, worst-case
+        fwd1 = cg("primary", VICTIM, 1)          # binding direction, co-located
+        rev0 = cg("primary", "STARLINK", 0)
         add("EirpHeadDiam", _num(HEAD_DIAM, "{:g}"), e6)
-        add("EirpFwdInvariantPct", _pct(fwd["event_frac_mean"].max()), e6)
-        add("EirpRevMinPct", _pct(rev["event_frac_mean"].min(), 2), e6)
-        add("EirpRevMaxPct", _pct(rev["event_frac_mean"].max(), 2), e6)
+        add("EirpSweepValues", ", ".join(
+            _num(v, "{:g}") for v in sorted(s["starlink_eirp_dbw_per_mhz"].unique())), e6)
+        add("EirpFwdInvariantPct", _pct(fwd0["event_frac_max"].max()), e6)
+        add("EirpFwdColoPct", _pct(fwd1["event_frac_max"].max()), e6)
+        add("EirpFwdUnresPct", _pct(fwd0["unres_frac_max"].max()), e6)
+        add("EirpFwdBaseAvailPct", _pct(fwd0["avail0_min"].min(), 0), e6)
+        rev_all = s[(s["victim"] == "STARLINK") & (s["variant"] == 0)
+                    & (s["diameter_m"] == HEAD_DIAM)]
+        add("EirpRevMinPct", _pct(rev_all["event_frac_max"].min(), 2), e6)
+        add("EirpRevMaxPct", _pct(rev_all["event_frac_max"].max(), 2), e6)
         # 25.261(d) sensitivity: qualified throughput degradation, forward direction.
         fwd_all = s[(s["victim"] == VICTIM) & (s["variant"] == 0)]
         add("EirpDegrMinPct", _pct(fwd_all["degr_max_qual"].min()), e6)
         add("EirpDegrMaxPct", _pct(fwd_all["degr_max_qual"].max()), e6)
         add("EirpDegrMinCi", _pct(fwd_all.loc[fwd_all["degr_max_qual"].idxmin(), "degr_max_qual_ci95"]), e6)
         add("EirpDegrMaxCi", _pct(fwd_all.loc[fwd_all["degr_max_qual"].idxmax(), "degr_max_qual_ci95"]), e6)
-        if oneweb_eirp is not None:
-            eirps = sorted(s["eirp_dbw_per_mhz"].unique())
-            cal = min(eirps, key=lambda v: abs(v - oneweb_eirp))
-            at = fwd_all[fwd_all["eirp_dbw_per_mhz"] == cal]
-            add("EirpDegrAtCalPct", _pct(at["degr_max_qual"].max()), e6)
-            add("EirpDegrAtCalCi", _pct(at.loc[at["degr_max_qual"].idxmax(), "degr_max_qual_ci95"]), e6)
-            rev_at = rev[rev["eirp_dbw_per_mhz"] == cal]
-            add("EirpRevAtCalPct", _pct(rev_at["event_frac_mean"].max(), 2), e6)
-        # Minimum sweep EIRP at which the reverse (Starlink-victim) trigger is
-        # still nonzero, i.e. where the reverse-direction result still holds.
-        rev_ok = rev[rev["event_frac_mean"].fillna(0.0) > 0.0]
+        add("EirpDegrAtCalPct", _pct(fwd0["degr_max_qual"].max()), e6)
+        add("EirpDegrAtCalCi", _pct(fwd0.loc[fwd0["degr_max_qual"].idxmax(), "degr_max_qual_ci95"]), e6)
+        add("EirpRevAtCalPct", _pct(rev0["event_frac_max"].max(), 2), e6)
+        # Smallest OneWeb interferer EIRP at which the reverse (Starlink-victim)
+        # trigger is still nonzero, i.e. where the reverse result still holds.
+        rev_ok = rev_all[rev_all["event_frac_max"].fillna(0.0) > 0.0]
         if len(rev_ok):
-            add("EirpRevHoldMinDbw", _num(rev_ok["eirp_dbw_per_mhz"].min(), "{:g}"), e6)
-            hold = rev_ok.loc[rev_ok["eirp_dbw_per_mhz"].idxmin()]
-            add("EirpRevHoldPct", _pct(hold["event_frac_mean"], 2), e6)
+            hold = rev_ok.loc[rev_ok["oneweb_eirp_dbw_per_mhz"].idxmin()]
+            add("EirpRevHoldMinDbw", _num(hold["oneweb_eirp_dbw_per_mhz"], "{:g}"), e6)
+            add("EirpRevHoldPct", _pct(hold["event_frac_max"], 2), e6)
+        # Per-case headline sensitivity rows (letter-only names).
+        case_tags = {
+            "primary": "Prim",
+            "starlink_low_end": "Low",
+            "delportillo_common": "DpCommon",
+            "oneweb_cn_calibrated": "CnCal",
+            "primary_pfd_constant": "Pfd",
+        }
+        for case, tag in case_tags.items():
+            f0 = cg(case, VICTIM, 0)
+            f1 = cg(case, VICTIM, 1)
+            r0 = cg(case, "STARLINK", 0)
+            add(f"Eirp{tag}FwdWorstPct", _pct(f0["event_frac_max"].max()), e6)
+            add(f"Eirp{tag}FwdUnresPct", _pct(f0["unres_frac_max"].max()), e6)
+            add(f"Eirp{tag}FwdDegrPct", _pct(f0["degr_max_qual"].max()), e6)
+            add(f"Eirp{tag}FwdDegrCi",
+                _pct(f0.loc[f0["degr_max_qual"].idxmax(), "degr_max_qual_ci95"]), e6)
+            add(f"Eirp{tag}ColoPct", _pct(f1["event_frac_max"].max()), e6)
+            add(f"Eirp{tag}RevWorstPct", _pct(r0["event_frac_max"].max()), e6)
 
     # --- write ---
+    bad = [n for n, _ in macros if not n.isalpha()]
+    if bad:
+        raise SystemExit(
+            f"macro names must be alphabetic LaTeX control words (no digits/other): {bad}"
+        )
     header = [
         "% AUTOGENERATED by scripts/make_numbers.py -- do not edit by hand.",
         "% Every macro below is read from results/ (AGENTS.md rule 1).",

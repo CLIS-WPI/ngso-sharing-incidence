@@ -8,10 +8,12 @@ import torch
 
 from ngsi.antennas import s1428_gain
 from ngsi.link_budget import (
+    EIRP_DENSITY_4KHZ_TO_MHZ_DB,
     aggregate_dtt_from_i_over_n_db,
     cn_db,
     cn_over_n_plus_i_db,
     dtt_from_i_over_n_db,
+    eirp_density_dbw_per_mhz_from_dbw_per_4khz,
     i_over_n_db,
     noise_power_dbw_per_mhz,
     pattern_gain_batch,
@@ -68,3 +70,13 @@ def test_pattern_gain_batch_matches_scalar() -> None:
     assert got[0].item() == pytest.approx(peak)  # boresight
     for i, p in enumerate([0.0, 1.0, 5.0, 20.0]):
         assert got[i].item() == pytest.approx(s1428_gain(p, peak, d, f), abs=1e-9)
+
+
+def test_eirp_4khz_to_mhz_conversion() -> None:
+    # 10 log10(1000/4) = 23.9794 dB.
+    assert EIRP_DENSITY_4KHZ_TO_MHZ_DB == pytest.approx(23.9794, abs=1e-3)
+    # FCC-22-91A1 Ku range, top and low end (dBW/4kHz -> dBW/MHz).
+    assert eirp_density_dbw_per_mhz_from_dbw_per_4khz(-8.3) == pytest.approx(15.68, abs=0.01)
+    assert eirp_density_dbw_per_mhz_from_dbw_per_4khz(-11.9) == pytest.approx(12.08, abs=0.01)
+    # SpaceX 2016 Ku attachment value -11.07 dBW/4kHz -> 12.91 dBW/MHz.
+    assert eirp_density_dbw_per_mhz_from_dbw_per_4khz(-11.07) == pytest.approx(12.91, abs=0.01)
