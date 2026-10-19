@@ -359,6 +359,131 @@ def fig_f8(e5: Path, e1: Path) -> Path | None:
     return out
 
 
+PAPER_FIG_DIR = REPO_ROOT / "paper" / "figures"
+VICTIM = "ONEWEB"
+HEAD_DIAM = 0.45
+
+
+def fig_p1_binding(e4: Path, e5: Path) -> Path | None:
+    """Fig. 1: 25.261(c) binding fraction (Delta T/T > 6%) vs latitude."""
+    try:
+        d4 = _read(e4, "dtt")
+        d5 = _read(e5, "dtt")
+    except FileNotFoundError:
+        return None
+    fig, ax = plt.subplots(figsize=(3.5, 2.7))
+    for d, color, tag in ((d4, "#1f77b4", "as-filed"), (d5, "#d62728", "as-deployed")):
+        for vi, ls, vt in ((1, "-", "co-located"), (0, "--", "worst case")):
+            s = d[(d["system_a"] == VICTIM) & (d["variant"] == vi) &
+                  (d["diameter_m"] == HEAD_DIAM)].sort_values("latitude_deg")
+            if s.empty:
+                continue
+            ax.plot(s["latitude_deg"], s["event_frac_mean"] * 100.0, ls, color=color, lw=1.5,
+                    label=f"{tag}, {vt}")
+    ax.set_xlabel("latitude [deg]")
+    ax.set_ylabel(r"binding time fraction [%]")
+    ax.set_xlim(0, 65)
+    ax.set_ylim(bottom=0)
+    ax.grid(alpha=0.3)
+    ax.legend(fontsize=6, loc="upper right")
+    fig.tight_layout()
+    out = PAPER_FIG_DIR / "P1_binding_vs_latitude.png"
+    PAPER_FIG_DIR.mkdir(parents=True, exist_ok=True)
+    fig.savefig(out, dpi=200)
+    plt.close(fig)
+    return out
+
+
+def fig_p2_throughput(e4: Path, e5: Path) -> Path | None:
+    """Fig. 2: time-weighted throughput degradation vs latitude per aperture."""
+    try:
+        d5 = _read(e5, "dtt")
+        d4 = _read(e4, "dtt")
+    except FileNotFoundError:
+        return None
+    fig, ax = plt.subplots(figsize=(3.5, 2.7))
+    colors = {0.45: "#1f77b4", 0.6: "#2ca02c", 0.75: "#9467bd"}
+    for diam in sorted(d5["diameter_m"].unique()):
+        s = d5[(d5["system_a"] == VICTIM) & (d5["variant"] == 0) &
+               (d5["diameter_m"] == diam)].sort_values("latitude_deg")
+        ax.plot(s["latitude_deg"], s["degradation_nodiv_mean"] * 100.0, "-",
+                color=colors.get(diam), lw=1.5, label=f"as-deployed, {diam:g} m")
+    s4 = d4[(d4["system_a"] == VICTIM) & (d4["variant"] == 0) &
+            (d4["diameter_m"] == HEAD_DIAM)].sort_values("latitude_deg")
+    ax.plot(s4["latitude_deg"], s4["degradation_nodiv_mean"] * 100.0, "--",
+            color="#1f77b4", lw=1.2, label="as-filed, 0.45 m")
+    ax.axhline(3.0, color="k", ls=":", lw=1.2)
+    ax.text(1, 3.15, "3% limit (25.261(d))", fontsize=6)
+    ax.set_xlabel("latitude [deg]")
+    ax.set_ylabel("throughput degradation [%]")
+    ax.set_xlim(0, 65)
+    ax.set_ylim(bottom=0)
+    ax.grid(alpha=0.3)
+    ax.legend(fontsize=6, loc="upper center", framealpha=0.9)
+    fig.tight_layout()
+    out = PAPER_FIG_DIR / "P2_throughput_degradation.png"
+    PAPER_FIG_DIR.mkdir(parents=True, exist_ok=True)
+    fig.savefig(out, dpi=200)
+    plt.close(fig)
+    return out
+
+
+def fig_p3_capacity(e3: Path) -> Path | None:
+    """Fig. 3: capacity-limited conditional unresolvable fraction vs N_beam."""
+    try:
+        d = _read(e3, "capacity_diversity")
+    except FileNotFoundError:
+        return None
+    s = d[(d["system_a"] == VICTIM) & (d["latitude_deg"] == 60.0)].sort_values("n_beam")
+    if s.empty:
+        s = d[d["system_a"] == VICTIM].sort_values("n_beam")
+    fig, ax = plt.subplots(figsize=(3.5, 2.7))
+    ax.errorbar(s["n_beam"], s["unres_per_served_mean"] * 1e4,
+                yerr=s["unres_per_served_ci95"] * 1e4, marker="o", ms=4, lw=1.5,
+                color="#1f77b4", capsize=3)
+    ax.set_xlabel(r"$N_{\text{beam}}$ (served beams per cell)")
+    ax.set_ylabel(r"unresolvable per served [$\times 10^{-4}$]")
+    ax.set_xticks(sorted(s["n_beam"].astype(int)))
+    ax.set_ylim(bottom=0)
+    ax.grid(alpha=0.3)
+    fig.tight_layout()
+    out = PAPER_FIG_DIR / "P3_capacity_vs_nbeam.png"
+    PAPER_FIG_DIR.mkdir(parents=True, exist_ok=True)
+    fig.savefig(out, dpi=200)
+    plt.close(fig)
+    return out
+
+
+def fig_p4_theta(e1: Path, e5: Path) -> Path | None:
+    """Fig. 4: supporting geometric theta-proxy event fraction vs latitude."""
+    try:
+        d1 = _read(e1, "event_rate")
+        d5 = _read(e5, "event_rate")
+    except FileNotFoundError:
+        return None
+    fig, ax = plt.subplots(figsize=(3.5, 2.5))
+    for d, color, tag in ((d1, "#1f77b4", "as-filed"), (d5, "#d62728", "as-deployed")):
+        for vi, ls, vt in ((1, "-", "co-located"), (0, "--", "worst case")):
+            s = d[(d["system_a"] == VICTIM) & (d["variant"] == vi) &
+                  (d["theta_deg"] == 2.0)].sort_values("latitude_deg")
+            if s.empty:
+                continue
+            ax.plot(s["latitude_deg"], s["event_frac_mean"] * 100.0, ls, color=color, lw=1.4,
+                    label=f"{tag}, {vt}")
+    ax.set_xlabel("latitude [deg]")
+    ax.set_ylabel(r"$\theta{=}2^\circ$ event fraction [%]")
+    ax.set_xlim(0, 65)
+    ax.set_ylim(bottom=0)
+    ax.grid(alpha=0.3)
+    ax.legend(fontsize=6, loc="upper right")
+    fig.tight_layout()
+    out = PAPER_FIG_DIR / "P4_theta_proxy.png"
+    PAPER_FIG_DIR.mkdir(parents=True, exist_ok=True)
+    fig.savefig(out, dpi=200)
+    plt.close(fig)
+    return out
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--results-root", type=Path, default=RESULTS_DIR)
@@ -406,6 +531,14 @@ def main(argv: list[str] | None = None) -> int:
     for out, run_dir in produced:
         shutil.copy2(out, run_dir / out.name)
         print(f"[figures] wrote {out} (copied to {run_dir.name})")
+
+    # Letter figures (paper/figures/): read from results/ only (AGENTS.md rule 4).
+    if e3 is not None and e4 is not None and e5 is not None:
+        for fn in (fig_p1_binding(e4, e5), fig_p2_throughput(e4, e5),
+                   fig_p3_capacity(e3), fig_p4_theta(e1, e5) if e1 is not None else None):
+            if fn is not None:
+                print(f"[figures] wrote {fn} (paper)")
+
     if not produced:
         print("[figures] no plottable summary tables found.")
     return 0

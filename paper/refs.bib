@@ -1,51 +1,81 @@
-% Bibliography.  Only verifiable sources are listed (AGENTS.md rule 1);
-% entries that still need author/volume/page confirmation carry a % TODO.
+% Bibliography.  Only verifiable sources are listed (AGENTS.md rule 1); every
+% title/date below was checked against the primary document (eCFR, the FCC
+% release, the ITU-R recommendation page, or the publisher landing page).
+% Entries that still need confirmation carry a % TODO.
 
 @misc{cfr25261,
-  title        = {47 {CFR} 25.261 --- Processes for {NGSO} {FSS} systems},
-  howpublished = {Code of Federal Regulations, Title 47, Part 25},
+  title        = {47 {CFR} 25.261 --- Sharing among {NGSO} {FSS} space stations},
+  howpublished = {Code of Federal Regulations, Title 47, Part 25, Subpart C},
   note         = {Electronic Code of Federal Regulations},
-  year         = {2024},
+  year         = {2025},
+  url          = {https://www.ecfr.gov/current/title-47/section-25.261},
 }
 
 @misc{fcc2329,
-  title        = {Revising the Rules for Space Stations in the Fixed-Satellite and
-                  Mobile-Satellite Services to Enable {NGSO} Operations},
-  howpublished = {{FCC} Report and Order, {FCC} 23-29},
+  title        = {Revising Spectrum Sharing Rules for Non-Geostationary Orbit,
+                  Fixed-Satellite Service Systems},
+  howpublished = {Report and Order and Further Notice of Proposed Rulemaking,
+                  {FCC} 23-29, {IB} Docket No.~21-456},
+  note         = {Federal Communications Commission, adopted 20 Apr. 2023;
+                  88 Fed.\ Reg.\ 39783 (20 June 2023)},
   year         = {2023},
-  note         = {Federal Communications Commission},
+  url          = {https://docs.fcc.gov/public/attachments/FCC-23-29A1.pdf},
+}
+
+@misc{fcc24117,
+  title        = {Revising Spectrum Sharing Rules for Non-Geostationary Orbit,
+                  Fixed-Satellite Service Systems},
+  howpublished = {Second Report and Order and Order on Reconsideration,
+                  {FCC} 24-117, {IB} Docket No.~21-456},
+  note         = {Federal Communications Commission, adopted 5 Nov. 2024;
+                  89 Fed.\ Reg.\ 100898 (13 Dec. 2024)},
+  year         = {2024},
+  url          = {https://docs.fcc.gov/public/attachments/FCC-24-117A1_Rcd.pdf},
 }
 
 @misc{itu465,
-  title        = {{ITU-R} Recommendation {S.465}: Reference radiation pattern of
-                  earth station antennas for coordinating systems in the
-                  fixed-satellite service},
+  title        = {{ITU-R} Recommendation {S.465-6}: Reference radiation pattern of
+                  earth station antennas in the fixed-satellite service for use in
+                  coordination and interference assessment in the frequency range
+                  from 2 to 31 {GHz}},
   institution  = {International Telecommunication Union},
   year         = {2010},
 }
 
 @misc{itu1428,
-  title        = {{ITU-R} Recommendation {S.1428}: Reference {FSS} satellite antenna
-                  patterns for use in interference assessment in the frequency range
-                  from 10.7 to 30 {GHz}},
-  institution  = {International Telecommunication Union},
-  year         = {2000},
-}
-
-@misc{itu1528,
-  title        = {{ITU-R} Recommendation {S.1528}: Satellite antenna radiation
-                  patterns for non-{GSO} satellites operating in the fixed-satellite
-                  service below 30 {GHz}},
+  title        = {{ITU-R} Recommendation {S.1428-1}: Reference {FSS} earth-station
+                  radiation patterns for use in interference assessment involving
+                  non-{GSO} satellite in frequency bands between 10.7 {GHz} and
+                  30 {GHz}},
   institution  = {International Telecommunication Union},
   year         = {2001},
 }
 
-@misc{itu1503,
-  title        = {{ITU-R} Recommendation {S.1503}: Functional description to be used
-                  in developing software to determine whether non-{GSO} {FSS}
-                  systems meet the limits in Article 22},
+@misc{itu1528,
+  title        = {{ITU-R} Recommendation {S.1528}: Satellite antenna radiation
+                  patterns for non-geostationary orbit satellite antennas operating
+                  in the fixed-satellite service below 30 {GHz}},
   institution  = {International Telecommunication Union},
-  year         = {2018},
+  year         = {2001},
+}
+
+@article{kim2025,
+  author       = {E. Kim and I. P. Roberts and J. G. Andrews},
+  title        = {Feasibility analysis of in-band coexistence in dense {LEO}
+                  satellite communication systems},
+  journal      = {{IEEE} Trans. Wireless Commun.},
+  year         = {2025},
+  doi          = {10.1109/TWC.2024.3511660},
+}
+
+@inproceedings{braun2019,
+  author       = {C. Braun and A. M. Voicu and L. Simi\'c and P. M\"ah\"onen},
+  title        = {Should we worry about interference in emerging dense {NGSO}
+                  satellite constellations?},
+  booktitle    = {Proc. {IEEE} Int. Symp. Dynamic Spectrum Access Networks (DySPAN)},
+  year         = {2019},
+  pages        = {1--10},
+  doi          = {10.1109/DySPAN.2019.8935875},
 }
 
 @misc{celestrak,
