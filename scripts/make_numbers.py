@@ -524,6 +524,25 @@ def main() -> int:
         add("DiagnosisNewMaxErrPct", _pct(js["max_abs_err_new_cond"]), e8)
         add("DiagnosisIndepMaxErrPct", _pct(js["max_abs_err_indep_cond"]), e8)
 
+    # --- E9: OneWeb 55 deg mask diagnosis (as-deployed E6 geometry) ---
+    e9 = newest("e9_min_elevation_diagnosis")
+    if e9 is not None:
+        j9 = json.loads((e9 / "diagnosis.json").read_text())
+        lt = pd.read_csv(e9 / "summary_min_elevation_latitude.csv")
+        ql = lt[lt["n_qual_m55"] > 0]
+        add("MinElevQualLatLo", _num(ql["latitude_deg"].min(), "{:.0f}"), e9)
+        add("MinElevQualLatHi", _num(ql["latitude_deg"].max(), "{:.0f}"), e9)
+        add("MinElevNAboveMin", _num(ql["n_above_mask_mean"].min(), "{:.2f}"), e9)
+        add("MinElevNAboveMax", _num(ql["n_above_mask_mean"].max(), "{:.2f}"), e9)
+        add("MinElevNAboveTenMin", _num(ql["n_above_mask_p10"].min(), "{:g}"), e9)
+        eq = lt[lt["latitude_deg"] == lt["latitude_deg"].min()].iloc[0]
+        add("MinElevNoneEquatorPct", _pct(eq["frac_none_above_mask"]), e9)
+        w9 = j9["worst_degr_nodiv_m55"]
+        add("MinElevWorstLat", _num(w9[0]["latitude_deg"], "{:.0f}"), e9)
+        add("MinElevWorstNonePct", _pct(max(r["frac_none_above_mask"] for r in w9)), e9)
+        add("BwCheckMhz", _num(j9["bandwidth_check_mhz"], "{:g}"), e9)
+        add("BwMaxAbsDiffPct", _pct(max(j9["bandwidth_max_abs_diff"].values()), 3), e9)
+
     # --- write ---
     bad = [n for n, _ in macros if not n.isalpha()]
     if bad:
