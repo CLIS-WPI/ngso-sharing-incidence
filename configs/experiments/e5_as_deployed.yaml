@@ -22,4 +22,11 @@ params:
   tle_groups:
     STARLINK: starlink
     ONEWEB: oneweb
+  # Operational altitude window per system, in km.  Satellites outside it are
+  # orbit-raising/deorbiting (below) or off-shell (above) and are excluded from
+  # the operational interference environment.  ASSUMED operating shells; the
+  # numbers bracket the modelled shell altitudes plus observed station-keeping.
+  operational_altitude_km:
+    STARLINK: [450, 600]
+    ONEWEB: [1100, 1300]
   source: ASSUMED

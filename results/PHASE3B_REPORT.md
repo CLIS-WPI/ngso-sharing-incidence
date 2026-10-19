@@ -1,42 +1,34 @@
 # Phase 3b - as-deployed constellation from a CelesTrak TLE snapshot
 
-Provenance: run `results/e5_as_deployed_20261018T043927Z_seed0/` (git `74a685f9f7cc248baddfb9baf4314f09f8ee0eba`, seed 0). The TLE snapshot was downloaded 2026-10-18T04:39:27.680214+00:00 (URLs in `data/raw/README.md` and `tle_meta.json`); every satellite's mean elements are advanced to the common epoch JD 2461331.58583 with the analytic J2 secular rates. The production path is the fast two-body+J2 propagator; SGP4 is not used per satellite. Replication is over 8 independent start times (spacing 18000.0 s, ASSUMED).
+Provenance: run `results/e5_as_deployed_20261019T002904Z_seed0/` (git `b8d1858bdce53cb413c77d2d838d5c783b1afc04`, seed 0). The TLE snapshot was downloaded 2026-10-19T00:29:04.303655+00:00 (URLs in `data/raw/README.md` and `tle_meta.json`); every satellite's mean elements are advanced to the common epoch JD 2461331.50002 with the analytic J2 secular rates. The production path is the fast two-body+J2 propagator; SGP4 is not used per satellite. Replication is over 8 independent start times (spacing 18000.0 s, ASSUMED).
 
 ## 1. As-deployed constellation
 
-Satellite counts and observed inclination/altitude clusters (shells). Each cluster is a group of near-identical orbits; the *elements* (not any shell count) drive propagation.
+Operational filtering.  Satellites outside the operator's operating shell altitude window are excluded before propagation: below the window they are orbit-raising or deorbiting, above it they are off-shell; neither is part of the operational interference environment.  The windows are tagged ASSUMED (see `e5_as_deployed.yaml`).
+
+| system | n_raw | n_operational | n_excluded_raise_or_deorbit | n_excluded_off_shell_high | operational_min_km | operational_max_km |
+| --- | --- | --- | --- | --- | --- | --- |
+| STARLINK | 10651 | 9737 | 914 | 0 | 450 | 600 |
+| ONEWEB | 651 | 648 | 3 | 0 | 1100 | 1300 |
+
+Satellite counts and observed inclination/altitude clusters (shells) of the *retained* operational population.  Each cluster is a group of near-identical orbits; the *elements* (not any shell count) drive propagation.
 
 | system | shell | n_sats | altitude_km | inclination_deg |
 | --- | --- | --- | --- | --- |
-| STARLINK | tle-00 | 381 | 368.3 | 53.15 |
-| STARLINK | tle-01 | 4435 | 470.6 | 53.16 |
-| STARLINK | tle-02 | 28 | 267.9 | 53.06 |
-| STARLINK | tle-03 | 38 | 317.2 | 53.05 |
-| STARLINK | tle-04 | 94 | 524.1 | 53.16 |
-| STARLINK | tle-05 | 3 | 551.3 | 97.28 |
-| STARLINK | tle-06 | 341 | 571.8 | 70 |
-| STARLINK | tle-07 | 2 | 357.7 | 69.99 |
-| STARLINK | tle-08 | 332 | 481.2 | 70 |
-| STARLINK | tle-09 | 33 | 508.8 | 70 |
-| STARLINK | tle-10 | 1338 | 472.8 | 97.29 |
-| STARLINK | tle-11 | 12 | 341.6 | 97.43 |
-| STARLINK | tle-12 | 1 | 237.9 | 97.6 |
-| STARLINK | tle-13 | 3250 | 490.1 | 43 |
-| STARLINK | tle-14 | 10 | 415.4 | 42.99 |
-| STARLINK | tle-15 | 17 | 320.9 | 42.99 |
-| STARLINK | tle-16 | 331 | 363.5 | 43 |
-| STARLINK | tle-17 | 4 | 535.4 | 43 |
-| STARLINK | tle-18 | 1 | 260.1 | 42.98 |
+| STARLINK | tle-00 | 4363 | 471.4 | 53.16 |
+| STARLINK | tle-01 | 79 | 529.9 | 53.16 |
+| STARLINK | tle-02 | 3 | 551.3 | 97.28 |
+| STARLINK | tle-03 | 341 | 571.8 | 70 |
+| STARLINK | tle-04 | 328 | 481.8 | 70 |
+| STARLINK | tle-05 | 33 | 508.8 | 70 |
+| STARLINK | tle-06 | 1336 | 472.8 | 97.29 |
+| STARLINK | tle-07 | 3250 | 490.1 | 43 |
+| STARLINK | tle-08 | 4 | 535.4 | 43 |
 | ONEWEB | tle-00 | 648 | 1207 | 87.9 |
-| ONEWEB | tle-01 | 1 | 602.9 | 88.94 |
-| ONEWEB | tle-02 | 1 | 706.4 | 87.89 |
-| ONEWEB | tle-03 | 1 | 530.9 | 86.91 |
 
-Clusters well below the operational shells (e.g. STARLINK at ~240-370 km) are satellites in disposal/deorbit; they are kept because the scenario is as-deployed, and their small count makes them immaterial.
+- **STARLINK**: group `starlink`, 10651 raw / 9737 operational satellites, TLE epochs JD 2461304.74252..2461331.50002.
 
-- **STARLINK**: group `starlink`, 10651 satellites, TLE epochs JD 2461304.74252..2461331.58583.
-
-- **ONEWEB**: group `oneweb`, 651 satellites, TLE epochs JD 2461329.77113..2461331.46756.
+- **ONEWEB**: group `oneweb`, 651 raw / 648 operational satellites, TLE epochs JD 2461329.77113..2461331.46756.
 
 
 ## 2. Event time-fraction vs latitude (geometric theta criterion)
@@ -49,85 +41,85 @@ Note: for the geometric criterion the *co-located* event fraction is symmetric i
 
 | latitude_deg | event_frac_mean | event_frac_ci95 | unres_frac_mean | event_rate_per_hour |
 | --- | --- | --- | --- | --- |
-| 0 | 0.003009 | 7.9e-05 | 0 | 1.083 |
-| 5 | 0.003006 | 0.000244 | 0 | 1.082 |
-| 10 | 0.003201 | 0.000194 | 0 | 1.152 |
-| 15 | 0.003526 | 0.000132 | 0 | 1.27 |
-| 20 | 0.003393 | 0.00016 | 0 | 1.221 |
-| 25 | 0.003226 | 0.000197 | 0 | 1.161 |
-| 30 | 0.003443 | 0.000203 | 0 | 1.24 |
-| 35 | 0.003725 | 0.000177 | 0 | 1.341 |
-| 40 | 0.00425 | 0.000266 | 0 | 1.53 |
-| 45 | 0.00463 | 0.000124 | 0 | 1.667 |
-| 50 | 0.004876 | 0.000208 | 0 | 1.755 |
-| 55 | 0.002554 | 0.000129 | 0 | 0.9193 |
-| 60 | 0.003859 | 0.000307 | 0 | 1.389 |
-| 65 | 0.004362 | 0.000243 | 0 | 1.57 |
+| 0 | 0.003223 | 0.000136 | 0 | 1.16 |
+| 5 | 0.002973 | 0.000287 | 0 | 1.07 |
+| 10 | 0.003212 | 0.000128 | 0 | 1.156 |
+| 15 | 0.003154 | 0.000115 | 0 | 1.135 |
+| 20 | 0.003809 | 0.000158 | 0 | 1.371 |
+| 25 | 0.003114 | 0.00018 | 0 | 1.121 |
+| 30 | 0.003508 | 0.000242 | 0 | 1.263 |
+| 35 | 0.003725 | 0.000344 | 0 | 1.341 |
+| 40 | 0.003975 | 8.4e-05 | 0 | 1.431 |
+| 45 | 0.003758 | 0.000182 | 0 | 1.353 |
+| 50 | 0.005071 | 0.000233 | 0 | 1.826 |
+| 55 | 0.002655 | 0.000186 | 0 | 0.9557 |
+| 60 | 0.003628 | 7.9e-05 | 0 | 1.306 |
+| 65 | 0.004022 | 0.000215 | 0 | 1.448 |
 
-Maximum event fraction 0.02935 at latitude 50° (θ=5°).
+Maximum event fraction 0.02959 at latitude 50° (θ=5°).
 
 **ONEWEB ← STARLINK**, worst case (any visible), θ=2°:
 
 | latitude_deg | event_frac_mean | event_frac_ci95 | unres_frac_mean | event_rate_per_hour |
 | --- | --- | --- | --- | --- |
-| 0 | 0.01737 | 0.000553 | 0 | 6.253 |
-| 5 | 0.01877 | 0.000715 | 0 | 6.757 |
-| 10 | 0.01824 | 0.000217 | 0 | 6.568 |
-| 15 | 0.01886 | 0.000472 | 0 | 6.788 |
-| 20 | 0.02005 | 0.000361 | 0 | 7.216 |
-| 25 | 0.02079 | 0.000392 | 0 | 7.484 |
-| 30 | 0.02291 | 0.000592 | 0 | 8.246 |
-| 35 | 0.02488 | 0.000174 | 0 | 8.958 |
-| 40 | 0.03575 | 0.000577 | 0 | 12.87 |
-| 45 | 0.0185 | 0.000395 | 0 | 6.659 |
-| 50 | 0.02825 | 0.000488 | 0 | 10.17 |
-| 55 | 0.004666 | 0.000139 | 0 | 1.68 |
-| 60 | 0.00582 | 0.000378 | 0 | 2.095 |
-| 65 | 0.007473 | 0.000107 | 0 | 2.69 |
+| 0 | 0.0172 | 0.000205 | 0 | 6.193 |
+| 5 | 0.0177 | 0.000256 | 0 | 6.372 |
+| 10 | 0.01707 | 0.000484 | 0 | 6.143 |
+| 15 | 0.01804 | 0.000388 | 0 | 6.496 |
+| 20 | 0.01908 | 0.000555 | 0 | 6.867 |
+| 25 | 0.01959 | 0.000329 | 0 | 7.051 |
+| 30 | 0.02088 | 0.000323 | 0 | 7.516 |
+| 35 | 0.02458 | 0.000405 | 0 | 8.85 |
+| 40 | 0.03349 | 0.000742 | 0 | 12.06 |
+| 45 | 0.01665 | 0.000238 | 0 | 5.993 |
+| 50 | 0.0272 | 0.000265 | 0 | 9.79 |
+| 55 | 0.004919 | 0.000149 | 0 | 1.771 |
+| 60 | 0.005733 | 0.000249 | 0 | 2.064 |
+| 65 | 0.006803 | 0.000242 | 0 | 2.449 |
 
-Maximum event fraction 0.2094 at latitude 40° (θ=5°).
+Maximum event fraction 0.1988 at latitude 40° (θ=5°).
 
 **STARLINK ← ONEWEB**, co-located (serving), θ=2°:
 
 | latitude_deg | event_frac_mean | event_frac_ci95 | unres_frac_mean | event_rate_per_hour |
 | --- | --- | --- | --- | --- |
-| 0 | 0.003009 | 7.9e-05 | 0 | 1.083 |
-| 5 | 0.003006 | 0.000244 | 0 | 1.082 |
-| 10 | 0.003201 | 0.000194 | 0 | 1.152 |
-| 15 | 0.003526 | 0.000132 | 0 | 1.27 |
-| 20 | 0.003393 | 0.00016 | 0 | 1.221 |
-| 25 | 0.003226 | 0.000197 | 0 | 1.161 |
-| 30 | 0.003443 | 0.000203 | 0 | 1.24 |
-| 35 | 0.003725 | 0.000177 | 0 | 1.341 |
-| 40 | 0.00425 | 0.000266 | 0 | 1.53 |
-| 45 | 0.00463 | 0.000124 | 0 | 1.667 |
-| 50 | 0.004876 | 0.000208 | 0 | 1.755 |
-| 55 | 0.002554 | 0.000129 | 0 | 0.9193 |
-| 60 | 0.003859 | 0.000307 | 0 | 1.389 |
-| 65 | 0.004362 | 0.000243 | 0 | 1.57 |
+| 0 | 0.003223 | 0.000136 | 0 | 1.16 |
+| 5 | 0.002973 | 0.000287 | 0 | 1.07 |
+| 10 | 0.003212 | 0.000128 | 0 | 1.156 |
+| 15 | 0.003154 | 0.000115 | 0 | 1.135 |
+| 20 | 0.003809 | 0.000158 | 0 | 1.371 |
+| 25 | 0.003114 | 0.00018 | 0 | 1.121 |
+| 30 | 0.003508 | 0.000242 | 0 | 1.263 |
+| 35 | 0.003725 | 0.000344 | 0 | 1.341 |
+| 40 | 0.003975 | 8.4e-05 | 0 | 1.431 |
+| 45 | 0.003758 | 0.000182 | 0 | 1.353 |
+| 50 | 0.005071 | 0.000233 | 0 | 1.826 |
+| 55 | 0.002655 | 0.000186 | 0 | 0.9557 |
+| 60 | 0.003628 | 7.9e-05 | 0 | 1.306 |
+| 65 | 0.004022 | 0.000215 | 0 | 1.448 |
 
-Maximum event fraction 0.02935 at latitude 50° (θ=5°).
+Maximum event fraction 0.02959 at latitude 50° (θ=5°).
 
 **STARLINK ← ONEWEB**, worst case (any visible), θ=2°:
 
 | latitude_deg | event_frac_mean | event_frac_ci95 | unres_frac_mean | event_rate_per_hour |
 | --- | --- | --- | --- | --- |
-| 0 | 0.00353 | 5.6e-05 | 0 | 1.271 |
-| 5 | 0.003458 | 0.000329 | 0 | 1.245 |
-| 10 | 0.003848 | 0.00013 | 0 | 1.385 |
-| 15 | 0.004091 | 0.000123 | 0 | 1.473 |
-| 20 | 0.003816 | 0.000212 | 0 | 1.374 |
-| 25 | 0.003624 | 0.000243 | 0 | 1.305 |
-| 30 | 0.003812 | 0.000227 | 0 | 1.372 |
-| 35 | 0.004116 | 0.00021 | 0 | 1.482 |
-| 40 | 0.004659 | 0.000344 | 0 | 1.677 |
-| 45 | 0.005353 | 0.000149 | 0 | 1.927 |
-| 50 | 0.005367 | 0.000211 | 0 | 1.932 |
-| 55 | 0.006456 | 0.00016 | 0 | 2.324 |
-| 60 | 0.009281 | 0.000269 | 0 | 3.341 |
-| 65 | 0.009657 | 0.000386 | 0 | 3.477 |
+| 0 | 0.003696 | 0.000163 | 0 | 1.331 |
+| 5 | 0.003526 | 0.000317 | 0 | 1.27 |
+| 10 | 0.003613 | 0.000189 | 0 | 1.301 |
+| 15 | 0.0037 | 0.000165 | 0 | 1.332 |
+| 20 | 0.004369 | 0.000193 | 0 | 1.573 |
+| 25 | 0.003422 | 0.000232 | 0 | 1.232 |
+| 30 | 0.00395 | 0.000341 | 0 | 1.422 |
+| 35 | 0.004098 | 0.000396 | 0 | 1.475 |
+| 40 | 0.004239 | 0.000131 | 0 | 1.526 |
+| 45 | 0.004568 | 0.000224 | 0 | 1.645 |
+| 50 | 0.00565 | 0.000275 | 0 | 2.034 |
+| 55 | 0.006557 | 0.00011 | 0 | 2.361 |
+| 60 | 0.008981 | 0.000147 | 0 | 3.233 |
+| 65 | 0.008724 | 0.000305 | 0 | 3.141 |
 
-Maximum event fraction 0.05965 at latitude 65° (θ=5°).
+Maximum event fraction 0.05799 at latitude 65° (θ=5°).
 
 ## 3. 47 CFR 25.261(d) Delta T/T criterion
 
@@ -135,83 +127,83 @@ Maximum event fraction 0.05965 at latitude 65° (θ=5°).
 
 | latitude_deg | event_frac | unres_frac | dtt_mean | degrad_nodiv | degrad_div |
 | --- | --- | --- | --- | --- | --- |
-| 0 | 0.009596 | 0 | 0.008317 | 0.003503 | 0 |
-| 5 | 0.009404 | 0 | 0.008363 | 0.003495 | 0 |
-| 10 | 0.01101 | 0 | 0.009112 | 0.003949 | 0 |
-| 15 | 0.01077 | 0 | 0.009339 | 0.003915 | 0 |
-| 20 | 0.01089 | 0 | 0.009447 | 0.003888 | 0 |
-| 25 | 0.01076 | 0 | 0.009361 | 0.003834 | 0 |
-| 30 | 0.01212 | 0 | 0.01014 | 0.004142 | 0 |
-| 35 | 0.01241 | 0 | 0.01065 | 0.004377 | 0 |
-| 40 | 0.01414 | 0 | 0.01177 | 0.004921 | 0 |
-| 45 | 0.01446 | 0 | 0.01268 | 0.005016 | 0 |
-| 50 | 0.01596 | 0 | 0.01429 | 0.005533 | 0 |
-| 55 | 0.008496 | 0 | 0.006989 | 0.002661 | 0 |
-| 60 | 0.01072 | 0 | 0.009334 | 0.003588 | 0 |
-| 65 | 0.0129 | 0 | 0.0109 | 0.004305 | 0 |
+| 0 | 0.009299 | 0 | 0.008321 | 0.0035 | 0 |
+| 5 | 0.00948 | 0 | 0.00789 | 0.003418 | 0 |
+| 10 | 0.009997 | 0 | 0.008323 | 0.003575 | 0 |
+| 15 | 0.01059 | 0 | 0.008631 | 0.003714 | 0 |
+| 20 | 0.01018 | 0 | 0.009562 | 0.003949 | 0 |
+| 25 | 0.01055 | 0 | 0.008937 | 0.003723 | 0 |
+| 30 | 0.01126 | 0 | 0.009726 | 0.004023 | 0 |
+| 35 | 0.01234 | 0 | 0.01055 | 0.004373 | 0 |
+| 40 | 0.01302 | 0 | 0.01131 | 0.004656 | 0 |
+| 45 | 0.01322 | 0 | 0.01121 | 0.004481 | 0 |
+| 50 | 0.01551 | 0 | 0.01431 | 0.005555 | 0 |
+| 55 | 0.008966 | 0 | 0.007251 | 0.002771 | 0 |
+| 60 | 0.01082 | 0 | 0.009114 | 0.003532 | 0 |
+| 65 | 0.01237 | 0 | 0.01028 | 0.003991 | 0 |
 (aperture 0.6 m)
 
 **ONEWEB ← STARLINK**, worst case (any visible), default aperture:
 
 | latitude_deg | event_frac | unres_frac | dtt_mean | degrad_nodiv | degrad_div |
 | --- | --- | --- | --- | --- | --- |
-| 0 | 0.05492 | 0 | 0.04333 | 0.01634 | 0 |
-| 5 | 0.05617 | 0 | 0.0456 | 0.01708 | 0 |
-| 10 | 0.0586 | 0 | 0.04595 | 0.01742 | 0 |
-| 15 | 0.06001 | 0 | 0.04681 | 0.01765 | 0 |
-| 20 | 0.06225 | 0 | 0.04923 | 0.0186 | 0 |
-| 25 | 0.06629 | 0 | 0.05273 | 0.01965 | 0 |
-| 30 | 0.07654 | 0 | 0.0597 | 0.02248 | 0 |
-| 35 | 0.08663 | 0 | 0.06596 | 0.02474 | 0 |
-| 40 | 0.135 | 0 | 0.09723 | 0.03703 | 0 |
-| 45 | 0.06859 | 0 | 0.05455 | 0.01939 | 0 |
-| 50 | 0.1104 | 0 | 0.08121 | 0.03047 | 0 |
-| 55 | 0.01878 | 0 | 0.01686 | 0.005003 | 0 |
-| 60 | 0.0168 | 0 | 0.01493 | 0.00537 | 0 |
-| 65 | 0.02295 | 0 | 0.01941 | 0.007146 | 0 |
+| 0 | 0.05025 | 0 | 0.0402 | 0.01533 | 0 |
+| 5 | 0.05249 | 0 | 0.0412 | 0.01586 | 0 |
+| 10 | 0.05299 | 0 | 0.0413 | 0.01573 | 0 |
+| 15 | 0.05592 | 0 | 0.04295 | 0.0165 | 0 |
+| 20 | 0.05689 | 0 | 0.0458 | 0.01733 | 0 |
+| 25 | 0.05992 | 0 | 0.04823 | 0.01816 | 0 |
+| 30 | 0.06867 | 0 | 0.05267 | 0.02006 | 0 |
+| 35 | 0.08099 | 0 | 0.06265 | 0.02386 | 0 |
+| 40 | 0.1182 | 0 | 0.08619 | 0.03328 | 0 |
+| 45 | 0.06136 | 0 | 0.04882 | 0.01752 | 0 |
+| 50 | 0.09789 | 0 | 0.07418 | 0.02777 | 0 |
+| 55 | 0.01906 | 0 | 0.01682 | 0.005151 | 0 |
+| 60 | 0.01705 | 0 | 0.01495 | 0.005428 | 0 |
+| 65 | 0.02242 | 0 | 0.0185 | 0.006809 | 0 |
 (aperture 0.6 m)
 
 **STARLINK ← ONEWEB**, co-located (serving), default aperture:
 
 | latitude_deg | event_frac | unres_frac | dtt_mean | degrad_nodiv | degrad_div |
 | --- | --- | --- | --- | --- | --- |
-| 0 | 4e-06 | 0 | 0.000118 | 0 | 0 |
-| 5 | 0 | 0 | 0.000117 | 0 | 0 |
-| 10 | 0 | 0 | 0.000126 | 0 | 0 |
-| 15 | 0 | 0 | 0.000131 | 0 | 0 |
-| 20 | 0 | 0 | 0.000132 | 0 | 0 |
-| 25 | 0 | 0 | 0.00013 | 0 | 0 |
+| 0 | 0 | 0 | 0.000121 | 0 | 0 |
+| 5 | 0 | 0 | 0.000113 | 0 | 0 |
+| 10 | 0 | 0 | 0.000121 | 0 | 0 |
+| 15 | 0 | 0 | 0.000125 | 0 | 0 |
+| 20 | 0 | 0 | 0.000138 | 0 | 0 |
+| 25 | 0 | 0 | 0.000128 | 0 | 0 |
 | 30 | 0 | 0 | 0.000141 | 0 | 0 |
-| 35 | 1.1e-05 | 0 | 0.000151 | 1e-06 | 0 |
-| 40 | 0 | 0 | 0.000166 | 0 | 0 |
-| 45 | 3.3e-05 | 0 | 0.000175 | 2e-06 | 0 |
-| 50 | 0 | 0 | 0.000194 | 0 | 0 |
-| 55 | 0 | 0 | 0.000106 | 0 | 0 |
-| 60 | 0 | 0 | 0.000143 | 0 | 0 |
-| 65 | 0 | 0 | 0.000169 | 0 | 0 |
+| 35 | 0 | 0 | 0.000153 | 0 | 0 |
+| 40 | 0 | 0 | 0.000164 | 0 | 0 |
+| 45 | 0 | 0 | 0.000158 | 0 | 0 |
+| 50 | 0 | 0 | 0.0002 | 0 | 0 |
+| 55 | 0 | 0 | 0.000111 | 0 | 0 |
+| 60 | 0 | 0 | 0.00014 | 0 | 0 |
+| 65 | 0 | 0 | 0.000159 | 0 | 0 |
 (aperture 0.6 m)
 
 **STARLINK ← ONEWEB**, worst case (any visible), default aperture:
 
 | latitude_deg | event_frac | unres_frac | dtt_mean | degrad_nodiv | degrad_div |
 | --- | --- | --- | --- | --- | --- |
-| 0 | 1.4e-05 | 0 | 0.000144 | 1e-06 | 0 |
-| 5 | 0 | 0 | 0.00014 | 0 | 0 |
-| 10 | 0 | 0 | 0.000156 | 0 | 0 |
-| 15 | 0 | 0 | 0.000158 | 0 | 0 |
-| 20 | 0 | 0 | 0.000157 | 0 | 0 |
-| 25 | 0 | 0 | 0.000152 | 0 | 0 |
-| 30 | 0 | 0 | 0.000163 | 0 | 0 |
-| 35 | 1.1e-05 | 0 | 0.000175 | 1e-06 | 0 |
-| 40 | 0 | 0 | 0.000191 | 0 | 0 |
-| 45 | 3.3e-05 | 0 | 0.000212 | 2e-06 | 0 |
-| 50 | 0 | 0 | 0.000224 | 0 | 0 |
-| 55 | 4e-06 | 0 | 0.000246 | 0 | 0 |
-| 60 | 0 | 0 | 0.000318 | 0 | 0 |
-| 65 | 7e-06 | 0 | 0.000361 | 0 | 0 |
+| 0 | 0 | 0 | 0.000146 | 0 | 0 |
+| 5 | 0 | 0 | 0.000141 | 0 | 0 |
+| 10 | 0 | 0 | 0.000145 | 0 | 0 |
+| 15 | 0 | 0 | 0.000151 | 0 | 0 |
+| 20 | 0 | 0 | 0.000165 | 0 | 0 |
+| 25 | 0 | 0 | 0.000149 | 0 | 0 |
+| 30 | 0 | 0 | 0.000167 | 0 | 0 |
+| 35 | 0 | 0 | 0.000177 | 0 | 0 |
+| 40 | 0 | 0 | 0.000185 | 0 | 0 |
+| 45 | 0 | 0 | 0.000196 | 0 | 0 |
+| 50 | 0 | 0 | 0.000233 | 0 | 0 |
+| 55 | 3.6e-05 | 0 | 0.000256 | 1e-06 | 0 |
+| 60 | 1.8e-05 | 0 | 0.000309 | 1e-06 | 0 |
+| 65 | 0 | 0 | 0.000341 | 0 | 0 |
 (aperture 0.6 m)
 
-Maximum ΔT/T > 6% event fraction 0.1464 (ONEWEB ← STARLINK, worst case (any visible), 0.45 m, latitude 40°).
+Maximum ΔT/T > 6% event fraction 0.1308 (ONEWEB ← STARLINK, worst case (any visible), 0.45 m, latitude 40°).
 
 Unresolvable fraction with unlimited diversity, maximum over the grid: 0.
 
@@ -219,14 +211,54 @@ Unresolvable fraction with unlimited diversity, maximum over the grid: 0.
 
 | pair | variant | e5_deployed_max | e1_walker_max |
 | --- | --- | --- | --- |
-| ONEWEB←STARLINK | co-located (serving) | 0.004876 | 0.004706 |
-| ONEWEB←STARLINK | worst case (any visible) | 0.03575 | 0.02525 |
-| STARLINK←ONEWEB | co-located (serving) | 0.004876 | 0.004706 |
-| STARLINK←ONEWEB | worst case (any visible) | 0.009657 | 0.01033 |
+| ONEWEB←STARLINK | co-located (serving) | 0.005071 | 0.004706 |
+| ONEWEB←STARLINK | worst case (any visible) | 0.03349 | 0.02525 |
+| STARLINK←ONEWEB | co-located (serving) | 0.005071 | 0.004706 |
+| STARLINK←ONEWEB | worst case (any visible) | 0.008981 | 0.01033 |
 
 The as-deployed snapshot includes the real inclination/altitude mix and on-orbit population; the modelled Walker pattern uses the FCC-derived shells with a single phasing. Differences are expected and reported, not tuned.
 
-## 5. Verdict
+## 5. Pre-paper checks
+
+### Check 1 - OneWeb downlink EIRP density (sourcing + sweep)
+
+The modelled OneWeb Ku user-downlink EIRP density is **ASSUMED** at -20 dBW/MHz.  A targeted search of public FCC filings (the OneWeb Schedule S technical attachments) located no per-MHz downlink EIRP-density value -- the OneWeb submission specifies only a binary Ku/Ka antenna-gain mask -- so the value remains ASSUMED and is instead **swept** (E6) over [-26, -20, -14, -8.3] dBW/MHz, the last being the Starlink DERIVED value.
+
+E6 run `results/e6_eirp_sweep_20261019T003143Z_seed0/`; worst-case variant, 0.6 m aperture.  `event_frac` is the Delta T/T > 6% exceedance (24 h mean over the grid and the start times; `max` over the grid).
+
+| victim | interferer | eirp_dbw_per_mhz | event_frac_mean | event_frac_max | dtt_max |
+| --- | --- | --- | --- | --- | --- |
+| ONEWEB | STARLINK | -26 | 0.05834 | 0.1216 | 0.08964 |
+| ONEWEB | STARLINK | -20 | 0.05834 | 0.1216 | 0.08964 |
+| ONEWEB | STARLINK | -14 | 0.05834 | 0.1216 | 0.08964 |
+| ONEWEB | STARLINK | -8.3 | 0.05834 | 0.1216 | 0.08964 |
+| STARLINK | ONEWEB | -26 | 0 | 0 | 9.5e-05 |
+| STARLINK | ONEWEB | -20 | 3e-06 | 0.000116 | 0.00038 |
+| STARLINK | ONEWEB | -14 | 0.00381 | 0.008102 | 0.001513 |
+| STARLINK | ONEWEB | -8.3 | 0.009173 | 0.01806 | 0.00562 |
+
+- **ONEWEB victim <- STARLINK interferer is exactly invariant to the ASSUMED OneWeb EIRP** (constant across the sweep: True).  This is the dominant direction; it depends on the Starlink EIRP, not on the OneWeb value, so the headline result does not depend on the ASSUMED parameter.
+
+- **STARLINK victim <- ONEWEB interferer does depend on the OneWeb EIRP**, as expected: it is ~0 at -26 dBW/MHz and grows to event_frac_mean up to 0.009173 (max 0.01806) at the most generous value (-8.3 dBW/MHz, i.e. equal to Starlink).  Even then it stays well below the ONEWEB-victim direction, so the direction asymmetry is a property of the geometry and the Starlink power, not an artefact of the ASSUMED number.
+
+### Check 2 - as-deployed operational filtering
+
+Section 1 reports the operational filter: the E5 snapshot of 10651 Starlink + 651 OneWeb satellites is reduced to 9737 + 648 operational satellites by excluding orbit-raising/deorbiting (below the shell window) and off-shell (above) objects; the excluded counts and windows are in `summary_satellite_filter.csv`.  E5 and the figures below use only the operational population.  The windows are ASSUMED.
+
+### Check 3 - Phase 3a summary (E3 N_beam fix + 25.261(d) criterion)
+
+1. Phase 3a fixed the E3 `N_beam` anomaly: the unresolvable fraction is now reported both as an absolute cell-time fraction and **conditionally per served cell-time**; the conditional fraction falls monotonically with `N_beam`, e.g. at latitude 60 deg 8: 0.000444 / 16: 0.000307 / 32: 0.000191 for N_beam 8/16/32 (run `e3_capacity_diversity_20261018T012933Z_seed0`, `unres_per_served_mean`).
+
+2. Under 25.261(d) (event = Delta T/T > 6%) the worst-case exceedance is 0.09615 (ONEWEB <- STARLINK, 0.45 m, latitude 50 deg, run `e4_dtt_20261018T024043Z_seed0`).
+
+3. Mean Delta T/T reaches 0.05395 (> 3%, i.e. above the long-term 25.261(d) 3% reference level), driven by the worst-case variant.
+
+4. Time-weighted throughput degradation (3 dB margin) is at most 0.02528 without diversity and 0 with unlimited satellite diversity.
+
+5. The unresolvable fraction with unlimited diversity is 0 over the whole grid: the burden is fully removable by satellite diversity (as in E2).
+
+
+## 6. Verdict
 
 - **Geometric criterion.** Co-located events are symmetric in the two directions (identical tables), as expected; the worst-case upper bound is larger for ONEWEB <- STARLINK and tracks the real Starlink density.
 - **Power criterion (25.261(d)).** The asymmetry is decisive: only the ONEWEB victim <- STARLINK interferer direction exceeds Delta T/T > 6% (co-located up to ~0.015 of the time; worst-case up to ~0.15 at the narrowest ASSUMED aperture). The reverse direction is ~1e-5, negligible.

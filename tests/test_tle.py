@@ -19,6 +19,7 @@ from ngsi.tle import (
     cluster_records,
     common_epoch_jd,
     elements_from_records,
+    filter_operational,
     parse_tle,
     shells_from_clusters,
 )
@@ -153,6 +154,43 @@ def _oneweb_shell():
         name="s1", altitude_km=1200.0, inclination_deg=87.9, planes=18, sats_per_plane=36,
         phasing_f=1, beam=Beam(30.0, 3.0, -20.0, 12.0, 125.0, 200.0, "test"), source="test",
     )
+
+
+def test_filter_operational_hand_checkable():
+    """250 km -> raise, 550 km -> kept, 1200 km -> off-shell high (window 450-600)."""
+    recs = [
+        _override_altitude(_rec_at(0.0), 250.0),
+        _override_altitude(_rec_at(10.0), 550.0),
+        _override_altitude(_rec_at(20.0), 1200.0),
+    ]
+    kept, low, high = filter_operational(recs, 6371.0, 450.0, 600.0)
+    assert [r.name for r in kept] == ["R10.0"]
+    assert [r.name for r in low] == ["R0.0"]
+    assert [r.name for r in high] == ["R20.0"]
+    assert len(kept) + len(low) + len(high) == len(recs)
+
+
+def _rec_at(raan_deg: float) -> TleRecord:
+    return TleRecord(
+        name=f"R{raan_deg}", line1=L1, line2=L2, epoch_jd=2461000.0,
+        inclination_deg=53.0, raan_deg=raan_deg, eccentricity=1e-4,
+        arg_perigee_deg=0.0, mean_anomaly_deg=0.0, mean_motion_rev_day=15.5,
+    )
+
+
+def test_build_as_deployed_respects_explicit_epoch():
+    """A later epoch_jd shifts the mean anomaly by the J2 secular rate, not zero."""
+    from ngsi.config import Constellation
+    from ngsi.systems import build_as_deployed_system
+
+    recs = [_rec_at(float(k)) for k in range(6)]
+    con = Constellation(name="ONEWEB", operator="t", shells=[_oneweb_shell()])
+    same = build_as_deployed_system(con, recs, 6371.0, epoch_jd=2461000.0)
+    later = build_as_deployed_system(con, recs, 6371.0, epoch_jd=2461001.0)
+    assert np.allclose(same.elements.mean_anomaly_rad,
+                       np.deg2rad([r.mean_anomaly_deg for r in recs]))
+    assert not np.allclose(same.elements.mean_anomaly_rad,
+                           later.elements.mean_anomaly_rad)
 
 
 def test_advance_to_epoch_zero_when_same():

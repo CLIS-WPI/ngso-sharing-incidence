@@ -39,7 +39,7 @@ from .sanity import analytic_density_per_deg, analytic_visible_count, max_relati
 from .dtt_screen import screen_pair_dtt
 from .screening import ScreenConfig, screen_pair, system_visibility
 from .systems import build_as_deployed_system, build_system
-from .tle import celestrak_url, common_epoch_jd, fetch_group, parse_tle
+from .tle import celestrak_url, common_epoch_jd, fetch_group, filter_operational, parse_tle
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
@@ -986,6 +986,56 @@ def run_e4(
     return run_dir
 
 
+def _as_deployed_inputs(exp, sim, repo_root: Path, radius: float):
+    """Fetch the configured TLE snapshots, filter to operational, build systems.
+
+    Returns ``(systems, tle_meta, filter_rows)``.  The operational band per system
+    is read from the experiment config (``operational_altitude_km``), tagged
+    ASSUMED; satellites below it (orbit-raising/deorbit) or above it (off-shell)
+    are excluded and their counts recorded.
+    """
+    from datetime import datetime, timezone
+
+    p = exp.params
+    groups = dict(p.get("tle_groups", {}))
+    bands_cfg = dict(p.get("operational_altitude_km", {}))
+    cache_dir = repo_root / str(p.get("tle_cache_dir", "data/raw/tle"))
+    fetched = str(datetime.now(timezone.utc).isoformat())
+    tle_meta: dict = {"fetched_utc": fetched, "cache_dir": str(cache_dir), "groups": {}}
+    filter_rows: list[dict] = []
+    kept_by_system: dict[str, list] = {}
+    all_kept: list = []
+    for n in exp.constellations:
+        grp = str(groups.get(n, n.lower()))
+        recs = parse_tle(fetch_group(grp, cache_dir))
+        band = bands_cfg.get(n, [0.0, 1e9])
+        kept, low, high = filter_operational(recs, radius, float(band[0]), float(band[1]))
+        if not kept:
+            raise SystemExit(f"[e5] no operational {n} satellites after filtering")
+        kept_by_system[n] = kept
+        all_kept.extend(kept)
+        tle_meta["groups"][n] = {
+            "group": grp, "url": celestrak_url(grp),
+            "n_sats_raw": len(recs), "n_kept": len(kept),
+            "n_excluded_low": len(low), "n_excluded_high": len(high),
+            "operational_band_km": [float(band[0]), float(band[1])],
+            "epoch_jd_min": float(min(r.epoch_jd for r in kept)),
+            "epoch_jd_max": float(max(r.epoch_jd for r in kept)),
+        }
+        filter_rows.append({
+            "system": n, "n_raw": len(recs), "n_operational": len(kept),
+            "n_excluded_raise_or_deorbit": len(low), "n_excluded_off_shell_high": len(high),
+            "operational_min_km": float(band[0]), "operational_max_km": float(band[1]),
+        })
+    epoch = common_epoch_jd(all_kept)
+    tle_meta["common_epoch_jd"] = epoch
+    systems = {
+        n: build_as_deployed_system(sim.systems[n], kept_by_system[n], radius, epoch_jd=epoch)
+        for n in exp.constellations
+    }
+    return systems, tle_meta, filter_rows
+
+
 def run_e5(
     exp_path: Path,
     results_root: Path,
@@ -1002,8 +1052,6 @@ def run_e5(
     rule 5).  Event-rate (geometric theta) and Delta T/T (power) screens are
     produced on the same station grid as E1/E4.
     """
-    from datetime import datetime, timezone
-
     sim, exp, grid_cfg, grid, sanity_grid = _load_inputs(exp_path, repo_root)
     bands = load_bands(repo_root / "configs" / "bands.yaml")
     lb = load_link_budget(repo_root / "configs" / "link_budget.yaml")
@@ -1015,8 +1063,6 @@ def run_e5(
     offset = float(p.get("start_offset_s", 18000.0))
     thetas = tuple(float(t) for t in p.get("thetas_deg", [1.0, 2.0, 5.0]))
     chunk = int(p.get("chunk", 64))
-    groups = dict(p.get("tle_groups", {}))
-    cache_dir = repo_root / str(p.get("tle_cache_dir", "data/raw/tle"))
     min_el = float(grid_cfg.min_elevation_deg)
     device = device_str()
     radius = sim.earth.radius_km
@@ -1034,27 +1080,14 @@ def run_e5(
         run_dir / "summary_band_overlap.csv", index=False
     )
 
-    fetched = str(datetime.now(timezone.utc).isoformat())
-    records: dict[str, list] = {}
-    tle_meta: dict = {"fetched_utc": fetched, "cache_dir": str(cache_dir), "groups": {}}
-    for n in exp.constellations:
-        grp = str(groups.get(n, n.lower()))
-        text = fetch_group(grp, cache_dir)
-        recs = parse_tle(text)
-        records[n] = recs
-        tle_meta["groups"][n] = {
-            "group": grp, "url": celestrak_url(grp), "n_sats": len(recs),
-            "epoch_jd_min": float(min(r.epoch_jd for r in recs)),
-            "epoch_jd_max": float(max(r.epoch_jd for r in recs)),
-        }
-    epoch = float(max(common_epoch_jd(records[n]) for n in exp.constellations))
-    tle_meta["common_epoch_jd"] = epoch
+    systems, tle_meta, filter_rows = _as_deployed_inputs(exp, sim, repo_root, radius)
+    epoch = float(tle_meta["common_epoch_jd"])
+    tle_meta["experiment"] = exp.name
+    tle_meta["n_start_times"] = n_st
+    tle_meta["start_offset_s"] = offset
     _write_json(run_dir, "tle_meta.json", tle_meta)
+    pd.DataFrame(filter_rows).to_csv(run_dir / "summary_satellite_filter.csv", index=False)
 
-    systems = {
-        n: build_as_deployed_system(sim.systems[n], records[n], radius)
-        for n in exp.constellations
-    }
     shell_rows = []
     for n, model in systems.items():
         for si, sh in enumerate(model.shells):
@@ -1140,9 +1173,138 @@ def run_e5(
                 {"experiment": exp.name, "status": "ok", "n_start_times": n_st,
                  "start_offset_s": offset, "time_step_s": dt, "duration_s": dur,
                  "thetas_deg": list(thetas), "min_elevation_deg": min_el,
-                 "device": device, "common_epoch_jd": epoch,
-                 "n_sats": {n: len(records[n]) for n in exp.constellations},
-                 "dtt_threshold": 0.06, "diameter_sweep_m": lb.diameter_sweep_m,
-                 "tle_groups": {n: str(groups.get(n, n.lower())) for n in exp.constellations},
+                  "device": device, "common_epoch_jd": epoch,
+                  "n_sats": {n: int(tle_meta["groups"][n]["n_kept"])
+                             for n in exp.constellations},
+                  "n_sats_raw": {n: int(tle_meta["groups"][n]["n_sats_raw"])
+                                 for n in exp.constellations},
+                  "operational_altitude_km": {n: tle_meta["groups"][n]["operational_band_km"]
+                                              for n in exp.constellations},
+                  "dtt_threshold": 0.06, "diameter_sweep_m": lb.diameter_sweep_m,
+                  "tle_groups": {n: str(tle_meta["groups"][n]["group"])
+                                 for n in exp.constellations},
+                  "user_downlink_pairs": [list(q) for q in udl_pairs]})
+    return run_dir
+
+
+def run_e6(
+    exp_path: Path,
+    results_root: Path,
+    repo_root: Path = REPO_ROOT,
+    n_start_times: int | None = None,
+) -> Path:
+    """Run E6 (pre-paper check 1): sweep one system's EIRP density.
+
+    The OneWeb downlink EIRP density is ASSUMED (-20 dBW/MHz).  This experiment
+    holds the as-deployed CelesTrak snapshot fixed and sweeps the target system's
+    EIRP density, reporting the Delta T/T power-screen exceedance for *both*
+    ordered user-downlink pairs, so we can state which conclusions depend on the
+    ASSUMED value.  Replication is over independent start times (AGENTS.md rule 5).
+    """
+    from dataclasses import replace
+
+    sim, exp, grid_cfg, grid, sanity_grid = _load_inputs(exp_path, repo_root)
+    bands = load_bands(repo_root / "configs" / "bands.yaml")
+    lb = load_link_budget(repo_root / "configs" / "link_budget.yaml")
+    udl_pairs = co_frequency_pairs(exp.constellations, bands, "user_downlink")
+    p = exp.params
+    target = str(p.get("sweep_system", "ONEWEB"))
+    eirps = [float(x) for x in p.get("eirp_sweep_dbw_per_mhz", [-26.0, -20.0, -14.0, -8.3])]
+    n_st = int(n_start_times if n_start_times is not None else p.get("n_start_times", 4))
+    dt = float(p.get("time_step_s", 10.0))
+    dur = float(p.get("duration_s", 86400.0))
+    offset = float(p.get("start_offset_s", 18000.0))
+    chunk = int(p.get("chunk", 64))
+    min_el = float(grid_cfg.min_elevation_deg)
+    device = device_str()
+    radius = sim.earth.radius_km
+    lat_bins = np.arange(-90.0, 90.0 + 1e-9, 5.0)
+
+    run_dir = new_run_dir(
+        results_root, exp.name, exp.seed,
+        config_paths=[exp_path, repo_root / "configs" / "constellations.yaml",
+                      repo_root / "configs" / "bands.yaml",
+                      repo_root / "configs" / "link_budget.yaml",
+                      repo_root / "configs" / exp.stations],
+        repo_root=repo_root,
+    )
+    _band_overlap_table(exp.constellations, bands).to_csv(
+        run_dir / "summary_band_overlap.csv", index=False
+    )
+
+    systems0, tle_meta, filter_rows = _as_deployed_inputs(exp, sim, repo_root, radius)
+    epoch = float(tle_meta["common_epoch_jd"])
+    tle_meta["experiment"] = exp.name
+    tle_meta["sweep_system"] = target
+    tle_meta["eirp_sweep_dbw_per_mhz"] = eirps
+    _write_json(run_dir, "tle_meta.json", tle_meta)
+    pd.DataFrame(filter_rows).to_csv(run_dir / "summary_satellite_filter.csv", index=False)
+
+    cfg = ScreenConfig(min_elevation_deg=min_el, earth_radius_km=radius, epoch_jd=epoch,
+                       thetas_deg=tuple(float(t) for t in p.get("thetas_deg", [5.0])),
+                       chunk=chunk, device=device)
+    rows: list[dict] = []
+    for eirp in eirps:
+        sysd = {}
+        for n in exp.constellations:
+            m = systems0[n]
+            if n == target:
+                beam = replace(m.shells[0].beam, eirp_density_dbw_per_mhz=eirp,
+                               source="ASSUMED (swept)")
+                sysd[n] = replace(m, shells=tuple(replace(sh, beam=beam) for sh in m.shells))
+            else:
+                sysd[n] = m
+        for k in range(n_st):
+            times = k * offset + np.arange(0.0, dur, dt)
+            vis = {n: system_visibility(sysd[n], grid.ecef, grid.up, times, cfg, lat_bins)
+                   for n in exp.constellations}
+            for a, b in udl_pairs:
+                freq = float(overlap(bands[a], bands[b], "user_downlink").center_ghz)
+                victim_beam = sysd[a].shells[0].beam
+                interf_beam = sysd[b].shells[0].beam
+                for diam in lb.diameter_sweep_m:
+                    rx_peak = terminal_peak_gain_dbi(diam, freq, lb.aperture_efficiency)
+                    dres = screen_pair_dtt(
+                        sysd[a], sysd[b], vis[a]["max_visible"], vis[b]["max_visible"],
+                        grid.ecef, grid.up, times, victim_beam, interf_beam, freq, rx_peak,
+                        diam, lb.implementation_margin_db, min_el, radius, epoch,
+                        device=device, chunk=chunk, pattern=lb.pattern,
+                    )
+                    for vi in (0, 1):
+                        ef = dres["event_frac"][vi]
+                        un = dres["unres_frac"][vi]
+                        dtt = (dres["dtt_worst_mean"] if vi == 0
+                               else dres["dtt_colo_mean"])
+                        rows.append({
+                            "eirp_dbw_per_mhz": eirp, "phasing": k,
+                            "victim": a, "interferer": b, "diameter_m": float(diam),
+                            "variant": vi,
+                            "event_frac_mean": float(ef.mean()),
+                            "event_frac_max": float(ef.max()),
+                            "unres_frac_max": float(un.max()),
+                            "dtt_max": float(dtt.max()),
+                        })
+
+    df = pd.DataFrame(rows)
+    df.to_parquet(run_dir / "raw_eirp_sweep.parquet", index=False)
+    sw = df.groupby(
+        ["victim", "interferer", "diameter_m", "variant", "eirp_dbw_per_mhz"],
+        as_index=False,
+    ).agg(
+        event_frac_mean=("event_frac_mean", "mean"),
+        event_frac_max=("event_frac_max", "max"),
+        unres_frac_max=("unres_frac_max", "max"),
+        dtt_max=("dtt_max", "max"),
+    )
+    sw.to_csv(run_dir / "summary_eirp_sweep.csv", index=False)
+
+    _write_json(run_dir, "status.json",
+                {"experiment": exp.name, "status": "ok", "n_start_times": n_st,
+                 "start_offset_s": offset, "time_step_s": dt, "duration_s": dur,
+                 "min_elevation_deg": min_el, "device": device,
+                 "common_epoch_jd": epoch, "sweep_system": target,
+                 "eirp_sweep_dbw_per_mhz": eirps,
+                 "n_sats": {n: int(tle_meta["groups"][n]["n_kept"])
+                            for n in exp.constellations},
                  "user_downlink_pairs": [list(q) for q in udl_pairs]})
     return run_dir

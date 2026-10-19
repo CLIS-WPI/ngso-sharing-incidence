@@ -1,0 +1,36 @@
+# Experiment 6 - pre-paper check 1: sensitivity to the ASSUMED OneWeb EIRP density.
+#
+# The Ku user-downlink EIRP density of the modelled OneWeb downlink is ASSUMED
+# (-20 dBW/MHz); no public FCC filing located for this project states a per-MHz
+# downlink EIRP density.  This experiment holds the as-deployed CelesTrak snapshot
+# fixed and sweeps that value over [-26, -20, -14, -8.3] dBW/MHz (the last being
+# the Starlink DERIVED value, i.e. equality), reporting the 25.261(d) Delta T/T
+# power-screen exceedance for both ordered user-downlink pairs.  It shows which
+# conclusions depend on the ASSUMED value.  Replication is over independent
+# simulation start times (constellation fixed); fewer than E5 to bound runtime.
+name: e6_eirp_sweep
+description: >
+  Sweep the ASSUMED OneWeb downlink EIRP density on the as-deployed TLE snapshot
+  and report both ordered user-downlink Delta T/T exceedance fractions, to test
+  whether the direction asymmetry found in Phases 3a/3b is an artefact of the
+  ASSUMED value.
+constellations: [STARLINK, ONEWEB]
+stations: stations.yaml
+seed: 0
+params:
+  n_start_times: 4          # independent start times (fewer than E5 to bound runtime)
+  start_offset_s: 18000     # 5 h ASSUMED, as in E5
+  time_step_s: 10
+  duration_s: 86400
+  chunk: 64
+  thetas_deg: [5.0]
+  tle_cache_dir: data/raw/tle
+  tle_groups:
+    STARLINK: starlink
+    ONEWEB: oneweb
+  operational_altitude_km:
+    STARLINK: [450, 600]
+    ONEWEB: [1100, 1300]
+  sweep_system: ONEWEB
+  eirp_sweep_dbw_per_mhz: [-26.0, -20.0, -14.0, -8.3]
+  source: ASSUMED

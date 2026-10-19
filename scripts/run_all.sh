@@ -20,6 +20,9 @@ python experiments/e4_dtt.py
 echo "== e5_as_deployed =="
 python experiments/e5_as_deployed.py
 
+echo "== e6_eirp_sweep =="
+python experiments/e6_eirp_sweep.py
+
 echo "== figures =="
 python figures/make_figures.py
 

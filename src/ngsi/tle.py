@@ -268,6 +268,33 @@ def shells_from_clusters(
     return shells, shell_index
 
 
+def filter_operational(
+    records: list[TleRecord],
+    earth_radius_km: float,
+    min_altitude_km: float,
+    max_altitude_km: float,
+) -> tuple[list[TleRecord], list[TleRecord], list[TleRecord]]:
+    """Split records into (kept, raising/deorbit, above-band) by circular altitude.
+
+    The band ``[min_altitude_km, max_altitude_km]`` is the operator's operating
+    shell altitude window (source tagged ASSUMED in the experiment config).
+    Satellites below it are orbit-raising or deorbiting; satellites above it are
+    off-shell.  Neither is part of the operational interference environment.
+    """
+    kept: list[TleRecord] = []
+    low: list[TleRecord] = []
+    high: list[TleRecord] = []
+    for r in records:
+        alt = r.semi_major_axis_km - earth_radius_km
+        if alt < min_altitude_km:
+            low.append(r)
+        elif alt > max_altitude_km:
+            high.append(r)
+        else:
+            kept.append(r)
+    return kept, low, high
+
+
 def _count_planes(raan_deg: NDArray[np.float64], tol_deg: float = 5.0) -> int:
     """Number of distinct RAAN planes (greedy binning on the RAAN circle)."""
     anchors: list[float] = []

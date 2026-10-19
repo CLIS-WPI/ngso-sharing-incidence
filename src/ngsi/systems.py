@@ -98,24 +98,28 @@ def build_as_deployed_system(
     system: Constellation,
     records: list[TleRecord],
     earth_radius_km: float = 6371.0,
+    epoch_jd: float | None = None,
 ) -> SystemModel:
     """Build a :class:`SystemModel` from a real TLE snapshot (Phase 3b).
 
-    Satellites keep their own TLE mean elements (advanced to the snapshot's common
-    epoch by the J2 secular rates); shells are the observed inclination/altitude
-    clusters and inherit the modelled constellation's beam (no filing states a
-    per-generation beam).  There is no random phasing: the constellation is fixed
-    and replication is over simulation start times.
+    Satellites keep their own TLE mean elements (advanced to ``epoch_jd`` by the
+    J2 secular rates; defaults to the snapshot's latest TLE epoch); shells are the
+    observed inclination/altitude clusters and inherit the modelled constellation's
+    beam (no filing states a per-generation beam).  There is no random phasing: the
+    constellation is fixed and replication is over simulation start times.  All
+    systems in one run must be built at the *same* ``epoch_jd``.
     """
     if not records:
         raise ValueError(f"{system.name}: empty TLE snapshot")
+    if epoch_jd is None:
+        epoch_jd = common_epoch_jd(records)
     clusters = cluster_records(records)
     source = f"CelesTrak TLE snapshot, {len(records)} satellites ({system.name} group)"
     shells, shell_index = shells_from_clusters(
         records, clusters, system.shells[0].beam, source, earth_radius_km
     )
     elements = elements_from_records(
-        records, common_epoch_jd(records), earth_radius_km, plane_index=shell_index
+        records, epoch_jd, earth_radius_km, plane_index=shell_index
     )
     return SystemModel(
         name=system.name,

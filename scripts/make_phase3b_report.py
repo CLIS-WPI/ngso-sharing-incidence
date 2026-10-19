@@ -75,23 +75,30 @@ def main() -> int:
 
     lines.append("## 1. As-deployed constellation\n")
     lines.append(
-        "Satellite counts and observed inclination/altitude clusters (shells). "
-        "Each cluster is a group of near-identical orbits; the *elements* (not any "
-        "shell count) drive propagation.\n"
+        "Operational filtering.  Satellites outside the operator's operating shell "
+        "altitude window are excluded before propagation: below the window they are "
+        "orbit-raising or deorbiting, above it they are off-shell; neither is part of "
+        "the operational interference environment.  The windows are tagged ASSUMED "
+        "(see `e5_as_deployed.yaml`).\n"
+    )
+    filt = pd.read_csv(e5 / "summary_satellite_filter.csv")
+    lines.append(md_table(filt.round(1)))
+    lines.append("")
+    lines.append(
+        "Satellite counts and observed inclination/altitude clusters (shells) of the "
+        "*retained* operational population.  Each cluster is a group of near-identical "
+        "orbits; the *elements* (not any shell count) drive propagation.\n"
     )
     show = shells[["system", "shell", "n_sats", "altitude_km", "inclination_deg"]].copy()
     show["altitude_km"] = show["altitude_km"].round(1)
     show["inclination_deg"] = show["inclination_deg"].round(3)
     lines.append(md_table(show))
-    lines.append(
-        "\nClusters well below the operational shells (e.g. STARLINK at ~240-370 km) "
-        "are satellites in disposal/deorbit; they are kept because the scenario is "
-        "as-deployed, and their small count makes them immaterial.\n"
-    )
+    lines.append("")
     for name, info in tle.get("groups", {}).items():
         lines.append(
-            f"- **{name}**: group `{info['group']}`, {info['n_sats']} satellites, "
-            f"TLE epochs JD {info['epoch_jd_min']:.5f}..{info['epoch_jd_max']:.5f}.\n"
+            f"- **{name}**: group `{info['group']}`, {info['n_sats_raw']} raw / "
+            f"{info['n_kept']} operational satellites, TLE epochs JD "
+            f"{info['epoch_jd_min']:.5f}..{info['epoch_jd_max']:.5f}.\n"
         )
     lines.append("")
 
@@ -190,7 +197,118 @@ def main() -> int:
             "tuned.\n"
         )
 
-    lines.append("## 5. Verdict\n")
+    lines.append("## 5. Pre-paper checks\n")
+
+    # --- Check 1: OneWeb EIRP density sourcing + sweep (E6) ---
+    lines.append("### Check 1 - OneWeb downlink EIRP density (sourcing + sweep)\n")
+    lines.append(
+        "The modelled OneWeb Ku user-downlink EIRP density is **ASSUMED** at "
+        "-20 dBW/MHz.  A targeted search of public FCC filings (the OneWeb Schedule S "
+        "technical attachments) located no per-MHz downlink EIRP-density value -- the "
+        "OneWeb submission specifies only a binary Ku/Ka antenna-gain mask -- so the "
+        "value remains ASSUMED and is instead **swept** (E6) over "
+        "[-26, -20, -14, -8.3] dBW/MHz, the last being the Starlink DERIVED value.\n"
+    )
+    e6 = newest("e6_eirp_sweep")
+    if e6 is None:
+        lines.append(
+            "E6 has not been run; run `experiments/e6_eirp_sweep.py` to populate this "
+            "check.\n"
+        )
+    else:
+        sw = pd.read_csv(e6 / "summary_eirp_sweep.csv")
+        tab = sw[(sw["diameter_m"] == 0.6) & (sw["variant"] == 0)][
+            ["victim", "interferer", "eirp_dbw_per_mhz", "event_frac_mean",
+             "event_frac_max", "dtt_max"]
+        ].sort_values(["victim", "eirp_dbw_per_mhz"])
+        lines.append(
+            f"E6 run `results/{e6.name}/`; worst-case variant, 0.6 m aperture.  "
+            "`event_frac` is the Delta T/T > 6% exceedance (24 h mean over the grid and "
+            "the start times; `max` over the grid).\n"
+        )
+        lines.append(md_table(tab.round(6)))
+        lines.append("")
+        oneweb_victim = sw[(sw["victim"] == "ONEWEB") & (sw["variant"] == 0)
+                           & (sw["diameter_m"] == 0.6)]
+        st_victim = sw[(sw["victim"] == "STARLINK") & (sw["variant"] == 0)
+                       & (sw["diameter_m"] == 0.6)]
+        inv = oneweb_victim["event_frac_mean"].round(8).nunique() == 1
+        hi = st_victim[st_victim["eirp_dbw_per_mhz"] == st_victim["eirp_dbw_per_mhz"].max()]
+        lines.append(
+            f"- **ONEWEB victim <- STARLINK interferer is exactly invariant to the "
+            f"ASSUMED OneWeb EIRP** (constant across the sweep: {inv}).  This is the "
+            "dominant direction; it depends on the Starlink EIRP, not on the OneWeb "
+            "value, so the headline result does not depend on the ASSUMED parameter.\n"
+        )
+        lines.append(
+            "- **STARLINK victim <- ONEWEB interferer does depend on the OneWeb EIRP**, "
+            "as expected: it is ~0 at -26 dBW/MHz and grows to "
+            f"event_frac_mean up to {float(hi['event_frac_mean'].iloc[0]):.4g} "
+            f"(max {float(hi['event_frac_max'].iloc[0]):.4g}) at the most generous value "
+            "(-8.3 dBW/MHz, i.e. equal to Starlink).  Even then it stays well below the "
+            "ONEWEB-victim direction, so the direction asymmetry is a property of the "
+            "geometry and the Starlink power, not an artefact of the ASSUMED number.\n"
+        )
+
+    # --- Check 2: operational filtering (already in Section 1) ---
+    lines.append("### Check 2 - as-deployed operational filtering\n")
+    lines.append(
+        "Section 1 reports the operational filter: the E5 snapshot of "
+        f"{int(st['n_sats_raw']['STARLINK'])} Starlink + "
+        f"{int(st['n_sats_raw']['ONEWEB'])} OneWeb satellites is reduced to "
+        f"{int(st['n_sats']['STARLINK'])} + {int(st['n_sats']['ONEWEB'])} operational "
+        "satellites by excluding orbit-raising/deorbiting (below the shell window) and "
+        "off-shell (above) objects; the excluded counts and windows are in "
+        "`summary_satellite_filter.csv`.  E5 and the figures below use only the "
+        "operational population.  The windows are ASSUMED.\n"
+    )
+
+    # --- Check 3: 5-line Phase 3a summary (numbers read from results/) ---
+    lines.append("### Check 3 - Phase 3a summary (E3 N_beam fix + 25.261(d) criterion)\n")
+    e3 = newest("e3_capacity_diversity")
+    e4 = newest("e4_dtt")
+    if e3 is not None:
+        c3 = pd.read_csv(e3 / "summary_capacity_diversity.csv")
+        lat60 = c3[(c3["latitude_deg"] == 60.0) & (c3["system_a"] == "ONEWEB")].sort_values("n_beam")
+        vals = " / ".join(
+            f"{int(r.n_beam)}: {float(r.unres_per_served_mean):.3g}" for r in lat60.itertuples()
+        )
+        lines.append(
+            "1. Phase 3a fixed the E3 `N_beam` anomaly: the unresolvable fraction is now "
+            "reported both as an absolute cell-time fraction and **conditionally per "
+            "served cell-time**; the conditional fraction falls monotonically with "
+            f"`N_beam`, e.g. at latitude 60 deg {vals} for N_beam 8/16/32 "
+            f"(run `{e3.name}`, `unres_per_served_mean`).\n"
+        )
+    if e4 is not None:
+        d4 = pd.read_csv(e4 / "summary_dtt.csv")
+        d4f = d4[d4["event_frac_mean"] > 0]
+        mx = d4f.loc[d4f["event_frac_mean"].idxmax()]
+        lines.append(
+            f"2. Under 25.261(d) (event = Delta T/T > 6%) the worst-case exceedance is "
+            f"{float(mx['event_frac_mean']):.4g} ({mx['system_a']} <- {mx['system_b']}, "
+            f"{mx['diameter_m']:g} m, latitude {float(mx['latitude_deg']):.0f} deg, "
+            f"run `{e4.name}`).\n"
+        )
+        lines.append(
+            f"3. Mean Delta T/T reaches {float(d4['dtt_mean_mean'].max()):.4g} "
+            "(> 3%, i.e. above the long-term 25.261(d) 3% reference level), driven by "
+            "the worst-case variant.\n"
+        )
+        lines.append(
+            f"4. Time-weighted throughput degradation (3 dB margin) is at most "
+            f"{float(d4['degradation_nodiv_mean'].max()):.4g} without diversity and "
+            f"{float(d4['degradation_div_mean'].max()):.4g} with unlimited satellite "
+            "diversity.\n"
+        )
+        lines.append(
+            f"5. The unresolvable fraction with unlimited diversity is "
+            f"{float(d4['unres_frac_mean'].max()):.4g} over the whole grid: the burden "
+            "is fully removable by satellite diversity (as in E2).\n"
+        )
+    lines.append("")
+
+    lines.append("## 6. Verdict\n")
     lines.append(
         "- **Geometric criterion.** Co-located events are symmetric in the two "
         "directions (identical tables), as expected; the worst-case upper bound is "
