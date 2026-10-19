@@ -12,6 +12,8 @@ the questions posed before any paper text is rewritten:
     WITHOUT and WITH satellite diversity.
 (d) PFD-constant (primary) vs constant-EIRP (sensitivity) Starlink steering.
 (e) The E6 EIRP / steering sensitivity cases.
+(f) The 47 CFR 25.208(b) limit text, scope, and PFD margins.
+(g) The analytic co-located model and its diagnosis against the simulation.
 
 Run:  python scripts/make_phase3d_report.py
 """
@@ -220,6 +222,15 @@ def eirp_audit():
     return rows
 
 
+def analytic_diagnosis():
+    """Newest analytic-diagnosis summary (e8), or None if not yet run."""
+    run = newest("e8_analytic_diagnosis")
+    if run is None:
+        return None, None
+    js = json.loads((run / "diagnosis.json").read_text())
+    return run, js
+
+
 def main() -> int:
     e4 = newest_where("e4_dtt", diversity_fspl="interferer", steering=None)
     e4_ce = newest_where("e4_dtt", diversity_fspl="interferer", steering="constant_eirp")
@@ -419,10 +430,62 @@ def main() -> int:
                       ["case", "variant", "starlink_eirp_dbw_per_mhz", "event_pct",
                        "unres_pct", "degr_qual_pct", "degr_qual_div_pct"]))
     L.append("")
-    L.append("Anchored PFD-constant Starlink reproduces the 25.208(b) 25-90 deg "
-             "limit to within ~0.3 dB (`-116.32` vs `-116` dBW/m^2/MHz); lowering it "
-             "by 3/6 dB is the sensitivity test for how much of the exceedance "
-             "depends on sitting exactly at the limit.")
+    L.append("The primary fixes PFD-constant Starlink **exactly at** the 25.208(b) "
+             "25-90 deg limit (`-116.00` dBW/m^2/MHz).  Cross-check: the "
+             "unit-corrected top of the filed EIRP range (15.68 dBW/MHz) would give "
+             "`-116.32`, within 0.3 dB of the limit.  Lowering the primary PFD by "
+             "3/6 dB is the sensitivity test for how much of the exceedance depends "
+             "on operating at the limit.")
+    L.append("")
+
+    # (g) analytic model + diagnosis (Phase 3e Part A follow-up)
+    L.append("## (g) Analytic co-located model and its diagnosis")
+    L.append("")
+    e7 = newest("e7_analytic")
+    e8, js = analytic_diagnosis()
+    for tag, run in [("E7 analytic vs simulated", e7),
+                     ("E8 analytic diagnosis", e8)]:
+        L.append(f"- {tag}: `results/{run.name}/`" if run else f"- {tag}: (absent)")
+    L.append("")
+    if js is not None:
+        L.append(f"`theta*` (Starlink-interferer / OneWeb-victim, 0.45 m, PFD-constant "
+                 f"at the 25.208(b) limit) = **{js['theta_star_deg']:.4f} deg**, "
+                 f"aperture-independent (the S.1428 1-48 deg envelope "
+                 f"`32 - 25 log10(theta)` sets the threshold angle regardless of "
+                 f"diameter; hand-checkable in `tests/test_analytic.py`).")
+        L.append("")
+        L.append("**Diagnosis (24 h, one phasing, per latitude; the simulation is the "
+                 "reference).**  The two serving directions are independent (distinct "
+                 "constellations, independent phasing): feeding the *empirical* "
+                 "serving-radius marginals through the independent-azimuth separation "
+                 "integral reproduces the simulated conditional separation probability "
+                 f"to within {js['max_abs_err_indep_cond']:.3f}.")
+        L.append("")
+        L.append("The original marginal (nearest-of-n directions uniform in the "
+                 "*look-direction* cap) is the wrong assumption: it predicts a mean "
+                 f"serving radius of {js['r_a_model_mean_deg']:.1f} deg, whereas the "
+                 f"measured mean is {js['mean_r_a_empirical_deg']:.1f} deg (OneWeb) / "
+                 f"{js['mean_r_b_empirical_deg']:.1f} deg (Starlink).  It therefore "
+                 f"**over-predicts** the simulated conditional separation probability "
+                 f"by up to {js['max_abs_err_old_cond']:.3f} and sits above the "
+                 f"simulation at every latitude "
+                 f"({'yes' if js['old_above_sim_everywhere'] else 'no'}).")
+        L.append("")
+        L.append("Replacing it with a physically justified marginal - the nearest-of-n "
+                 "serving satellite is uniform in the *ground footprint* and mapped to "
+                 "the look angle through the exact spherical elevation relation "
+                 "(`serving_look_radius_pdf`) - reduces the conditional error to "
+                 f"{js['max_abs_err_new_cond']:.3f} and removes the systematic bias "
+                 f"(above the simulation at every latitude: "
+                 f"{'yes' if js['new_above_sim_everywhere'] else 'no'}; event-fraction "
+                 f"offset {js['new_event_minus_sim_min']:+.3f} to "
+                 f"{js['new_event_minus_sim_max']:+.3f}).  The residual is bounded by "
+                 "the empirical-marginal independence limit above, i.e. by the "
+                 "single-shell uniformity approximation, not by the independence "
+                 "assumption.  The full event-fraction model is therefore reported as "
+                 "indicative only; the simulation remains the primary result.")
+    else:
+        L.append("(no e8 diagnosis run found)")
     L.append("")
 
     OUT.write_text("\n".join(L) + "\n", encoding="utf-8")

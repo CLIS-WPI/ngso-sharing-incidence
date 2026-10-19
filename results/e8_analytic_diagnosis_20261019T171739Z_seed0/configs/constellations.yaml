@@ -1,0 +1,202 @@
+# NGSO constellation parameters.
+#
+# RULE (AGENTS.md rule 2): every physical parameter MUST carry a `source:` that is
+# either a filing / literature reference or the literal string ASSUMED. Config
+# validation requires the key on every shell and every beam.
+#
+# A "system" is ALL shells of one operator. In-line events are only ever computed
+# BETWEEN different systems (never between shells of the same operator).
+#
+# Orbital parameters verified against:
+#   Starlink - Pachler, Mutter, Behar et al. 2021, "An Updated Comparison of Four
+#              LEO Satellite Constellation Systems", Table II (FCC-derived).
+#   Kuiper   - Amazon Kuiper FCC Technical Appendix, SAT-LOA-20190704-00057 (2019).
+#   OneWeb   - altitude/inclination: FCC DA-23-362; the 18x36 plane layout is
+#              UNVERIFIED (filings give 18x40 originally, or 12x49+8x16 revised),
+#              so it is tagged ASSUMED (from prompt).
+# No operator states a Walker phasing factor F; every F defaults to 1 (ASSUMED).
+#
+# Earth model: SPHERICAL, R = 6371 km, used for station positions, visibility caps
+# and orbital radius bookkeeping. This is a modelling choice, tagged ASSUMED.
+
+earth_model:
+  shape: spherical
+  radius_km: 6371.0
+  source: ASSUMED (spherical earth model specified in Phase-2 prompt)
+
+# Fixed GMST epoch for all propagation (store here so runs are reproducible).
+epoch:
+  utc: "2025-01-01T00:00:00Z"
+  source: ASSUMED (arbitrary fixed epoch; GMST computed from it)
+
+constellations:
+  # ------------------------------------------------------------------ Starlink
+  - name: STARLINK
+    operator: SpaceX
+    shells:
+      - name: STARLINK-s1-550-53
+        altitude_km: 550.0
+        inclination_deg: 53.0
+        planes: 72
+        sats_per_plane: 22
+        phasing_f: 1
+        source: Pachler et al. 2021 Table II (FCC-derived)
+        beam: &beam_starlink
+          peak_gain_dbi: 44.0
+          beamwidth_deg: 1.1
+          eirp_density_dbw_per_mhz: 16.0018
+          freq_ghz: 12.0
+          bandwidth_mhz: 240.0
+          system_noise_temp_k: 150.0
+          beam_steering: pfd_constant
+          pfd_anchor_elevation_deg: 25.0
+          source: >-
+            PRIMARY: Starlink modelled EXACTLY AT the 47 CFR 25.208(b) PFD limit
+            for 25-90 deg, -116 dBW/m^2/MHz. peak_gain_dbi: SpaceX Gen2 Ku-band
+            maximum antenna gain 44 dBi, FCC-22-91A1 (2022) para. 42.
+            eirp_density_dbw_per_mhz: 16.0018 dBW/MHz is the EIRP ceiling that
+            makes PFD_const = EIRP_max - 10log10(4 pi r_max^2) equal -116.000 dBW/
+            m^2/MHz at the r_max of the 25 deg service edge. Cross-check: the
+            unit-corrected top of the filed EIRP range is 15.68 dBW/MHz
+            (FCC-22-91A1 para. 42 prints "-11.9 .. -8.3 dBw/MHz", but 47 CFR
+            Part 25 specifies Ku-band, below 15 GHz, EIRP density per 4 kHz; -8.3
+            dBW/4kHz + 10log10(250) = +15.68 dBW/MHz, and SpaceX's 2016 Ku
+            attachment SAT-LOA-20161115-00118 tabulates -11.07 dBW/4kHz = 12.91
+            dBW/MHz). The filed top of range gives PFD_const = -116.32 dBW/m^2/MHz,
+            0.32 dB below the limit; the primary fixes it at the limit instead.
+            Whether Starlink actually operates at the limit is covered by the
+            E6 PFD -3/-6 dB sensitivity and the constant-EIRP case.
+            beamwidth_deg: DERIVED from the 44 dBi peak via HPBW ~ 70*lambda/D
+            (aperture efficiency 0.6, ASSUMED); no filing states the satellite
+            beamwidth. freq_ghz: centre of the Ku-band user downlink 10.7-12.7
+            GHz. bandwidth_mhz: Starlink Ku channel, emission designator 240MD7W
+            (SpaceX FCC filings). system_noise_temp_k: ASSUMED terminal value.
+            beam_steering: PFD-CONSTANT is the primary Starlink Ku model. SpaceX
+            "adjusts power to maintain a constant PFD on the surface of the Earth"
+            as the beam steers (FCC-22-91A1 para. 42); the 10.7-11.7 GHz Ku
+            operations are authorized up to the section 25.208(b) PFD limits
+            (FCC-22-91A1 para. 43; 47 CFR 25.208(b): -140 dBW/m^2 per 4 kHz, or
+            -116 dBW/m^2 per 1 MHz, for 25-90 deg). pfd_anchor_elevation_deg:
+            25 deg, the Starlink Ku minimum service elevation below 62 deg N
+            latitude (FCC-22-91A1 para. 42/45; 5 deg at/above 62 deg N).
+      - name: STARLINK-s2-540-53
+        altitude_km: 540.0
+        inclination_deg: 53.2
+        planes: 72
+        sats_per_plane: 22
+        phasing_f: 1
+        source: Pachler et al. 2021 Table II (FCC-derived)
+        beam: *beam_starlink
+      - name: STARLINK-s3-570-70
+        altitude_km: 570.0
+        inclination_deg: 70.0
+        planes: 36
+        sats_per_plane: 20
+        phasing_f: 1
+        source: Pachler et al. 2021 Table II (FCC-derived)
+        beam: *beam_starlink
+      - name: STARLINK-s4-560-97-a
+        altitude_km: 560.0
+        inclination_deg: 97.6
+        planes: 6
+        sats_per_plane: 58
+        phasing_f: 1
+        source: Pachler et al. 2021 Table II (FCC Group 3; FCC-derived)
+        beam: *beam_starlink
+      - name: STARLINK-s4-560-97-b
+        altitude_km: 560.0
+        inclination_deg: 97.6
+        planes: 4
+        sats_per_plane: 43
+        phasing_f: 1
+        source: Pachler et al. 2021 Table II (FCC Group 5; FCC-derived)
+        beam: *beam_starlink
+
+  # -------------------------------------------------------------------- Kuiper
+  - name: KUIPER
+    operator: Amazon
+    shells:
+      - name: KUIPER-s1-630-51
+        altitude_km: 630.0
+        inclination_deg: 51.9
+        planes: 34
+        sats_per_plane: 34
+        phasing_f: 1
+        source: Kuiper FCC Technical Appendix 2019, SAT-LOA-20190704-00057
+        beam: &beam_kuiper
+          peak_gain_dbi: 35.0
+          beamwidth_deg: 2.8
+          eirp_density_dbw_per_mhz: -19.0
+          freq_ghz: 19.8
+          bandwidth_mhz: 500.0
+          system_noise_temp_k: 200.0
+          beam_steering: constant_eirp
+          source: >-
+            beam_steering: constant-EIRP, ASSUMED (no Kuiper filing in our record
+            states PFD-constant power control, and the Kuiper Ka-band user
+            downlink does not overlap the Starlink/OneWeb Ku co-frequency pair).
+            peak_gain_dbi / beamwidth_deg / freq_ghz: Kuiper experimental STA
+            satellite user beam 35 dBi, 2.8 deg 3-dB spot beam at 19.8 GHz,
+            apps.fcc.gov/els/GetAtt.html?id=347260 (19.6-20.1 GHz).
+            eirp_density_dbw_per_mhz: ASSUMED (the STA gives total EIRP 36 dBW,
+            not a per-MHz density). Ka-band (19.8 GHz) is above the 15 GHz
+            threshold below which 47 CFR Part 25 states EIRP density per 4 kHz,
+            so the 4-kHz unit conversion does not apply here. bandwidth_mhz:
+            largest Kuiper emission designator 500MG7W (FCC).
+            system_noise_temp_k: ASSUMED.
+      - name: KUIPER-s2-610-42
+        altitude_km: 610.0
+        inclination_deg: 42.0
+        planes: 36
+        sats_per_plane: 36
+        phasing_f: 1
+        source: Kuiper FCC Technical Appendix 2019, SAT-LOA-20190704-00057
+        beam: *beam_kuiper
+      - name: KUIPER-s3-590-33
+        altitude_km: 590.0
+        inclination_deg: 33.0
+        planes: 28
+        sats_per_plane: 28
+        phasing_f: 1
+        source: Kuiper FCC Technical Appendix 2019, SAT-LOA-20190704-00057
+        beam: *beam_kuiper
+
+  # -------------------------------------------------------------------- OneWeb
+  - name: ONEWEB
+    operator: Eutelsat OneWeb
+    shells:
+      - name: ONEWEB-s1-1200-87
+        altitude_km: 1200.0
+        inclination_deg: 87.9
+        planes: 18
+        sats_per_plane: 36
+        phasing_f: 1
+        source: >-
+          ASSUMED (from prompt); altitude/inclination per FCC DA-23-362, but the
+          18x36 plane layout is UNVERIFIED (filings give 18x40 or 12x49+8x16)
+        beam:
+          peak_gain_dbi: 30.0
+          beamwidth_deg: 3.0
+          eirp_density_dbw_per_mhz: 10.6
+          freq_ghz: 12.0
+          bandwidth_mhz: 125.0
+          system_noise_temp_k: 200.0
+          beam_steering: constant_eirp
+          source: >-
+            beam_steering: constant-EIRP, ASSUMED. The Starlink-specific
+            PFD-constant power control (FCC-22-91A1 para. 42) has no cited OneWeb
+            equivalent in our record, so ONEWEB-as-interferer keeps constant EIRP.
+            peak_gain_dbi / beamwidth_deg: ASSUMED (OneWeb user-beam values; no
+            citable per-beam value, FCC-17-77 only references binary Ku/Ka
+            antenna-gain mask files). eirp_density_dbw_per_mhz: Del Portillo et
+            al. 2019 (Acta Astronautica 159, Table 3, p. 5): OneWeb user-beam
+            downlink 34.6 dBW per beam over 250 MHz = +10.6 dBW/MHz. After the
+            Starlink Ku unit correction the model's Starlink per-beam EIRP
+            (15.68 dBW/MHz over 240 MHz = 39.5 dBW) agrees with Del Portillo's
+            36.7 dBW within ~3 dB, so the same source is a consistent public
+            reference for both systems. The earlier C/N-target value (+0.2
+            dBW/MHz, scripts/calibrate_oneweb_eirp.py) is retained only as a
+            sensitivity row, not as a design rule. freq_ghz: centre of the
+            Ku-band user downlink 10.7-12.7 GHz. bandwidth_mhz: OneWeb Ku
+            channel (emission designator 125MG7W). system_noise_temp_k: ASSUMED
+            terminal value.

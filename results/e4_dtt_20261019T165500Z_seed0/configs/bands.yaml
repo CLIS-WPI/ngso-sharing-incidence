@@ -1,0 +1,79 @@
+# Authorized frequency bands per system and link type.
+#
+# RULE (AGENTS.md rule 2): every entry carries a `source` that is an FCC
+# authorization / filing reference or the literal string ASSUMED.
+#
+# Link types and transmission directions (space station <-> earth station):
+#   user_downlink    - space-to-Earth, satellite -> user terminal
+#   user_uplink      - Earth-to-space, user terminal -> satellite
+#   gateway_downlink - space-to-Earth, satellite -> gateway earth station
+#   gateway_uplink   - Earth-to-space, gateway earth station -> satellite
+#
+# In-line interference (and 47 CFR 25.261 band-splitting) only applies to a pair
+# of systems that are co-frequency in the SAME link type and direction.  The
+# overlap matrix is computed from these ranges by ngsi.bands.
+#
+# All ranges in GHz, inclusive of the lower bound, [low, high], high exclusive.
+
+systems:
+  STARLINK:
+    user_downlink:
+      ranges_ghz: [[10.7, 12.7]]
+      source: >-
+        SpaceX Ku-band user downlink 10.7-12.7 GHz; FCC-22-91A1 and SpaceX STA
+        narrative (apps.fcc.gov/els/GetAtt.html?id=405805).
+    user_uplink:
+      ranges_ghz: [[14.0, 14.5]]
+      source: >-
+        SpaceX Ku-band user uplink 14.0-14.5 GHz; FCC-22-91A1 and SpaceX STA
+        narrative.
+    gateway_downlink:
+      ranges_ghz: [[17.8, 18.6], [18.8, 19.3], [19.7, 20.2]]
+      source: >-
+        SpaceX Ka-band gateway downlink; 47 CFR 25.124(a)(6) NGSO FSS bands and
+        FCC-22-91A1.
+    gateway_uplink:
+      ranges_ghz: [[27.5, 29.1], [29.5, 30.0]]
+      source: >-
+        SpaceX Ka-band gateway uplink; 47 CFR 25.124(a)(6) NGSO FSS bands and
+        FCC-22-91A1.
+
+  KUIPER:
+    user_downlink:
+      ranges_ghz: [[17.8, 18.6], [18.8, 19.3], [19.7, 20.2]]
+      source: >-
+        Kuiper (Amazon Leo) Ka-band customer downlink; FCC 20-102 para. 7
+        (17.7-18.6, 18.8-19.3, 19.7-20.2 GHz customer links).
+    user_uplink:
+      ranges_ghz: [[28.35, 29.1], [29.5, 30.0]]
+      source: >-
+        Kuiper Ka-band customer uplink; FCC 20-102 para. 7 and CEPT 2022 Kuiper
+        slide (28.35-29.1, 29.5-30.0 GHz).
+    gateway_downlink:
+      ranges_ghz: [[17.7, 18.6], [18.8, 20.2]]
+      source: >-
+        Kuiper Ka-band gateway downlink; FCC 20-102 para. 7 (17.7-18.6,
+        18.8-20.2 GHz gateway links).
+    gateway_uplink:
+      ranges_ghz: [[27.5, 30.0]]
+      source: >-
+        Kuiper Ka-band gateway uplink; FCC 20-102 para. 7 (27.5-30.0 GHz
+        gateway links).
+
+  ONEWEB:
+    user_downlink:
+      ranges_ghz: [[10.7, 12.7]]
+      source: >-
+        OneWeb Ku-band user downlink 10.7-12.7 GHz; FCC 17-77 and DA 16-804.
+    user_uplink:
+      ranges_ghz: [[14.0, 14.5]]
+      source: >-
+        OneWeb Ku-band user uplink 14.0-14.5 GHz; FCC 17-77 and DA 16-804.
+    gateway_downlink:
+      ranges_ghz: [[17.8, 18.6], [18.8, 19.3]]
+      source: >-
+        OneWeb Ka-band gateway downlink 17.8-18.6, 18.8-19.3 GHz; FCC 17-77.
+    gateway_uplink:
+      ranges_ghz: [[27.5, 29.1], [29.5, 30.0]]
+      source: >-
+        OneWeb Ka-band gateway uplink 27.5-29.1, 29.5-30.0 GHz; FCC 17-77.

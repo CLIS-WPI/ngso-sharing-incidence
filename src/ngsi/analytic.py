@@ -52,7 +52,11 @@ from numpy.typing import NDArray
 from .antennas import s1428_gain
 from .constants import IN_THRESHOLD_DB
 from .link_budget import noise_power_dbw_per_mhz, slant_range_km
-from .sanity import analytic_visible_count, walker_sub_latitude_density
+from .sanity import (
+    analytic_visible_count,
+    earth_central_angle_cap,
+    walker_sub_latitude_density,
+)
 
 LIGHT_SPEED_M_S = 299792458.0
 EARTH_RADIUS_KM = 6371.0
@@ -207,6 +211,82 @@ def separation_probability(
     return float((W * cond).sum())
 
 
+def ground_footprint_deg(
+    shells: "list[ShellSpec] | tuple[ShellSpec, ...]",
+    min_elev_deg: float,
+    earth_radius_km: float = EARTH_RADIUS_KM,
+) -> float:
+    """Largest ground central-angle footprint (deg) of the constellation's shells."""
+    if not shells:
+        return 0.0
+    return float(max(
+        np.rad2deg(earth_central_angle_cap(s.altitude_km, min_elev_deg, earth_radius_km))
+        for s in shells
+    ))
+
+
+def serving_look_radius_pdf(
+    shells: "list[ShellSpec] | tuple[ShellSpec, ...]",
+    min_elev_deg: float,
+    n: float,
+    earth_radius_km: float = EARTH_RADIUS_KM,
+    n_grid: int = 240,
+) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+    """Density of the serving (highest-elevation) satellite's off-zenith radius.
+
+    The sub-satellite points of the ``n`` visible satellites are treated as
+    uniform over the ground footprint disc of radius ``psi_max`` (the validated
+    Poisson-field approximation, but now in ground coordinates, where the
+    sub-satellite points actually are), and the serving satellite is the
+    nearest-to-zenith one.  Changing variables to the look angle ``r`` (deg)
+    through the exact spherical elevation relation ``psi(r) = arccos(k cos eps) -
+    eps`` with ``eps = 90 - r`` and ``k = R/(R+h)`` gives
+
+        f_r(r) = f_psi(psi(r)) * |d psi/dr|,
+        f_psi(psi) = 2 n psi/psi_max^2 (1 - psi^2/psi_max^2)^(n-1).
+
+    The look-angle density is strongly skewed toward large ``r`` (low elevation),
+    unlike a uniform disc in look space.  Multi-shell unions use the largest
+    footprint (highest shell) and the total count ``n``.
+    """
+    alpha = 90.0 - float(min_elev_deg)
+    if alpha <= 0.0 or n <= 0.0 or not shells:
+        return np.zeros(n_grid), np.zeros(n_grid)
+    psi_max = np.deg2rad(ground_footprint_deg(shells, min_elev_deg, earth_radius_km))
+    alt = float(max(s.altitude_km for s in shells))
+    k = earth_radius_km / (earth_radius_km + alt)
+    r = (np.arange(n_grid) + 0.5) * (alpha / n_grid)      # deg
+    eps = np.deg2rad(90.0 - r)                            # rad
+    psi = np.arccos(k * np.cos(eps)) - eps                # rad
+    if psi_max <= 0.0:
+        return r, np.zeros(n_grid)
+    x = np.clip(psi / psi_max, 0.0, 1.0)
+    f_psi = 2.0 * float(n) * (psi / psi_max**2) * (1.0 - x**2) ** (float(n) - 1.0)
+    dpsi_deps = k * np.sin(eps) / np.sqrt(1.0 - k**2 * np.cos(eps) ** 2) - 1.0
+    w = f_psi * np.abs(dpsi_deps)                          # per rad; scale cancels
+    w = np.where(np.isfinite(w) & (w > 0.0), w, 0.0)
+    return r, (w / w.sum() if w.sum() > 0.0 else w)
+
+
+def separation_probability_from_pdf(
+    theta_star_deg: float,
+    ra: NDArray[np.float64],
+    wa: NDArray[np.float64],
+    rb: NDArray[np.float64],
+    wb: NDArray[np.float64],
+) -> float:
+    """P(|p_A - p_B| <= theta*) for independent directions with the given radius pdfs."""
+    if theta_star_deg <= 0.0 or wa.sum() == 0.0 or wb.sum() == 0.0:
+        return 0.0
+    t2 = float(theta_star_deg) ** 2
+    RA, RB = np.meshgrid(ra, rb, indexing="ij")
+    with np.errstate(divide="ignore", invalid="ignore"):
+        q = (RA**2 + RB**2 - t2) / (2.0 * RA * RB)
+    cond = np.where(q <= -1.0, 1.0,
+                    np.where(q >= 1.0, 0.0, np.arccos(np.clip(q, -1.0, 1.0)) / np.pi))
+    return float((wa[:, None] * wb[None, :] * cond).sum())
+
+
 def co_located_event_fraction(
     lat_deg: float,
     theta_star_deg: float,
@@ -216,14 +296,22 @@ def co_located_event_fraction(
     earth_radius_km: float = EARTH_RADIUS_KM,
     n_grid: int = 240,
 ) -> float:
-    """Analytic co-located ``Delta T/T`` event fraction at one latitude."""
-    n_a, alpha_a = visibility_stats(shells_a, lat_deg, min_elev_deg, earth_radius_km)
-    n_b, alpha_b = visibility_stats(shells_b, lat_deg, min_elev_deg, earth_radius_km)
+    """Analytic co-located ``Delta T/T`` event fraction at one latitude.
+
+    Uses the ground-space serving-radius density of
+    :func:`serving_look_radius_pdf`; the two serving directions are independent
+    (distinct constellations with independent phasing - confirmed against the
+    simulation), so only the marginals enter.
+    """
+    n_a, _ = visibility_stats(shells_a, lat_deg, min_elev_deg, earth_radius_km)
+    n_b, _ = visibility_stats(shells_b, lat_deg, min_elev_deg, earth_radius_km)
     if n_a <= 0.0 or n_b <= 0.0:
         return 0.0
     v_a = 1.0 - np.exp(-n_a)
     v_b = 1.0 - np.exp(-n_b)
-    p_sep = separation_probability(theta_star_deg, alpha_a, n_a, alpha_b, n_b, n_grid)
+    ra, wa = serving_look_radius_pdf(shells_a, min_elev_deg, n_a, earth_radius_km, n_grid)
+    rb, wb = serving_look_radius_pdf(shells_b, min_elev_deg, n_b, earth_radius_km, n_grid)
+    p_sep = separation_probability_from_pdf(theta_star_deg, ra, wa, rb, wb)
     return float(v_a * v_b * p_sep)
 
 
@@ -250,7 +338,7 @@ def theta_star_for_starlink(
     pfd_offset_db: float = 0.0,
     victim_noise_temp_k: float = 200.0,
     *,
-    starlink_eirp_dbw_per_mhz: float = 15.68,
+    starlink_eirp_dbw_per_mhz: float = 16.0018,
     starlink_altitude_km: float = 550.0,
     anchor_elevation_deg: float = 25.0,
 ) -> float:

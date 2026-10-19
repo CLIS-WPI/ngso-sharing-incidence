@@ -7,12 +7,18 @@ import pytest
 
 from ngsi.analytic import (
     ShellSpec,
+    _nearest_offaxis_pdf,
+    co_located_event_fraction,
     effective_area_db,
     equivalent_angle_deg,
     event_fraction_vs_latitude,
+    ground_footprint_deg,
     pfd_constant_dbw_per_m2_per_mhz,
     separation_probability,
+    separation_probability_from_pdf,
+    serving_look_radius_pdf,
     theta_star_for_starlink,
+    visibility_stats,
 )
 from ngsi.antennas import s1428_gain
 from ngsi.constants import IN_THRESHOLD_DB
@@ -109,3 +115,44 @@ def test_theta_star_pfd_offset_shrinks_angle() -> None:
     t6 = theta_star_for_starlink(DIAM, pfd_offset_db=-6.0)
     # A weaker interferer needs a higher victim gain to trigger -> smaller angle.
     assert t0 > t3 > t6 > 0.0
+
+
+def test_ground_footprint_hand_value() -> None:
+    # k = 6371/6921 = 0.92053; arccos(k cos 25 deg) - 25 deg = 8.44 deg.
+    shells = [ShellSpec(550.0, 53.0, 72, 22)]
+    assert ground_footprint_deg(shells, 25.0) == pytest.approx(8.44, abs=0.02)
+
+
+def test_separation_probability_from_pdf_matches_uniform_disc() -> None:
+    alpha, n, theta, ng = 20.0, 6.0, 8.0, 400
+    r = (np.arange(ng) + 0.5) * (alpha / ng)
+    w = _nearest_offaxis_pdf(r, alpha, n)
+    w = w / w.sum()
+    p_uniform = separation_probability(theta, alpha, n, alpha, n, n_grid=ng)
+    p_pdf = separation_probability_from_pdf(theta, r, w, r, w)
+    assert p_pdf == pytest.approx(p_uniform, abs=1e-9)
+
+
+def test_serving_look_radius_pdf_normalized_and_horizon_skewed() -> None:
+    shells = [ShellSpec(1200.0, 87.9, 18, 36)]
+    n = 7.0
+    r, w = serving_look_radius_pdf(shells, 25.0, n, n_grid=240)
+    assert w.sum() == pytest.approx(1.0)
+    # The ground-space marginal is skewed toward larger look angles relative to the
+    # uniform-in-look-space nearest-of-n disc (the diagnosed model error).
+    alpha = 65.0
+    ru = (np.arange(240) + 0.5) * (alpha / 240)
+    wu = _nearest_offaxis_pdf(ru, alpha, n)
+    wu = wu / wu.sum()
+    assert float((r * w).sum()) > float((ru * wu).sum())
+
+
+def test_ground_space_marginal_reduces_overprediction() -> None:
+    oneweb = [ShellSpec(1200.0, 87.9, 18, 36)]
+    starlink = [ShellSpec(550.0, 53.0, 72, 22)]
+    n_a, _ = visibility_stats(oneweb, 0.0, 25.0)
+    n_b, _ = visibility_stats(starlink, 0.0, 25.0)
+    old = (1.0 - np.exp(-n_a)) * (1.0 - np.exp(-n_b)) * separation_probability(
+        17.0, 65.0, n_a, 65.0, n_b)
+    new = co_located_event_fraction(0.0, 17.0, oneweb, starlink, 25.0)
+    assert 0.0 < new < old

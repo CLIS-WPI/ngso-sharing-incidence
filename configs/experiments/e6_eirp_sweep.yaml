@@ -5,10 +5,14 @@
 # snapshot is held fixed; replication is over independent simulation start times
 # (constellation fixed).  Cases:
 #
-#   primary              Starlink +15.68 (FCC-22-91A1 Ku, unit-corrected from
-#                        dBW/4kHz), OneWeb +10.6 (Del Portillo 2019, Table 3);
-#                        steering: config -> Starlink PFD-constant (primary),
-#                        OneWeb constant-EIRP (ASSUMED).
+#   primary              Starlink EIRP ceiling +16.0018 dBW/MHz, which places the
+#                        PFD-constant operation exactly at the 25.208(b) limit
+#                        (-116 dBW/m^2/MHz for 25-90 deg); OneWeb +10.6
+#                        (Del Portillo 2019, Table 3); steering: config ->
+#                        Starlink PFD-constant (primary), OneWeb constant-EIRP
+#                        (ASSUMED).  Cross-check: the unit-corrected top of the
+#                        filed range (15.68 dBW/MHz) gives -116.32, 0.3 dB below
+#                        the limit.
 #   starlink_low_end     Starlink at the low end of the filed 4-kHz range
 #                        (-11.9 dBW/4kHz = +12.1 dBW/MHz).
 #   delportillo_common   both systems from Del Portillo 2019 (Starlink +12.7).
@@ -17,8 +21,8 @@
 #   starlink_constant_eirp the primary EIRPs with Starlink forced to
 #                        constant-EIRP steering (the constant-EIRP sensitivity).
 #   starlink_pfd_minus3  PFD-constant Starlink with its PFD 3 dB below the
-#                        25.208(b) anchor (EIRP_max 15.68 - 3 = 12.68).
-#   starlink_pfd_minus6  as above, 6 dB below (EIRP_max 15.68 - 6 = 9.68).
+#                        25.208(b) anchor (EIRP_max 16.0018 - 3 = 13.0018).
+#   starlink_pfd_minus6  as above, 6 dB below (EIRP_max 16.0018 - 6 = 10.0018).
 name: e6_eirp_sweep
 description: >
   Sensitivity of both ordered co-frequency user-downlink Delta T/T exceedance
@@ -46,7 +50,7 @@ params:
     ONEWEB: [1100, 1300]
   cases:
     - name: primary
-      eirp_dbw_per_mhz: {STARLINK: 15.68, ONEWEB: 10.6}
+      eirp_dbw_per_mhz: {STARLINK: 16.0018, ONEWEB: 10.6}
       steering: config
     - name: starlink_low_end
       eirp_dbw_per_mhz: {STARLINK: 12.1, ONEWEB: 10.6}
@@ -55,19 +59,19 @@ params:
       eirp_dbw_per_mhz: {STARLINK: 12.7, ONEWEB: 10.6}
       steering: config
     - name: oneweb_cn_calibrated
-      eirp_dbw_per_mhz: {STARLINK: 15.68, ONEWEB: 0.2}
+      eirp_dbw_per_mhz: {STARLINK: 16.0018, ONEWEB: 0.2}
       steering: config
     - name: starlink_constant_eirp
-      eirp_dbw_per_mhz: {STARLINK: 15.68, ONEWEB: 10.6}
+      eirp_dbw_per_mhz: {STARLINK: 16.0018, ONEWEB: 10.6}
       steering: constant_eirp
     # PFD sensitivity: lower the *PFD-constant* Starlink PFD by 3 dB and 6 dB
     # relative to the 25.208(b)-anchored value.  Under PFD-constant steering the
     # PFD is EIRP_max - spreading(r_max), so reducing EIRP_max by 3/6 dB lowers the
     # modelled Starlink PFD by exactly 3/6 dB (anchor unchanged).
     - name: starlink_pfd_minus3
-      eirp_dbw_per_mhz: {STARLINK: 12.68, ONEWEB: 10.6}
+      eirp_dbw_per_mhz: {STARLINK: 13.0018, ONEWEB: 10.6}
       steering: config
     - name: starlink_pfd_minus6
-      eirp_dbw_per_mhz: {STARLINK: 9.68, ONEWEB: 10.6}
+      eirp_dbw_per_mhz: {STARLINK: 10.0018, ONEWEB: 10.6}
       steering: config
   source: ASSUMED
