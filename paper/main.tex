@@ -37,10 +37,13 @@ under a worst-case bound (as-filed; \BindDepWorstPct\% as-deployed), while the
 reverse direction reaches \BindFilStarWorstPct\%; unlimited satellite diversity
 drives both to zero. Calibrating the OneWeb downlink so its own link closes lifts
 the modelled baseline availability to \BaselineAvailOneMinPct--100\% and makes the
-\S\,25.261(d) rule apply in both directions; the co-located throughput limit is
-then met, but the 3\% degraded-throughput limit is exceeded by the smallest
-terminal under the conservative worst-case bound as-deployed. A real
-CelesTrak snapshot preserves the ordering, and we mark every assumed parameter.
+\S\,25.261(d) rule apply in both directions. The co-located throughput limit is
+then met, but the smallest terminal exceeds the 3\% degraded-throughput limit
+under the conservative worst-case bound as-deployed
+(\DegrDepMaxPct$\pm$\DegrDepMaxCi\%) and the co-located availability change
+marginally exceeds \UnavailLimitPct\% there
+(\UnavailIncColoDepPct$\pm$\UnavailIncColoDepCi\%). A real CelesTrak snapshot
+preserves the ordering, and we mark every assumed parameter.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -143,7 +146,10 @@ worst-case bound (as-filed Walker geometry), both near
 \BindFilWorstLat$^\circ$. The reverse, Starlink-victim direction is weaker but not
 negligible---\BindFilStarColoPct\% co-located and \BindFilStarWorstPct\% under the
 worst-case bound---because the calibrated OneWeb link is no longer a negligible
-emitter. The as-deployed snapshot raises the worst-case peak to
+emitter; these reverse figures depend on the calibrated OneWeb EIRP, and across
+the $\pm6$~dB sweep they still hold at the low end, \EirpRevHoldMinDbw~dBW/MHz
+(calibration minus 6~dB), where the reverse worst-case fraction is
+\EirpRevHoldPct\%. The as-deployed snapshot raises the worst-case peak to
 \BindDepWorstPct\% (\BindDepWorstLat$^\circ$) and the co-located peak to
 \BindDepColoPct\% (\BindDepColoLat$^\circ$), because the deployed geometry packs
 more interfering satellites into the same shell, and lifts the reverse worst-case
@@ -185,20 +191,23 @@ cases (concentrated at the smallest aperture and the worst latitude) are exclude
 Fig.~\ref{fig:throughput} reports the time-weighted throughput degradation with no
 diversity, per aperture, and the 3\% limit. In the realistic co-located
 configuration the throughput limit is met: the worst qualified degradation is
-\DegrFilColoPct\% as-filed and \DegrDepColoPct\% as-deployed. The availability
-change is \UnavailIncColoPct\% as-filed (within the limit) but
-\UnavailIncColoDepPct\% as-deployed, marginally above the \UnavailLimitPct\%
-limit at the smallest aperture. Under the
-conservative worst-case bound (every visible interferer, no diversity) the
-smallest aperture becomes marginal: the throughput degradation reaches
-\DegrFilMaxPct\% as-filed (inside the limit) but \DegrDepMaxPct\% as-deployed,
-\emph{above} the \DegradeLimitPct\% limit, while the availability change reaches
-\UnavailIncPct\% and \UnavailIncDepPct\%, above the \UnavailLimitPct\% limit; the
-0.6 and 0.75~m terminals stay within both limits in every case. With unlimited
-diversity the degradation is \DegrWithDivPct\% for every aperture. The
-\S\,25.261(d) obligation is thus met for the realistic co-located configuration
-except the as-deployed availability change at the smallest aperture, and binds the
-smallest terminal under the conservative worst-case bound.
+\DegrFilColoPct$\pm$\DegrFilColoCi\% as-filed and
+\DegrDepColoPct$\pm$\DegrDepColoCi\% as-deployed (95\% CI over phasings). The
+availability change is \UnavailIncColoPct$\pm$\UnavailIncColoCi\% as-filed, below
+the limit, but \UnavailIncColoDepPct$\pm$\UnavailIncColoDepCi\% as-deployed, which
+\emph{exceeds} the \UnavailLimitPct\% limit at the smallest aperture (the CI lies
+entirely above it). Under the conservative worst-case bound (every visible
+interferer, no diversity) the smallest aperture becomes marginal: the throughput
+degradation reaches \DegrFilMaxPct$\pm$\DegrFilMaxCi\% as-filed (below the limit,
+CI entirely so) but \DegrDepMaxPct$\pm$\DegrDepMaxCi\% as-deployed, which
+\emph{exceeds} the \DegradeLimitPct\% limit, while the availability change reaches
+\UnavailIncPct$\pm$\UnavailIncCi\% and \UnavailIncDepPct$\pm$\UnavailIncDepCi\%,
+both \emph{exceeding} the \UnavailLimitPct\% limit; the 0.6 and 0.75~m terminals
+stay below both limits in every case. With unlimited diversity the degradation is
+\DegrWithDivPct\% for every aperture. The \S\,25.261(d) obligation is thus met for
+the realistic co-located configuration except the as-deployed availability change
+at the smallest aperture, and binds the smallest terminal under the conservative
+worst-case bound.
 
 \begin{figure}[t]
 \centering
@@ -241,9 +250,12 @@ direction responds, growing from \EirpRevMinPct\% to \EirpRevMaxPct\% as OneWeb 
 given up to 6~dB more power; at the top of that band the two directions are nearly
 equal, so the asymmetry is a consequence of the calibrated OneWeb level rather
 than a structural property. The same sweep keeps the qualified worst-case
-throughput degradation between \EirpDegrMinPct\% and \EirpDegrMaxPct\%
-(\EirpDegrAtCalPct\% at the calibrated value), so the \S\,25.261(d) verdict is
-robust to the calibration. The aperture moves the as-deployed worst-case peak
+throughput degradation between \EirpDegrMinPct$\pm$\EirpDegrMinCi\% and
+\EirpDegrMaxPct$\pm$\EirpDegrMaxCi\%, with its maximum
+\EirpDegrAtCalPct$\pm$\EirpDegrAtCalCi\% attained at the calibrated EIRP, where the
+smallest aperture \emph{exceeds} the 3\% limit (CI entirely above); the worst-case
+\S\,25.261(d) binding thus appears near the calibrated value and is not an
+artefact of it. The aperture moves the as-deployed worst-case peak
 between \BindMinApertureDepPct\% and \BindMaxApertureDepPct\%, and the minimum
 elevation has no effect on the geometric peak over
 \MinElevLowDeg--\MinElevHighDeg$^\circ$.
@@ -313,8 +325,12 @@ noise temperatures, every Walker phasing factor, the terminal aperture, the
 minimum elevation and the operating-altitude windows---are placeholders. The
 OneWeb downlink EIRP density is calibrated in the model's own scale so that its
 link closes (\OnewebEirpDbw~dBW/MHz; a \CalRefCnMedDb~dB median clear-sky C/N at
-$45^\circ$ for the 0.6~m terminal), because public absolute values disagree by
-more than 10~dB~\cite{delportillo2019}. The \S\,25.261(d) availability result is
+$45^\circ$ for the 0.6~m terminal). The one public source with an explicit OneWeb
+user-downlink figure, del Portillo et al.\ Table~III (p.~5), gives 34.6~dBW per
+250~MHz beam ($+10.6$~dBW/MHz), $\sim$10~dB above this value and on a different
+convention than the FCC-derived Starlink density used
+here~\cite{delportillo2019}; we therefore calibrate rather than import it. The
+\S\,25.261(d) availability result is
 sensitive to the modelled link margin: at the \EirpHeadDiam~m headline aperture
 and the worst latitude the clear-sky C/N is only a couple of dB above the 0~dB
 availability reference, so the reported availability change would shrink for a
@@ -329,12 +345,14 @@ Kuiper, the \S\,25.261(c) 6\% $\Delta T/T$ trigger fires in the OneWeb-victim
 direction a peak of \BindFilColoPct\% of the time co-located and \BindFilWorstPct\%
 under a worst-case bound as-filed (\BindDepWorstPct\% as-deployed), but satellite
 diversity reduces it to \BindWithDivPct\%. With a calibrated OneWeb downlink both
-directions clear the \S\,25.261(d) 99\% availability gate; the co-located
-throughput limit is met (worst \DegrDepColoPct\%), while the 3\%
-degraded-throughput limit is exceeded (\DegrDepMaxPct\%) by the
-\EirpHeadDiam~m terminal under the conservative worst-case bound as-deployed and
-the \UnavailLimitPct\% availability limit is exceeded in the no-diversity worst
-case. The obligation therefore binds only in a narrow, worst-case,
+directions clear the \S\,25.261(d) 99\% availability gate. The co-located
+throughput limit is met (worst \DegrDepColoPct$\pm$\DegrDepColoCi\%), but the
+smallest (\EirpHeadDiam~m) terminal exceeds the 3\% degraded-throughput limit
+under the conservative worst-case bound as-deployed
+(\DegrDepMaxPct$\pm$\DegrDepMaxCi\%), and the availability change also exceeds
+\UnavailLimitPct\% as-deployed (\UnavailIncColoDepPct$\pm$\UnavailIncColoDepCi\%
+co-located; \UnavailIncDepPct$\pm$\UnavailIncDepCi\% no-diversity worst case). The
+obligation therefore binds only in a narrow, worst-case,
 smallest-aperture OneWeb-victim configuration, and not at all once diversity is
 available. All numbers are generated from the project's result
 files.

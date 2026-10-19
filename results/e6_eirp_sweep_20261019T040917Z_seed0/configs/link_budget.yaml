@@ -1,0 +1,13 @@
+# Earth-terminal receive parameters for the 47 CFR 25.261(d) Delta T/T criterion.
+#
+# These feed the victim receive gain at the off-axis angle (ITU-R S.1428 =
+# S.465 envelope) and the secondary Shannon throughput result.  No operator
+# publishes a consumer-terminal aperture, so these are ASSUMED placeholders;
+# the diameter sweep is the sensitivity set reported in PHASE 3a.
+user_terminal:
+  diameter_m: 0.6              # ASSUMED consumer Ku user terminal
+  aperture_efficiency: 0.6     # ASSUMED aperture efficiency
+  pattern: S1428               # ITU-R S.1428 reference earth-station pattern
+  diameter_sweep_m: [0.45, 0.6, 0.75]   # ASSUMED sensitivity set
+  implementation_margin_db: 3.0         # ASSUMED Shannon coding/modulation margin
+  source: ASSUMED

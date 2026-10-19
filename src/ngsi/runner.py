@@ -1336,6 +1336,25 @@ def run_e6(
         degr_max=("degr_max", "max"),
         degr_max_qual=("degr_max_qual", "max"),
     )
+
+    def _ci95(s: pd.Series) -> float:
+        v = s.dropna().to_numpy(dtype=np.float64)
+        if v.size < 2:
+            return 0.0
+        return float(t95(v.size) * np.std(v, ddof=1) / np.sqrt(v.size))
+
+    ci = df.groupby(
+        ["victim", "interferer", "diameter_m", "variant", "eirp_dbw_per_mhz"],
+        as_index=False,
+    ).agg(
+        event_frac_mean_ci95=("event_frac_mean", _ci95),
+        degr_max_qual_ci95=("degr_max_qual", _ci95),
+    )
+    sw = sw.merge(
+        ci,
+        on=["victim", "interferer", "diameter_m", "variant", "eirp_dbw_per_mhz"],
+        how="left",
+    )
     sw.to_csv(run_dir / "summary_eirp_sweep.csv", index=False)
 
     _write_json(run_dir, "status.json",

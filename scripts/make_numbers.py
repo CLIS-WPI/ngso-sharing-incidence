@@ -45,6 +45,12 @@ def _peak(df: pd.DataFrame, value: str) -> pd.Series:
     return df.loc[df[value].idxmax()]
 
 
+def _ci_at(df: pd.DataFrame, value: str, mode: str = "max") -> float:
+    """95% CI of the cell that attains the extreme of ``<value>_mean``."""
+    idx = df[value + "_mean"].idxmax() if mode == "max" else df[value + "_mean"].idxmin()
+    return float(df.loc[idx, value + "_ci95"])
+
+
 def main() -> int:
     macros: list[tuple[str, str]] = []
     sources: list[str] = []
@@ -162,14 +168,19 @@ def main() -> int:
                 _pct(w["degradation_nodiv_mean"].max()) if len(w) else "n/a", e4)
         qb = bind[(bind["variant"] == 0) & (bind["avail0_frac_mean"] >= 0.99)]
         add("DegrFilMaxPct", _pct(qb["degradation_nodiv_mean"].max()) if len(qb) else "n/a", e4)
+        add("DegrFilMaxCi", _pct(_ci_at(qb, "degradation_nodiv")) if len(qb) else "n/a", e4)
         qbc = bind[(bind["variant"] == 1) & (bind["avail0_frac_mean"] >= 0.99)]
         add("DegrFilColoPct", _pct(qbc["degradation_nodiv_mean"].max()) if len(qbc) else "n/a", e4)
+        add("DegrFilColoCi", _pct(_ci_at(qbc, "degradation_nodiv")) if len(qbc) else "n/a", e4)
         add("UnavailIncColoPct", _pct(qbc["unavail_incr_frac_mean"].max(), 3)
+            if len(qbc) else "n/a", e4)
+        add("UnavailIncColoCi", _pct(_ci_at(qbc, "unavail_incr_frac"), 3)
             if len(qbc) else "n/a", e4)
         qs = rev[rev["avail0_frac_mean"] >= 0.99]
         add("DegrFilStarPct", _pct(qs["degradation_nodiv_mean"].max(), 2) if len(qs) else "n/a", e4)
         inc = qb["unavail_incr_frac_mean"].max() if len(qb) else 0.0
         add("UnavailIncPct", _pct(max(inc, 0.0), 3), e4)
+        add("UnavailIncCi", _pct(_ci_at(qb, "unavail_incr_frac"), 3) if len(qb) else "n/a", e4)
 
     # --- E5: as-deployed CelesTrak snapshot ---
     e5 = newest("e5_as_deployed")
@@ -199,10 +210,15 @@ def main() -> int:
                 _pct(w["degradation_nodiv_mean"].max()) if len(w) else "n/a", e5)
         q5 = bind5[(bind5["variant"] == 0) & (bind5["avail0_frac_mean"] >= 0.99)]
         add("DegrDepMaxPct", _pct(q5["degradation_nodiv_mean"].max()) if len(q5) else "n/a", e5)
+        add("DegrDepMaxCi", _pct(_ci_at(q5, "degradation_nodiv")) if len(q5) else "n/a", e5)
         add("UnavailIncDepPct", _pct(q5["unavail_incr_frac_mean"].max(), 3) if len(q5) else "n/a", e5)
+        add("UnavailIncDepCi", _pct(_ci_at(q5, "unavail_incr_frac"), 3) if len(q5) else "n/a", e5)
         q5c = bind5[(bind5["variant"] == 1) & (bind5["avail0_frac_mean"] >= 0.99)]
         add("DegrDepColoPct", _pct(q5c["degradation_nodiv_mean"].max()) if len(q5c) else "n/a", e5)
+        add("DegrDepColoCi", _pct(_ci_at(q5c, "degradation_nodiv")) if len(q5c) else "n/a", e5)
         add("UnavailIncColoDepPct", _pct(q5c["unavail_incr_frac_mean"].max(), 3)
+            if len(q5c) else "n/a", e5)
+        add("UnavailIncColoDepCi", _pct(_ci_at(q5c, "unavail_incr_frac"), 3)
             if len(q5c) else "n/a", e5)
         add("BaselineAvailOneDepPct", _pct(bind5["avail0_frac_mean"].min(), 0), e5)
         add("BindDepStarWorstPct", _pct(_peak(
@@ -252,13 +268,23 @@ def main() -> int:
         fwd_all = s[(s["victim"] == VICTIM) & (s["variant"] == 0)]
         add("EirpDegrMinPct", _pct(fwd_all["degr_max_qual"].min()), e6)
         add("EirpDegrMaxPct", _pct(fwd_all["degr_max_qual"].max()), e6)
+        add("EirpDegrMinCi", _pct(fwd_all.loc[fwd_all["degr_max_qual"].idxmin(), "degr_max_qual_ci95"]), e6)
+        add("EirpDegrMaxCi", _pct(fwd_all.loc[fwd_all["degr_max_qual"].idxmax(), "degr_max_qual_ci95"]), e6)
         if oneweb_eirp is not None:
             eirps = sorted(s["eirp_dbw_per_mhz"].unique())
             cal = min(eirps, key=lambda v: abs(v - oneweb_eirp))
             at = fwd_all[fwd_all["eirp_dbw_per_mhz"] == cal]
             add("EirpDegrAtCalPct", _pct(at["degr_max_qual"].max()), e6)
+            add("EirpDegrAtCalCi", _pct(at.loc[at["degr_max_qual"].idxmax(), "degr_max_qual_ci95"]), e6)
             rev_at = rev[rev["eirp_dbw_per_mhz"] == cal]
             add("EirpRevAtCalPct", _pct(rev_at["event_frac_mean"].max(), 2), e6)
+        # Minimum sweep EIRP at which the reverse (Starlink-victim) trigger is
+        # still nonzero, i.e. where the reverse-direction result still holds.
+        rev_ok = rev[rev["event_frac_mean"].fillna(0.0) > 0.0]
+        if len(rev_ok):
+            add("EirpRevHoldMinDbw", _num(rev_ok["eirp_dbw_per_mhz"].min(), "{:g}"), e6)
+            hold = rev_ok.loc[rev_ok["eirp_dbw_per_mhz"].idxmin()]
+            add("EirpRevHoldPct", _pct(hold["event_frac_mean"], 2), e6)
 
     # --- write ---
     header = [
