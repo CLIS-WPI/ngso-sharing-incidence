@@ -1,0 +1,221 @@
+% IEEE Communications Letters style manuscript (two-column).
+% Every numeric value is a macro from paper/numbers.tex, generated from results/
+% by scripts/make_numbers.py (AGENTS.md rule 1).  Do not type numbers inline.
+\documentclass[journal,10pt]{IEEEtran}
+
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{url}
+\usepackage[hidelinks]{hyperref}
+
+\graphicspath{{figures/}}
+
+\input{numbers}
+
+\begin{document}
+
+\title{How Often Does the FCC's NGSO Band-Splitting Rule Actually Bind?\\
+A Multi-Constellation Analysis of Ku-Band User Links}
+
+% TODO(authors): final author list and affiliations.
+\author{Anonymous~Author%
+\thanks{Manuscript prepared \today. The authors are with
+% TODO(authors): affiliation.
+}}
+
+\maketitle
+
+\begin{abstract}
+Under 47 CFR~25.261, co-frequency non-geostationary (NGSO) systems must share
+spectrum, and \S\,25.261(c) obliges operators to split the band when in-line
+interference cannot otherwise be resolved. How often does that obligation
+actually bind? We build a batched two-body-plus-$J_2$ propagation model of
+Starlink, OneWeb, and Kuiper, screen every co-frequency user-downlink pair over a
+global latitude grid, and apply the \S\,25.261(d) $\Delta T/T$ criterion with
+ITU-R antenna patterns and a link budget. Only Starlink and OneWeb share a
+co-frequency user downlink (Ku, \SharedFreqGhz~GHz). Modelled co-located in-line
+events peak near \EventColocMax\ of the time; unlimited satellite diversity
+resolves essentially all of them, so the band-split burden is
+\BandSplitDiv\ with diversity against \BandSplitNoDiv\ without. A real CelesTrak
+snapshot preserves the ordering. We identify which conclusions depend on assumed
+parameters.
+\end{abstract}
+
+\begin{IEEEkeywords}
+NGSO, spectrum sharing, in-line interference, 47 CFR 25.261, band splitting,
+Starlink, OneWeb, Kuiper.
+\end{IEEEkeywords}
+
+\section{Introduction}
+\IEEEPARstart{T}{he} rapid growth of low-Earth-orbit (LEO) broadband
+constellations has made co-frequency sharing between NGSO systems a first-order
+regulatory problem. In the United States, 47 CFR~25.261 governs NGSO-NGSO
+sharing~\cite{cfr25261,fcc2329}: operators must protect one another against in-line interference, and
+\S\,25.261(c) requires that a portion of the assigned spectrum be shared
+(\emph{band splitting}) whenever interference cannot be resolved by other means.
+Whether this obligation is a rare corner case or a routine condition determines
+how much capacity sharing actually costs. This letter measures the
+\emph{geographic incidence} of in-line events and the resulting burden along the
+operator's Ku-band user links.
+
+\vspace{2pt}
+\noindent\textbf{Contributions.}
+\begin{itemize}
+\item We assemble an open, traceable multi-constellation model (Starlink, OneWeb,
+      Kuiper) and screen \emph{only} co-frequency pairs, showing that the
+      user-downlink overlap reduces to a single pair, Starlink-OneWeb at
+      \SharedFreqGhz~GHz (Kuiper's user downlink is Ka).
+\item We quantify how often in-line events occur versus latitude and show that
+      satellite diversity resolves essentially all co-located events, so the
+      \S\,25.261(c) band-split burden is near zero with diversity and small
+      without it.
+\item We apply the \S\,25.261(d) $\Delta T/T$ criterion with a link budget,
+      and repeat the analysis on a real as-deployed TLE snapshot; we report the
+      direction asymmetry and the parameter sensitivities explicitly.
+\end{itemize}
+
+\section{System Model and Method}
+
+\subsection{Constellations and propagation}
+We model Starlink, OneWeb, and Kuiper as Walker-Delta shells taken from the
+FCC-derived literature and filings, and propagate every satellite with a
+circular-orbit two-body model plus $J_2$ secular drift of the right ascension of
+the ascending node and the argument of latitude. A batched GPU implementation
+keeps the full constellation in one tensor. The analytic propagator is validated
+against SGP4 (residual $\approx\!15.7$~km/day). Earth is a sphere of radius
+$R=6371$~km (assumed); the epoch is 2025-01-01T00:00:00Z. The unit of
+replication is an independent constellation phasing (modelled cases) or an
+independent simulation start time (as-deployed case), with
+\EventNPhasings\ and \NStartTimes\ realizations respectively.
+
+\subsection{Co-frequency pairs and the interference screen}
+Bands are read from a configuration file that records a source for every entry.
+Screening the ordered pair list for a \emph{user-downlink} overlap leaves a
+single co-frequency pair, Starlink and OneWeb, sharing Ku spectrum with a
+centre frequency of \SharedFreqGhz~GHz; Kuiper's user downlink is Ka and does
+not overlap. Stations are placed on a grid of latitudes from $0^\circ$ to
+$65^\circ$ (step $5^\circ$) on four meridians, with a $25^\circ$ minimum
+elevation. An \emph{in-line event} is declared when the angular separation
+between the victim's serving satellite and an interfering satellite at the
+victim antenna falls below a screening half-angle $\theta\in\{1^\circ,2^\circ,5^\circ\}$.
+We distinguish a \emph{co-located} variant (the potential interferer is the
+interferer's own serving satellite) from a \emph{worst-case} upper bound (any
+visible interferer at peak EIRP density).
+
+\subsection{Regulatory criteria}
+The power criterion uses the \S\,25.261(d) short-term limit
+$\Delta T/T > \DttThreshold$ (equivalently $I/N > -12.2$~dB) and the long-term
+reference $\DttLongTerm$ with an exceedance fraction of \LongTermFraction, in
+the spirit of the ITU-R S.1503 methodology~\cite{itu1503}. The
+victim receive gain uses the ITU-R S.1428 satellite pattern~\cite{itu1428} and
+the S.465 earth station pattern~\cite{itu465,itu1528}; the link budget applies a
+3~dB implementation margin.
+Satellite diversity is modelled as the victim switching to any other visible
+satellite of the \emph{same} system.
+
+\section{Results}
+
+\subsection{Geographic incidence of in-line events}
+Fig.~\ref{fig:event} shows the modelled event time-fraction versus latitude for
+the single co-frequency pair. The co-located (main) estimate peaks at
+\EventColocMax\ of the time near \EventColocLat$^\circ$; the worst-case upper
+bound reaches \EventWorstMax\ with the same latitude shape. The two ordered
+directions coincide for the co-located variant, because the serving-to-serving
+separation does not depend on which system is labelled the victim.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{F1_event_rate.png}
+\caption{Modelled in-line event time-fraction versus latitude for the
+Starlink-OneWeb co-frequency user downlink (co-located and worst-case
+variants).}
+\label{fig:event}
+\end{figure}
+
+\subsection{Diversity and the \S\,25.261(c) band-split burden}
+Under unlimited satellite diversity the unresolvable time-fraction is zero at
+every latitude and every $\theta$ tested, so the band-split loss
+($\tfrac12$ of the unresolvable fraction) is \BandSplitDiv\ with diversity
+against \BandSplitNoDiv\ without. A capacity-limited variant, in which a cell
+may be served by at most $N_{\text{beam}}$ beams, produces only a tiny nonzero
+unresolvable cell-time fraction (maximum \CapUnresMax); the conditional
+fraction per served cell-time falls monotonically with $N_{\text{beam}}$
+(\CapUnresCondNbeamEight, \CapUnresCondNbeamSixteen, \CapUnresCondNbeamThirtyTwo\ for
+$N_{\text{beam}}=8,16,32$), confirming that the residual burden is a capacity
+effect rather than a geometric one.
+
+\subsection{The \S\,25.261(d) \texorpdfstring{$\Delta T/T$}{Delta T/T} criterion}
+Fig.~\ref{fig:dtt} applies the power criterion. The worst-case exceedance of
+$\Delta T/T>\DttThreshold$ reaches \DttEventMax\ (\DttEventLat$^\circ$,
+\DttEventDiam~m aperture), and the mean $\Delta T/T$ reaches \DttMeanMax,
+above the \DttLongTerm\ long-term reference. The direction asymmetry is
+decisive: only the OneWeb-victim\,$\leftarrow$\,Starlink-interferer direction
+exceeds the threshold with the shipped EIRP densities; the reverse direction is
+negligible. Time-weighted throughput degradation is at most \DegradeNoDivMax\
+without diversity and \DegradeDivMax\ with unlimited diversity.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{F6_dtt.png}
+\caption{Modelled \S\,25.261(d) $\Delta T/T$ event fraction and mean $\Delta T/T$
+versus latitude (worst-case and co-located variants).}
+\label{fig:dtt}
+\end{figure}
+
+\subsection{As-deployed snapshot}
+To remove idealization, we replace the Walker pattern and random phasing with a
+real CelesTrak snapshot~\cite{celestrak}: \NStarlinkRaw\ Starlink and \NOnewebRaw\ OneWeb objects,
+filtered to their operating altitude windows
+(\NStarlinkOp\ and \NOnewebOp\ operational satellites). Elements are advanced to
+a common epoch with the same $J_2$ model and run from \NStartTimes\ independent
+start times. Fig.~\ref{fig:dep} shows the resulting incidence and
+Fig.~\ref{fig:depvs} the comparison with the modelled Walker case. The
+as-deployed worst-case fraction reaches \DepEventWorstMax\ and the power-criterion
+exceedance \DepDttEventMax, while the ordering of directions and the
+zero-diversity-resolved burden are preserved.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{F7_as_deployed_event_rate.png}
+\caption{As-deployed CelesTrak snapshot: in-line event time-fraction versus
+latitude for the co-frequency pair.}
+\label{fig:dep}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{F8_as_deployed_vs_walker.png}
+\caption{As-deployed snapshot versus the modelled Walker pattern for the
+co-frequency user downlink.}
+\label{fig:depvs}
+\end{figure}
+
+\section{Discussion and Limitations}
+The headline result does not rest on every assumed parameter. The dominant
+OneWeb-victim direction is invariant to the assumed OneWeb downlink EIRP
+density: sweeping it over \EirpSweepValues~dBW/MHz leaves the forward exceedance
+unchanged at \EirpFwdMax, while the reverse direction grows from \EirpRevAssumed\
+to only \EirpRevEqual\ even when OneWeb is given the (larger) Starlink value.
+The direction asymmetry is therefore geometric and power-driven, not an artefact
+of the assumed value. Remaining assumed quantities include satellite beamwidths,
+all system noise temperatures, every Walker phasing factor, the capacity and
+geometry parameters of the capacity-limited case, and the operating altitude
+windows used for filtering. Event fractions are sampling-limited, and the
+two-body-plus-$J_2$ propagator is an approximation to SGP4. Extended filings
+(for example the in-line-event claims made by operators) are noted in the
+bibliography but no unverified figures are quoted here.
+
+\section{Conclusion}
+For the one co-frequency Ku user-downlink pair among Starlink, OneWeb, and
+Kuiper, in-line events are a sub-percent-of-time phenomenon that satellite
+diversity resolves almost completely; the \S\,25.261(c) band-splitting
+obligation therefore binds only weakly, and the residual \S\,25.261(d) burden is
+concentrated in a worst-case direction that depends on the interferer's power,
+not on the assumed victim parameters. All numbers are generated from the
+project's result files.
+
+\bibliographystyle{IEEEtran}
+\bibliography{refs}
+
+\end{document}

@@ -35,4 +35,10 @@ python scripts/make_phase3a_report.py
 echo "== phase 3b report =="
 python scripts/make_phase3b_report.py
 
+echo "== paper numbers =="
+python scripts/make_numbers.py
+
+echo "== paper build =="
+bash scripts/build_paper.sh
+
 echo "done."
