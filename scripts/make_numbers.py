@@ -322,6 +322,8 @@ def main() -> int:
             "delportillo_common": "DpCommon",
             "oneweb_cn_calibrated": "CnCal",
             "starlink_constant_eirp": "ConstEirp",
+            "starlink_pfd_minus3": "PfdMinusThree",
+            "starlink_pfd_minus6": "PfdMinusSix",
         }
         for case, tag in case_tags.items():
             f0 = cg(case, VICTIM, 0)

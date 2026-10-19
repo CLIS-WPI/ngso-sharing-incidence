@@ -1,0 +1,18 @@
+# Earth-station grid.
+#
+# This is a modelled observation grid, not filed data, so it is tagged ASSUMED.
+# The main incidence grid sweeps latitude 0..65 deg in 5 deg steps with four
+# evenly spaced meridians (Phase-2 Gate 1). A small symmetry grid is included for
+# the visible-count symmetry sanity check (negative latitudes vs positive).
+station_grid:
+  latitudes_deg: [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65]
+  longitudes_deg: [0, 90, 180, 270]
+  min_elevation_deg: 25.0
+  source: ASSUMED
+
+# Used only by the elevation-symmetry sanity check (Section E.3).
+sanity_symmetry_grid:
+  latitudes_deg: [-60, -30, 30, 60]
+  longitudes_deg: [0, 90, 180, 270]
+  min_elevation_deg: 25.0
+  source: ASSUMED

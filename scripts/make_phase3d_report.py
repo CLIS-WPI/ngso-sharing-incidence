@@ -138,6 +138,62 @@ def e6_rows(s: pd.DataFrame, diam: float = HEAD_DIAM):
     return out
 
 
+def pfd_limit_rows():
+    """PFD produced at the service edge vs the 47 CFR 25.208(b) 25-90 deg limit."""
+    import math
+
+    from ngsi.config import load_constellations
+    from ngsi.link_budget import slant_range_km
+
+    cons = load_constellations(REPO_ROOT / "configs" / "constellations.yaml")
+    lim = -116.0  # dBW/m^2/MHz == -140 dBW/m^2 per 4 kHz (25.208(b), 25-90 deg)
+
+    def pfd(eirp: float, alt_km: float, el_deg: float) -> float:
+        r = slant_range_km(alt_km, el_deg)
+        return eirp - 10.0 * math.log10(4.0 * math.pi * (r * 1e3) ** 2)
+
+    rows = []
+    for name, alt in (("STARLINK", 550.0), ("ONEWEB", 1200.0)):
+        b = cons[name].shells[0].beam
+        edge = pfd(b.eirp_density_dbw_per_mhz, alt, 25.0)
+        # Under PFD-constant steering the interferer adjusts EIRP to hold the PFD
+        # at its service-edge value, so the PFD is the same at zenith.  A
+        # constant-EIRP system lets the PFD rise as the slant range shortens.
+        zen = edge if b.beam_steering == "pfd_constant" else \
+            pfd(b.eirp_density_dbw_per_mhz, alt, 90.0)
+        rows.append({
+            "system": name,
+            "steering": b.beam_steering,
+            "altitude_km": f"{alt:g}",
+            "eirp_dbw_per_mhz": f"{b.eirp_density_dbw_per_mhz:g}",
+            "pfd_edge_dbw_per_m2_per_mhz": f"{edge:.2f}",
+            "pfd_zenith_dbw_per_m2_per_mhz": f"{zen:.2f}",
+            "limit_dbw_per_m2_per_mhz": f"{lim:.0f}",
+            "margin_edge_db": f"{lim - edge:.2f}",
+            "margin_zenith_db": f"{lim - zen:.2f}",
+        })
+    return rows
+
+
+def pfd_sensitivity_rows(s: pd.DataFrame, diam: float = HEAD_DIAM):
+    """PFD-3/6 dB Starlink rows (as-deployed) against the anchored primary."""
+    cases = ["primary", "starlink_pfd_minus3", "starlink_pfd_minus6"]
+    d = s[(s["diameter_m"] == diam) & (s["victim"] == VICTIM) & (s["case"].isin(cases))]
+    out = []
+    for (case, var), g in d.groupby(["case", "variant"]):
+        r = g.iloc[0]
+        out.append({
+            "case": case,
+            "variant": VARIANT[int(var)],
+            "starlink_eirp_dbw_per_mhz": f'{r["starlink_eirp_dbw_per_mhz"]:g}',
+            "event_pct": fmt_pct(g["event_frac_max"].max()),
+            "unres_pct": fmt_pct(g["unres_frac_max"].max()),
+            "degr_qual_pct": fmt_pct(g["degr_max_qual"].max()),
+            "degr_qual_div_pct": fmt_pct(g["degr_div_max_qual"].max()),
+        })
+    return out
+
+
 def eirp_audit():
     """Every co-frequency EIRP density in configs, with its unit interpretation."""
     from ngsi.config import load_constellations
@@ -315,6 +371,58 @@ def main() -> int:
     L.append("## (e) E6 EIRP / steering sensitivity cases (as-deployed geometry)")
     L.append("")
     L.append(md_table(e6_rows(s6), ecols))
+    L.append("")
+
+    # (f) PFD limit anchoring and sensitivity (Phase 3e Part A)
+    L.append("## (f) 47 CFR 25.208(b) PFD limit: text, scope, and margins")
+    L.append("")
+    L.append("Verbatim limit (47 CFR 25.208(b)(2); eCFR/govinfo), for NGSO FSS "
+             "space stations in the **10.7-11.7 GHz** band, the applicable limit is "
+             "the **lower** of these two branches (delta = elevation angle):")
+    L.append("")
+    L.append("- per 4 kHz: `-150 dB(W/m^2)` for `0 deg < delta <= 5 deg`; "
+             "`-150 + 0.5(delta - 5) dB(W/m^2)` for `5 < delta <= 25 deg`; "
+             "`-140 dB(W/m^2)` for `25 < delta <= 90 deg`.")
+    L.append("- per 1 MHz: `-126 dB(W/m^2)` for `0 deg < delta <= 5 deg`; "
+             "`-126 + 0.5(delta - 5) dB(W/m^2)` for `5 < delta <= 25 deg`; "
+             "`-116 dB(W/m^2)` for `25 < delta <= 90 deg`.")
+    L.append("")
+    L.append(f"The two flat branches are equal (-140 dBW/m^2 per 4 kHz = "
+             f"-140 + {10 * __import__('math').log10(250.0):.2f} = "
+             f"-116.02 dBW/m^2 per MHz), so the 25-90 deg limit is the familiar "
+             f"-116 dBW/m^2/MHz used as the PFD-constant anchor.")
+    L.append("")
+    L.append("**Scope.** 25.208(b) covers only 10.7-11.7 GHz.  The shared "
+             "STARLINK/ONEWEB Ku user-downlink band is 10.7-12.7 GHz "
+             "(`configs/bands.yaml`), so it **extends above 11.7 GHz where 25.208(b) "
+             "does not apply**.  Above 11.7 GHz there is no general NGSO-FSS PFD "
+             "limit; 47 CFR 25.208(o) covers only 12.2-12.7 GHz into an operational "
+             "MVDDS receiver, and coordination for 11.7-12.2 GHz rests on the "
+             "25.261 sharing rules (band splitting / power criterion) rather than a "
+             "PFD ceiling.  Our modelled coupling uses the **band-centre 11.7 GHz** "
+             "and is therefore just inside the 25.208(b) band; the conclusions are "
+             "anchored to that limit where it applies.")
+    L.append("")
+    L.append("**Margins at the 25 deg minimum service edge and at zenith "
+             "(single beam); PFD-constant systems hold the edge value, "
+             "constant-EIRP systems peak at zenith:**")
+    L.append("")
+    L.append(md_table(pfd_limit_rows(),
+                      ["system", "steering", "altitude_km", "eirp_dbw_per_mhz",
+                       "pfd_edge_dbw_per_m2_per_mhz", "pfd_zenith_dbw_per_m2_per_mhz",
+                       "limit_dbw_per_m2_per_mhz", "margin_edge_db", "margin_zenith_db"]))
+    L.append("")
+    L.append("**Starlink PFD 3 dB and 6 dB below the 25.208(b) anchor (as-deployed "
+             "E6 sensitivity; ONEWEB victim, 0.45 m):**")
+    L.append("")
+    L.append(md_table(pfd_sensitivity_rows(s6),
+                      ["case", "variant", "starlink_eirp_dbw_per_mhz", "event_pct",
+                       "unres_pct", "degr_qual_pct", "degr_qual_div_pct"]))
+    L.append("")
+    L.append("Anchored PFD-constant Starlink reproduces the 25.208(b) 25-90 deg "
+             "limit to within ~0.3 dB (`-116.32` vs `-116` dBW/m^2/MHz); lowering it "
+             "by 3/6 dB is the sensitivity test for how much of the exceedance "
+             "depends on sitting exactly at the limit.")
     L.append("")
 
     OUT.write_text("\n".join(L) + "\n", encoding="utf-8")

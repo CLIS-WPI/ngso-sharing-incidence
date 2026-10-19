@@ -16,6 +16,9 @@
 #                        retained only as a sensitivity row (not a design rule).
 #   starlink_constant_eirp the primary EIRPs with Starlink forced to
 #                        constant-EIRP steering (the constant-EIRP sensitivity).
+#   starlink_pfd_minus3  PFD-constant Starlink with its PFD 3 dB below the
+#                        25.208(b) anchor (EIRP_max 15.68 - 3 = 12.68).
+#   starlink_pfd_minus6  as above, 6 dB below (EIRP_max 15.68 - 6 = 9.68).
 name: e6_eirp_sweep
 description: >
   Sensitivity of both ordered co-frequency user-downlink Delta T/T exceedance
@@ -57,4 +60,14 @@ params:
     - name: starlink_constant_eirp
       eirp_dbw_per_mhz: {STARLINK: 15.68, ONEWEB: 10.6}
       steering: constant_eirp
+    # PFD sensitivity: lower the *PFD-constant* Starlink PFD by 3 dB and 6 dB
+    # relative to the 25.208(b)-anchored value.  Under PFD-constant steering the
+    # PFD is EIRP_max - spreading(r_max), so reducing EIRP_max by 3/6 dB lowers the
+    # modelled Starlink PFD by exactly 3/6 dB (anchor unchanged).
+    - name: starlink_pfd_minus3
+      eirp_dbw_per_mhz: {STARLINK: 12.68, ONEWEB: 10.6}
+      steering: config
+    - name: starlink_pfd_minus6
+      eirp_dbw_per_mhz: {STARLINK: 9.68, ONEWEB: 10.6}
+      steering: config
   source: ASSUMED
