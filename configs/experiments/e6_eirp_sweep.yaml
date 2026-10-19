@@ -22,7 +22,17 @@
 #                        constant-EIRP steering (the constant-EIRP sensitivity).
 #   starlink_pfd_minus3  PFD-constant Starlink with its PFD 3 dB below the
 #                        25.208(b) anchor (EIRP_max 16.0018 - 3 = 13.0018).
-#   starlink_pfd_minus6  as above, 6 dB below (EIRP_max 16.0018 - 6 = 10.0018).
+#   starlink_gen1_design Starlink Gen1 filed design point: constant PFD
+#                        -146 dB(W/m^2/4kHz) = -122.02 dB(W/m^2/MHz), SpaceX
+#                        SAT-LOA-20161115-00118 Technical Attachment Table A.7-1;
+#                        6.02 dB below the 25.208(b) limit, so EIRP_max =
+#                        16.0018 - 6.0206 = 9.9812 dBW/MHz (same 25 deg anchor).
+#   noise_assumed        the earlier ASSUMED terminal noise temperatures
+#                        (OneWeb 200 K, Starlink 150 K) instead of the
+#                        del Portillo primary values; sensitivity row.
+#   oneweb_min_elev_55   OneWeb minimum service elevation 55 deg (del Portillo
+#                        et al., Sec. 2.2) instead of the ASSUMED common 25 deg;
+#                        applies to OneWeb's own visibility in both directions.
 name: e6_eirp_sweep
 description: >
   Sensitivity of both ordered co-frequency user-downlink Delta T/T exceedance
@@ -65,13 +75,22 @@ params:
       eirp_dbw_per_mhz: {STARLINK: 16.0018, ONEWEB: 10.6}
       steering: constant_eirp
     # PFD sensitivity: lower the *PFD-constant* Starlink PFD by 3 dB and 6 dB
-    # relative to the 25.208(b)-anchored value.  Under PFD-constant steering the
+    # relative to the 25.208(b)-anchored value (the -6 dB point is the sourced
+    # Gen1 design PFD, starlink_gen1_design).  Under PFD-constant steering the
     # PFD is EIRP_max - spreading(r_max), so reducing EIRP_max by 3/6 dB lowers the
     # modelled Starlink PFD by exactly 3/6 dB (anchor unchanged).
     - name: starlink_pfd_minus3
       eirp_dbw_per_mhz: {STARLINK: 13.0018, ONEWEB: 10.6}
       steering: config
-    - name: starlink_pfd_minus6
-      eirp_dbw_per_mhz: {STARLINK: 10.0018, ONEWEB: 10.6}
+    - name: starlink_gen1_design
+      eirp_dbw_per_mhz: {STARLINK: 9.9812, ONEWEB: 10.6}
+      steering: config
+    - name: noise_assumed
+      eirp_dbw_per_mhz: {STARLINK: 16.0018, ONEWEB: 10.6}
+      noise_temp_k: {STARLINK: 150.0, ONEWEB: 200.0}
+      steering: config
+    - name: oneweb_min_elev_55
+      eirp_dbw_per_mhz: {STARLINK: 16.0018, ONEWEB: 10.6}
+      min_elevation_deg: {ONEWEB: 55.0}
       steering: config
   source: ASSUMED

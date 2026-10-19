@@ -1266,6 +1266,9 @@ def run_e6(
                          for k, v in (c.get("eirp_dbw_per_mhz") or {}).items()},
                 "steering": (None if c.get("steering") in (None, "config", "null")
                              else str(c.get("steering"))),
+                "noise": {str(k): float(v) for k, v in (c.get("noise_temp_k") or {}).items()},
+                "min_el": {str(k): float(v)
+                           for k, v in (c.get("min_elevation_deg") or {}).items()},
             }
             for i, c in enumerate(cases_raw)
         ]
@@ -1274,7 +1277,7 @@ def run_e6(
         cases = [
             {"name": f"{target}_{float(x):+.2f}", "eirp": {target: float(x)},
              "steering": (None if p.get("steering") in (None, "config", "null")
-                          else str(p.get("steering")))}
+                          else str(p.get("steering"))), "noise": {}, "min_el": {}}
             for x in p.get("eirp_sweep_dbw_per_mhz", [-26.0, -20.0, -14.0, -8.3])
         ]
     n_st = int(n_start_times if n_start_times is not None else p.get("n_start_times", 4))
@@ -1314,10 +1317,13 @@ def run_e6(
         sysd = {}
         for n in exp.constellations:
             m = systems0[n]
-            eirp = case["eirp"].get(n)
-            if eirp is not None:
-                beam = replace(m.shells[0].beam, eirp_density_dbw_per_mhz=eirp,
-                               source="E6 sensitivity case")
+            over = {}
+            if n in case["eirp"]:
+                over["eirp_density_dbw_per_mhz"] = case["eirp"][n]
+            if n in case["noise"]:
+                over["system_noise_temp_k"] = case["noise"][n]
+            if over:
+                beam = replace(m.shells[0].beam, source="E6 sensitivity case", **over)
                 sysd[n] = replace(m, shells=tuple(replace(sh, beam=beam) for sh in m.shells))
             else:
                 sysd[n] = m
@@ -1337,6 +1343,8 @@ def run_e6(
                         diam, lb.implementation_margin_db, min_el, radius, epoch,
                         device=device, chunk=chunk, pattern=lb.pattern,
                         steering=case["steering"],
+                        victim_min_elevation_deg=case["min_el"].get(a),
+                        interferer_min_elevation_deg=case["min_el"].get(b),
                     )
                     r0 = dres["r0_mean"]
                     avail0 = dres["avail0_frac"]
@@ -1357,6 +1365,8 @@ def run_e6(
                             "steering": (case["steering"] or "config"),
                             "starlink_eirp_dbw_per_mhz": case["eirp"].get("STARLINK", np.nan),
                             "oneweb_eirp_dbw_per_mhz": case["eirp"].get("ONEWEB", np.nan),
+                            "victim_noise_temp_k": float(victim_beam.system_noise_temp_k),
+                            "victim_min_elevation_deg": case["min_el"].get(a, min_el),
                             "phasing": k,
                             "victim": a, "interferer": b, "diameter_m": float(diam),
                             "variant": vi,
@@ -1385,9 +1395,13 @@ def run_e6(
     df.to_parquet(run_dir / "raw_eirp_sweep.parquet", index=False)
     grp = ["case", "steering", "starlink_eirp_dbw_per_mhz", "oneweb_eirp_dbw_per_mhz",
            "victim", "interferer", "diameter_m", "variant"]
+    # Per-start-time worst-station columns (``*_max*``) are averaged over start
+    # times so that each value matches its across-replication CI below (the
+    # paper's single 25.261(d) aggregation); ``unres``/``dtt`` keep the max.
+    grp = grp + ["victim_noise_temp_k", "victim_min_elevation_deg"]
     sw = df.groupby(grp, as_index=False, dropna=False).agg(
         event_frac_mean=("event_frac_mean", "mean"),
-        event_frac_max=("event_frac_max", "max"),
+        event_frac_max=("event_frac_max", "mean"),
         unres_frac_max=("unres_frac_max", "max"),
         dtt_max=("dtt_max", "max"),
         cn0_median_mean=("cn0_median_mean", "mean"),
@@ -1395,12 +1409,12 @@ def run_e6(
         avail0_min=("avail0_min", "min"),
         n_qual_min=("n_qual_stations", "min"),
         degr_max=("degr_max", "max"),
-        degr_max_qual=("degr_max_qual", "max"),
+        degr_max_qual=("degr_max_qual", "mean"),
         degr_div_max=("degr_div_max", "max"),
-        degr_div_max_qual=("degr_div_max_qual", "max"),
+        degr_div_max_qual=("degr_div_max_qual", "mean"),
         unavail_div_max=("unavail_div_max", "max"),
-        unavail_max_qual=("unavail_max_qual", "max"),
-        unavail_div_max_qual=("unavail_div_max_qual", "max"),
+        unavail_max_qual=("unavail_max_qual", "mean"),
+        unavail_div_max_qual=("unavail_div_max_qual", "mean"),
     )
 
     def _ci95(s: pd.Series) -> float:

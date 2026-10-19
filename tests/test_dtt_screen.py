@@ -210,3 +210,37 @@ def test_pfd_constant_anchors_at_r_max() -> None:
     # Legacy (wrong) anchor used altitude, giving a *larger* clamp than r_max.
     exp_alt = 10.0 ** ((eirp + g0 - _fspl(550.0) - NOISE) / 10.0)
     assert exp_alt > exp_e
+
+
+def test_per_system_min_elevation() -> None:
+    """A victim-only elevation override changes only the victim's visibility.
+
+    The served fraction must equal the brute-force fraction of time some victim
+    satellite is at or above the victim's own minimum elevation, and overriding
+    both sides with the common value must reproduce the default exactly.
+    """
+    a, b = _systems()
+    stations = np.asarray(station_ecef_spherical(np.array([0.0, 45.0]), np.array([0.0, 90.0]),
+                                                 R_EARTH, "cpu"))
+    up = stations / np.linalg.norm(stations, axis=-1, keepdims=True)
+    times = np.arange(0.0, 86400.0, 600.0)
+    peak = terminal_peak_gain_dbi(DIAMETER, FREQ, EFF)
+
+    def _run(**kw):
+        return screen_pair_dtt(
+            a, b, a.n_sats, b.n_sats, torch.as_tensor(stations), torch.as_tensor(up), times,
+            VICTIM_BEAM, INTERF_BEAM, FREQ, peak, DIAMETER, MARGIN,
+            min_elevation_deg=25.0, earth_radius_km=R_EARTH, epoch_jd=EPOCH_JD,
+            device="cpu", chunk=32, **kw,
+        )
+
+    res55 = _run(victim_min_elevation_deg=55.0)
+    pa = np.asarray(propagate_ecef(a.elements, times, EPOCH_JD, R_EARTH, "cpu"))  # [T,N,3]
+    rel = pa[:, None, :, :] - stations[None, :, None, :]
+    sin_el = (rel / np.linalg.norm(rel, axis=-1, keepdims=True) * up[None, :, None, :]).sum(-1)
+    ref_served = (np.rad2deg(np.arcsin(sin_el)).max(-1) >= 55.0).mean(0)
+    np.testing.assert_allclose(res55["served_frac"], ref_served, atol=1e-12)
+    assert (res55["served_frac"] <= _run()["served_frac"] + 1e-12).all()
+
+    base, same = _run(), _run(victim_min_elevation_deg=25.0, interferer_min_elevation_deg=25.0)
+    np.testing.assert_array_equal(base["event_frac"], same["event_frac"])

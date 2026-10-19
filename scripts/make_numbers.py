@@ -377,9 +377,9 @@ def main() -> int:
         add("EirpHeadDiam", _num(HEAD_DIAM, "{:g}"), e6)
         _p0 = float(fwd0["starlink_eirp_dbw_per_mhz"].iloc[0])
         _p3 = float(cg("starlink_pfd_minus3", VICTIM, 0)["starlink_eirp_dbw_per_mhz"].iloc[0])
-        _p6 = float(cg("starlink_pfd_minus6", VICTIM, 0)["starlink_eirp_dbw_per_mhz"].iloc[0])
+        _p6 = float(cg("starlink_gen1_design", VICTIM, 0)["starlink_eirp_dbw_per_mhz"].iloc[0])
         add("PfdOffsetThreeDb", _num(_p0 - _p3, "{:g}"), e6)
-        add("PfdOffsetSixDb", _num(_p0 - _p6, "{:g}"), e6)
+        add("PfdOffsetGenOneDb", _num(_p0 - _p6, "{:.2f}"), e6)
         add("EirpSweepValues", ", ".join(
             _num(v, "{:g}") for v in sorted(s["starlink_eirp_dbw_per_mhz"].unique())), e6)
         add("EirpFwdInvariantPct", _pct(fwd0["event_frac_max"].max()), e6)
@@ -414,7 +414,9 @@ def main() -> int:
             "oneweb_cn_calibrated": "CnCal",
             "starlink_constant_eirp": "ConstEirp",
             "starlink_pfd_minus3": "PfdMinusThree",
-            "starlink_pfd_minus6": "PfdMinusSix",
+            "starlink_gen1_design": "GenOne",
+            "noise_assumed": "NoiseAssumed",
+            "oneweb_min_elev_55": "MinElevFiftyFive",
         }
         for case, tag in case_tags.items():
             f0 = cg(case, VICTIM, 0)

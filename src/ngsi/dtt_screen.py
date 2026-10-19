@@ -110,6 +110,8 @@ def screen_pair_dtt(
     pattern: str = "S1428",
     steering: str | None = None,
     diversity_fspl: str = "interferer",
+    victim_min_elevation_deg: float | None = None,
+    interferer_min_elevation_deg: float | None = None,
 ) -> dict:
     """Screen one ordered pair under the Delta T/T criterion.
 
@@ -124,7 +126,12 @@ def screen_pair_dtt(
     (correct) evaluates the interference at the interferer's slant range;
     ``"victim"`` reproduces the earlier, incorrect reuse of the candidate victim
     range and is retained only for attribution of that fix.
+    ``victim_min_elevation_deg`` / ``interferer_min_elevation_deg`` override
+    ``min_elevation_deg`` for that system's visibility (default: the common value).
     """
+    min_el_a = min_elevation_deg if victim_min_elevation_deg is None else float(victim_min_elevation_deg)
+    min_el_b = (min_elevation_deg if interferer_min_elevation_deg is None
+                else float(interferer_min_elevation_deg))
     if diversity_fspl not in ("interferer", "victim"):
         raise ValueError("diversity_fspl must be 'interferer' or 'victim'")
     mode = interf_beam.beam_steering if steering is None else str(steering)
@@ -186,13 +193,13 @@ def screen_pair_dtt(
         ub, db = unit_look_vectors(pb, station_ecef)
         elev_a = elevation_deg_batch(ua, up)
         elev_b = elevation_deg_batch(ub, up)
-        vis_a = elev_a >= min_elevation_deg
-        vis_b = elev_b >= min_elevation_deg
+        vis_a = elev_a >= min_el_a
+        vis_b = elev_b >= min_el_b
 
         va, ia = torch.topk(elev_a.masked_fill(~vis_a, float("-inf")), k_a, dim=-1)
         vb, ib = torch.topk(elev_b.masked_fill(~vis_b, float("-inf")), k_b, dim=-1)
-        vis_ka = va >= min_elevation_deg
-        vis_kb = vb >= min_elevation_deg
+        vis_ka = va >= min_el_a
+        vis_kb = vb >= min_el_b
         ua_k = torch.gather(ua, 2, ia.unsqueeze(-1).expand(-1, -1, -1, 3))
         ub_k = torch.gather(ub, 2, ib.unsqueeze(-1).expand(-1, -1, -1, 3))
         da_k = torch.gather(da, 2, ia)

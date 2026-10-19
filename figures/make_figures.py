@@ -613,22 +613,33 @@ def fig_b3_pfd(e6: Path) -> Path | None:
         d = _read(e6, "eirp_sweep")
     except FileNotFoundError:
         return None
-    cases = {"primary": 0.0, "starlink_pfd_minus3": -3.0, "starlink_pfd_minus6": -6.0}
+    cases = ("primary", "starlink_pfd_minus3", "starlink_gen1_design")
     s = d[(d["victim"] == VICTIM) & (d["variant"] == 0) &
           (d["diameter_m"] == HEAD_DIAM) & (d["case"].isin(cases))]
     if s.empty:
         return None
-    off = s["case"].map(cases)
+    # Offset = PFD change = EIRP_max change under PFD-constant steering.
+    p0 = s.loc[s["case"] == "primary", "starlink_eirp_dbw_per_mhz"].iloc[0]
+    off = s["starlink_eirp_dbw_per_mhz"] - p0
     fig, ax = plt.subplots(figsize=(3.3, 2.5))
     ax.errorbar(off, s["degr_max_qual"] * 100.0, yerr=s["degr_max_qual_ci95"] * 100.0,
                 fmt="o", ms=5, color="#1f77b4", capsize=3, lw=1.4)
+    # CI half-widths are below the marker size, so print mean +- CI per point.
+    names = {"primary": "Gen2 filed max.", "starlink_pfd_minus3": "",
+             "starlink_gen1_design": "Gen1 design"}
+    for x, (_, r) in zip(off, s.iterrows()):
+        lab = f"{r['degr_max_qual'] * 100:.2f}$\\pm${r['degr_max_qual_ci95'] * 100:.2f}"
+        if names[r["case"]]:
+            lab = names[r["case"]] + "\n" + lab
+        ax.annotate(lab, (x, r["degr_max_qual"] * 100.0), textcoords="offset points",
+                    xytext=(0, 7), ha="center", fontsize=5.5)
     ax.axhline(3.0, color="k", ls=":", lw=1.1)
-    ax.text(-5.9, 3.10, "3% limit", fontsize=6)
+    ax.text(0.8, 3.10, "3% limit", fontsize=6)
     ax.set_xlabel("Starlink PFD offset from limit [dB]")
     ax.set_ylabel("throughput degradation [%]")
-    ax.set_xticks([0, -3, -6])
+    ax.set_xticks(sorted(off.round(2).unique()))
     ax.set_xlim(1, -7)
-    ax.set_ylim(bottom=0)
+    ax.set_ylim(0, 1.3 * float((s["degr_max_qual"] * 100.0).max()))
     ax.grid(alpha=0.3)
     fig.tight_layout()
     out = PAPER_FIG_DIR / "B3_pfd_offset.png"

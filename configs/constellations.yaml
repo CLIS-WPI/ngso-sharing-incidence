@@ -47,7 +47,7 @@ constellations:
           eirp_density_dbw_per_mhz: 16.0018
           freq_ghz: 12.0
           bandwidth_mhz: 240.0
-          system_noise_temp_k: 150.0
+          system_noise_temp_k: 362.9
           beam_steering: pfd_constant
           pfd_anchor_elevation_deg: 25.0
           source: >-
@@ -70,7 +70,9 @@ constellations:
             (aperture efficiency 0.6, ASSUMED); no filing states the satellite
             beamwidth. freq_ghz: centre of the Ku-band user downlink 10.7-12.7
             GHz. bandwidth_mhz: Starlink Ku channel, emission designator 240MD7W
-            (SpaceX FCC filings). system_noise_temp_k: ASSUMED terminal value.
+            (SpaceX FCC filings). system_noise_temp_k: 362.9 K, SpaceX user-downlink
+            system temperature, del Portillo et al. (Table 6); the earlier ASSUMED
+            150 K is the E6 noise_assumed sensitivity row.
             beam_steering: PFD-CONSTANT is the primary Starlink Ku model. SpaceX
             "adjusts power to maintain a constant PFD on the surface of the Earth"
             as the beam steers (FCC-22-91A1 para. 42); the 10.7-11.7 GHz Ku
@@ -180,7 +182,7 @@ constellations:
           eirp_density_dbw_per_mhz: 10.6
           freq_ghz: 12.0
           bandwidth_mhz: 125.0
-          system_noise_temp_k: 200.0
+          system_noise_temp_k: 350.1
           beam_steering: constant_eirp
           source: >-
             beam_steering: constant-EIRP, ASSUMED. The Starlink-specific
@@ -198,5 +200,6 @@ constellations:
             dBW/MHz, scripts/calibrate_oneweb_eirp.py) is retained only as a
             sensitivity row, not as a design rule. freq_ghz: centre of the
             Ku-band user downlink 10.7-12.7 GHz. bandwidth_mhz: OneWeb Ku
-            channel (emission designator 125MG7W). system_noise_temp_k: ASSUMED
-            terminal value.
+            channel (emission designator 125MG7W). system_noise_temp_k: 350.1 K,
+            OneWeb user-downlink system temperature, del Portillo et al. (Table 6);
+            the earlier ASSUMED 200 K is the E6 noise_assumed sensitivity row.
