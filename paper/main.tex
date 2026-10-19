@@ -42,11 +42,13 @@ diversity, \S\,25.261(d) is exceeded at Starlink's Gen2 filed maximum, the
 25.208(b) PFD limit (\DegrDepMaxPct$\pm$\DegrDepMaxCi\% and
 \UnavailIncDepPct$\pm$\UnavailIncDepCi\%), but not at its Gen1 design PFD,
 \PfdOffsetGenOneDb~dB lower, where the throughput limit is met and the
-availability change is not distinguishable from its limit. With diversity, both
-limits are met in every case at a \StationMinElevDeg$^\circ$ OneWeb minimum
-elevation; at OneWeb's \OnewebMinElevSensDeg$^\circ$ design elevation, diversity
-no longer keeps the availability change within its limit. Compliance therefore
-depends on satellite diversity, which the rule does not mention.
+availability change is not distinguishable from its limit. Satellite diversity
+restores compliance in every case only when the victim can hand off to
+lower-elevation satellites (a \StationMinElevDeg$^\circ$ mask); under OneWeb's
+filed \OnewebMinElevSensDeg$^\circ$ design elevation the diversity pool is too
+small and the availability limit is exceeded even with diversity. Compliance
+therefore depends on satellite diversity and the victim's elevation mask, neither
+of which the rule mentions.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -127,8 +129,12 @@ operating point of the interferer. Section~25.208(b) covers only
 
 \emph{25.261(d) metrics and diversity.} Throughput is the Shannon rate with a
 \ImplMarginDb~dB implementation margin; availability is the fraction of time with
-C/N~$\ge \CnGateDb$~dB; only links with baseline availability of at least
-\RuleBaselineAvailPct\% qualify. With satellite diversity the victim may switch
+C/N~$\ge \CnGateDb$~dB, an unserved instant counting as unavailable; only links
+with baseline availability of at least \RuleBaselineAvailPct\% qualify. Both
+metrics are invariant to the channel bandwidth ($I/N$ and C/N are per-MHz
+densities and degradation is a rate ratio); replacing it by
+\BwCheckMhz~MHz~\cite[Table~3]{delportillo2019} leaves every metric unchanged
+(largest difference \BwMaxAbsDiffPct~pp). With satellite diversity the victim may switch
 to any other visible satellite of its own system; diversity is unlimited.
 \S\,25.261(d) is evaluated only for the OneWeb victim, where it legally applies.
 \emph{Aggregation.} Every \S\,25.261(d) number is the worst qualifying station per
@@ -153,7 +159,7 @@ EIRP density (dBW/MHz) & -- & \OneEirpDbw & \cite[Table~3]{delportillo2019}\\
 Peak gain (dBi) & \StarPeakGainDbi & \OnePeakGainDbi & \cite{fcc2291} / \textsc{a}\\
 3-dB beamwidth (deg) & \StarBeamwidthDeg & \OneBeamwidthDeg & derived / \textsc{a}\\
 Noise temp.\ (K) & \StarNoiseK & \OneNoiseK & \cite[Table~6]{delportillo2019}\\
-Bandwidth (MHz) & \StarBwMhz & \OneBwMhz & emission designators\\
+Bandwidth (MHz) & \StarBwMhz & \OneBwMhz & \textsc{a} (no effect)\\
 Min.\ elevation (deg) & \StationMinElevDeg & \StationMinElevDeg\ (\OnewebMinElevSensDeg) &
   \cite{fcc2291} / \textsc{a} (\cite[Sec.~2.2]{delportillo2019})\\
 Terminal aperture (m) & \multicolumn{2}{c}{\EirpHeadDiam--\AperMaxM, eff.\ \AperEff} & \textsc{a}\\
@@ -245,23 +251,33 @@ Gen2 range meets the throughput limit narrowly
 (\TabLowDegrNoDivPct$\pm$\TabLowDegrNoDivCi\%) but exceeds the availability limit
 (\TabLowUnavNoDivPct$\pm$\TabLowUnavNoDivCi\%); the Gen1 architecture
 of~\cite{delportillo2019}, constant-EIRP steering, and the earlier assumed noise
-temperatures (\NoiseAssumedOneK/\NoiseAssumedStarK~K) exceed both. With the
-C/N-calibrated OneWeb EIRP no link reaches \RuleBaselineAvailPct\% baseline
-availability, so \S\,25.261(d) is undefined there. With diversity, every row at
-\StationMinElevDeg$^\circ$ meets both limits; the largest degradation is
+temperatures (\NoiseAssumedOneK/\NoiseAssumedStarK~K) exceed both. An earlier
+OneWeb EIRP calibrated to a C/N target is omitted: at \OneNoiseK~K no link reaches
+\RuleBaselineAvailPct\% baseline availability, so \S\,25.261(d) is undefined.
+With diversity, every row at \StationMinElevDeg$^\circ$ meets both limits; the largest degradation is
 \TabConstEirpDegrDivPct$\pm$\TabConstEirpDegrDivCi\% and every availability
 change is \TabPrimUnavDivPct\%.
 
-\emph{OneWeb's design elevation.} With OneWeb limited to its
-\OnewebMinElevSensDeg$^\circ$ design elevation~\cite[Sec.~2.2]{delportillo2019},
-only \MinElevQualStations\ of \NStations\ stations keep \RuleBaselineAvailPct\%
-baseline availability in the modelled shell layout. At those, the no-diversity
-metrics barely change, but diversity loses most of its alternatives: the
-with-diversity degradation, \TabMinElevFiftyFiveDegrDivPct$\pm$\TabMinElevFiftyFiveDegrDivCi\%,
+\emph{OneWeb's design elevation.} OneWeb's filed design keeps a satellite above
+\OnewebMinElevSensDeg$^\circ$ for its users~\cite[Sec.~2.2]{delportillo2019}.
+Applying this mask to the victim's serving selection, baseline, and diversity
+pool in the as-deployed geometry, the time with no OneWeb satellite above it is
+\MinElevNoneEquatorPct\% at the equator and falls with latitude; only the
+stations at \MinElevQualLatLo--\MinElevQualLatHi$^\circ$ keep
+\RuleBaselineAvailPct\% baseline availability (\MinElevQualStations\ of
+\NStations). The worst qualifying station
+(\MinElevWorstLat$^\circ$) has a satellite above the mask all but
+\MinElevWorstNonePct\% of the time and the same serving satellite as with a
+\StationMinElevDeg$^\circ$ mask, so the no-diversity metrics are unchanged.
+Diversity, however, needs a second satellite above the mask: at the qualifying
+latitudes the mean number above \OnewebMinElevSensDeg$^\circ$ is only
+\MinElevNAboveMin--\MinElevNAboveMax\ and its 10th percentile is
+\MinElevNAboveTenMin, i.e., often the serving satellite alone. The with-diversity
+degradation, \TabMinElevFiftyFiveDegrDivPct$\pm$\TabMinElevFiftyFiveDegrDivCi\%,
 is not distinguishable from the limit, and the availability change,
 \TabMinElevFiftyFiveUnavDivPct$\pm$\TabMinElevFiftyFiveUnavDivCi\%, exceeds it.
-Diversity is therefore sufficient at a \StationMinElevDeg$^\circ$ minimum
-elevation but not at \OnewebMinElevSensDeg$^\circ$.
+Diversity restores compliance only when the victim can hand off to
+lower-elevation satellites.
 
 \begin{figure}[t]
 \centering
@@ -278,7 +294,7 @@ markers).}
 \caption{Sensitivity, realistic variant, OneWeb victim, as deployed,
 \EirpHeadDiam~m, \SenStartTimes\ start times. Event: worst-station
 $\Delta T/T>\DttThresholdPct\%$ fraction; Degr./Avail.: 25.261(d) metrics;
-ND/D: without/with diversity; n/a: no qualifying link. Mean$\pm$\CiPct\% CI, \%.}
+ND/D: without/with diversity. Mean$\pm$\CiPct\% CI, \%.}
 \label{tab:cases}
 \centering
 \scriptsize
@@ -327,7 +343,6 @@ OneWeb \OnewebMinElevSensDeg$^\circ$ & \TabMinElevFiftyFiveEventPct$\pm$\TabMinE
   & \TabMinElevFiftyFiveDegrDivPct$\pm$\TabMinElevFiftyFiveDegrDivCi
   & \TabMinElevFiftyFiveUnavNoDivPct$\pm$\TabMinElevFiftyFiveUnavNoDivCi
   & \TabMinElevFiftyFiveUnavDivPct$\pm$\TabMinElevFiftyFiveUnavDivCi\\
-OneWeb C/N cal. & \TabCnCalEventPct$\pm$\TabCnCalEventCi & n/a & n/a & n/a & n/a\\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -344,9 +359,9 @@ higher-altitude, lower-EIRP system, which is also the one \S\,25.261(d) protects
 (c) Each station uses its highest-elevation satellite. (d) Diversity is unlimited
 and assumes knowledge of the interfering serving satellite. (e) Only the user
 downlink is modelled. (f) The OneWeb EIRP is taken from~\cite{delportillo2019};
-its constant-EIRP steering, Walker shell layout, and \StationMinElevDeg$^\circ$
-minimum elevation are assumptions, and the \OnewebMinElevSensDeg$^\circ$ result
-depends on that layout. (g) The primary Starlink power is the regulatory PFD
+its constant-EIRP steering and the \StationMinElevDeg$^\circ$ minimum elevation
+are assumptions; the \OnewebMinElevSensDeg$^\circ$ result uses the as-deployed
+geometry. (g) The primary Starlink power is the regulatory PFD
 maximum; Table~\ref{tab:cases} bounds lower power. (h) The as-deployed geometry
 is a single snapshot.
 
@@ -357,11 +372,14 @@ OneWeb victim as deployed, \BurdenRatioDep$\times$ the reverse direction. Withou
 satellite diversity, \S\,25.261(d) is exceeded at Starlink's Gen2 filed maximum
 and \PfdOffsetThreeDb~dB below it, but not at the Gen1 design PFD, where the
 throughput limit is met and the availability change is not distinguishable from
-its limit. With diversity both limits are met at a \StationMinElevDeg$^\circ$
-OneWeb minimum elevation, but not at OneWeb's \OnewebMinElevSensDeg$^\circ$
-design elevation. Compliance is therefore conditional on satellite diversity and
-on the victim's elevation mask, neither of which the rule mentions, and the
-burden falls on the higher-altitude, lower-EIRP system.
+its limit. Satellite diversity restores compliance only when the victim can hand
+off to lower-elevation satellites: with a \StationMinElevDeg$^\circ$ mask both
+limits are met in every case, but under OneWeb's filed
+\OnewebMinElevSensDeg$^\circ$ design elevation the diversity pool is too small
+and the availability limit is exceeded even with diversity. Compliance is
+therefore conditional on satellite diversity and on the victim's elevation mask,
+neither of which the rule mentions, and the burden falls on the higher-altitude,
+lower-EIRP system.
 
 \bibliographystyle{IEEEtran}
 \bibliography{refs}
