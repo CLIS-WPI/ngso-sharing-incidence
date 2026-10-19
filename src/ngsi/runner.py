@@ -1349,6 +1349,7 @@ def run_e6(
                         dtt = dtt_by_var[vi]
                         degr = np.where(r0 > 0.0, 1.0 - dres["r_int_mean"][vi] / np.where(r0 > 0.0, r0, 1.0), np.nan)
                         degr_d = np.where(r0 > 0.0, 1.0 - dres["r_div_mean"][vi] / np.where(r0 > 0.0, r0, 1.0), np.nan)
+                        una_nd = dres["unavail_incr_nodiv_frac"][vi]
                         una_d = dres["unavail_incr_div_frac"][vi]
                         dq = degr[qual]
                         rows.append({
@@ -1374,6 +1375,8 @@ def run_e6(
                             "degr_div_max_qual": (float(np.nanmax(degr_d[qual]))
                                                   if dq.size and np.any(np.isfinite(degr_d[qual])) else np.nan),
                             "unavail_div_max": float(np.nanmax(una_d)) if np.any(np.isfinite(una_d)) else np.nan,
+                            "unavail_max_qual": (float(np.nanmax(una_nd[qual]))
+                                                 if dq.size and np.any(np.isfinite(una_nd[qual])) else np.nan),
                             "unavail_div_max_qual": (float(np.nanmax(una_d[qual]))
                                                      if dq.size and np.any(np.isfinite(una_d[qual])) else np.nan),
                         })
@@ -1396,6 +1399,7 @@ def run_e6(
         degr_div_max=("degr_div_max", "max"),
         degr_div_max_qual=("degr_div_max_qual", "max"),
         unavail_div_max=("unavail_div_max", "max"),
+        unavail_max_qual=("unavail_max_qual", "max"),
         unavail_div_max_qual=("unavail_div_max_qual", "max"),
     )
 
@@ -1407,8 +1411,11 @@ def run_e6(
 
     ci = df.groupby(grp, as_index=False, dropna=False).agg(
         event_frac_mean_ci95=("event_frac_mean", _ci95),
+        event_frac_max_ci95=("event_frac_max", _ci95),
         degr_max_qual_ci95=("degr_max_qual", _ci95),
         degr_div_max_qual_ci95=("degr_div_max_qual", _ci95),
+        unavail_max_qual_ci95=("unavail_max_qual", _ci95),
+        unavail_div_max_qual_ci95=("unavail_div_max_qual", _ci95),
     )
     sw = sw.merge(ci, on=grp, how="left")
     sw.to_csv(run_dir / "summary_eirp_sweep.csv", index=False)

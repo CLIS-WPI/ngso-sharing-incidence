@@ -535,6 +535,109 @@ def fig_p5_analytic(e7: Path) -> Path | None:
     return out
 
 
+def fig_b1_events(e4: Path, e5: Path) -> Path | None:
+    """Paper Fig. 1: realistic-variant Delta T/T event fraction, both directions."""
+    try:
+        d4 = _read(e4, "dtt")
+        d5 = _read(e5, "dtt")
+    except FileNotFoundError:
+        return None
+    fig, ax = plt.subplots(figsize=(3.5, 2.6))
+    for d, ls, tag in ((d4, "-", "as-filed"), (d5, "--", "as-deployed")):
+        for sysn, color, lab in ((VICTIM, "#1f77b4", "OneWeb victim"),
+                                 ("STARLINK", "#d62728", "Starlink victim")):
+            s = d[(d["system_a"] == sysn) & (d["variant"] == 0) &
+                  (d["diameter_m"] == HEAD_DIAM)].sort_values("latitude_deg")
+            if s.empty:
+                continue
+            ax.plot(s["latitude_deg"], s["event_frac_mean"] * 100.0, ls, color=color,
+                    lw=1.5, label=f"{lab}, {tag}")
+    ax.set_xlabel("latitude [deg]")
+    ax.set_ylabel(r"$\Delta T/T>6\%$ time fraction [%]")
+    ax.set_xlim(0, 65)
+    ax.set_ylim(bottom=0)
+    ax.grid(alpha=0.3)
+    ax.legend(fontsize=5.8, loc="upper left", ncol=1)
+    fig.tight_layout()
+    out = PAPER_FIG_DIR / "B1_events_both.png"
+    PAPER_FIG_DIR.mkdir(parents=True, exist_ok=True)
+    fig.savefig(out, dpi=200)
+    plt.close(fig)
+    return out
+
+
+def fig_b2_limits(e5: Path) -> Path | None:
+    """Paper Fig. 2: degradation and availability change, without vs with diversity."""
+    try:
+        d = _read(e5, "dtt")
+    except FileNotFoundError:
+        return None
+    s = d[(d["system_a"] == VICTIM) & (d["variant"] == 0) &
+          (d["diameter_m"] == HEAD_DIAM)].sort_values("latitude_deg")
+    if s.empty:
+        return None
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.0, 2.5), sharex=True)
+    ax1.plot(s["latitude_deg"], s["degradation_nodiv_mean"] * 100.0, "-",
+             color="#1f77b4", lw=1.6, label="no diversity")
+    ax1.plot(s["latitude_deg"], s["degradation_div_mean"] * 100.0, "--",
+             color="#2ca02c", lw=1.6, label="with diversity")
+    ax1.axhline(3.0, color="k", ls=":", lw=1.1)
+    ax1.text(1, 3.10, "3% limit", fontsize=6)
+    ax1.set_xlabel("latitude [deg]")
+    ax1.set_ylabel("throughput degradation [%]")
+    ax1.set_xlim(0, 65)
+    ax1.set_ylim(bottom=0)
+    ax1.grid(alpha=0.3)
+    ax1.legend(fontsize=6, loc="upper left")
+    ax2.plot(s["latitude_deg"], s["unavail_incr_frac_mean"] * 100.0, "-",
+             color="#1f77b4", lw=1.6)
+    ax2.plot(s["latitude_deg"], s["unavail_incr_div_frac_mean"] * 100.0, "--",
+             color="#2ca02c", lw=1.6)
+    ax2.axhline(0.4, color="k", ls=":", lw=1.1)
+    ax2.text(1, 0.45, "0.4% limit", fontsize=6)
+    ax2.set_xlabel("latitude [deg]")
+    ax2.set_ylabel("availability change [%]")
+    ax2.set_ylim(bottom=0)
+    ax2.grid(alpha=0.3)
+    fig.tight_layout()
+    out = PAPER_FIG_DIR / "B2_limits.png"
+    PAPER_FIG_DIR.mkdir(parents=True, exist_ok=True)
+    fig.savefig(out, dpi=200)
+    plt.close(fig)
+    return out
+
+
+def fig_b3_pfd(e6: Path) -> Path | None:
+    """Paper Fig. 3: no-diversity degradation vs Starlink PFD offset."""
+    try:
+        d = _read(e6, "eirp_sweep")
+    except FileNotFoundError:
+        return None
+    cases = {"primary": 0.0, "starlink_pfd_minus3": -3.0, "starlink_pfd_minus6": -6.0}
+    s = d[(d["victim"] == VICTIM) & (d["variant"] == 0) &
+          (d["diameter_m"] == HEAD_DIAM) & (d["case"].isin(cases))]
+    if s.empty:
+        return None
+    off = s["case"].map(cases)
+    fig, ax = plt.subplots(figsize=(3.3, 2.5))
+    ax.errorbar(off, s["degr_max_qual"] * 100.0, yerr=s["degr_max_qual_ci95"] * 100.0,
+                fmt="o", ms=5, color="#1f77b4", capsize=3, lw=1.4)
+    ax.axhline(3.0, color="k", ls=":", lw=1.1)
+    ax.text(-5.9, 3.10, "3% limit", fontsize=6)
+    ax.set_xlabel("Starlink PFD offset from limit [dB]")
+    ax.set_ylabel("throughput degradation [%]")
+    ax.set_xticks([0, -3, -6])
+    ax.set_xlim(1, -7)
+    ax.set_ylim(bottom=0)
+    ax.grid(alpha=0.3)
+    fig.tight_layout()
+    out = PAPER_FIG_DIR / "B3_pfd_offset.png"
+    PAPER_FIG_DIR.mkdir(parents=True, exist_ok=True)
+    fig.savefig(out, dpi=200)
+    plt.close(fig)
+    return out
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--results-root", type=Path, default=RESULTS_DIR)
@@ -546,6 +649,7 @@ def main(argv: list[str] | None = None) -> int:
     e4 = newest_primary(args.results_root, "e4_dtt")
     e5 = newest_primary(args.results_root, "e5_as_deployed")
     e7 = newest_run(args.results_root, "e7_analytic")
+    e6 = newest_run(args.results_root, "e6_eirp_sweep")
     if e1 is None and e2 is None and e3 is None and e4 is None and e5 is None:
         print(f"[figures] no e1/e2/e3/e4/e5 run directories under {args.results_root}.")
         return 0
@@ -593,6 +697,16 @@ def main(argv: list[str] | None = None) -> int:
 
     if e7 is not None:
         out = fig_p5_analytic(e7)
+        if out is not None:
+            print(f"[figures] wrote {out} (paper)")
+
+    # Part B paper figures.
+    if e4 is not None and e5 is not None:
+        for fn in (fig_b1_events(e4, e5), fig_b2_limits(e5)):
+            if fn is not None:
+                print(f"[figures] wrote {fn} (paper)")
+    if e6 is not None:
+        out = fig_b3_pfd(e6)
         if out is not None:
             print(f"[figures] wrote {out} (paper)")
 

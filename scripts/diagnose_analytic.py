@@ -38,6 +38,7 @@ from ngsi.analytic import (
     theta_star_for_starlink,
     visibility_stats,
 )
+from ngsi.bands import load_bands, overlap
 from ngsi.geometry import angular_separation_batch, elevation_deg_batch, unit_look_vectors
 from ngsi.io import new_run_dir
 from ngsi.propagation import propagate_ecef
@@ -50,7 +51,7 @@ from ngsi.runner import (
 )
 
 RESULTS = REPO_ROOT / "results"
-THETA = theta_star_for_starlink(0.45)
+THETA = float("nan")
 MIN_EL = 25.0
 N_BINS = 90
 
@@ -75,8 +76,13 @@ def _sep_prob_from_marginals(ra, wa, rb, wb, theta: float) -> float:
 
 
 def main() -> int:
+    global THETA
     exp_path = REPO_ROOT / "configs" / "experiments" / "e4_dtt.yaml"
     sim, exp, grid_cfg, grid, _ = _load_inputs(exp_path, REPO_ROOT)
+    bands = load_bands(REPO_ROOT / "configs" / "bands.yaml")
+    freq = float(overlap(bands["ONEWEB"], bands["STARLINK"], "user_downlink").center_ghz)
+    noise_temp = float(sim.systems["ONEWEB"].shells[0].beam.system_noise_temp_k)
+    THETA = theta_star_for_starlink(0.45, freq, 0.0, noise_temp)
     device = device_str()
     radius = sim.earth.radius_km
     jd = epoch_jd(sim)
