@@ -1,0 +1,13 @@
+{
+  "experiment": "e4_dtt",
+  "seed": 0,
+  "timestamp_utc": "20261019T165705Z",
+  "git_hash": "857596724a0f9ac548f28563f121c5eec9fe6383",
+  "python": "3.11.10",
+  "platform": "Linux-6.8.0-138-generic-x86_64-with-glibc2.35",
+  "argv": [
+    "experiments/e4_dtt.py",
+    "--steering",
+    "constant_eirp"
+  ]
+}

@@ -37,6 +37,8 @@ class Beam:
     bandwidth_mhz: float
     system_noise_temp_k: float
     source: str
+    beam_steering: str = "constant_eirp"
+    pfd_anchor_elevation_deg: float | None = None
 
     _REQUIRED = (
         "peak_gain_dbi",
@@ -47,6 +49,7 @@ class Beam:
         "system_noise_temp_k",
         "source",
     )
+    _STEERING = ("constant_eirp", "pfd_constant")
 
     @classmethod
     def from_dict(cls, d: dict[str, Any]) -> "Beam":
@@ -56,6 +59,16 @@ class Beam:
         for key in ("beamwidth_deg", "freq_ghz", "bandwidth_mhz", "system_noise_temp_k"):
             if float(d[key]) <= 0.0:
                 raise ConfigError(f"beam {key!r} must be positive: {d!r}")
+        steering = str(d.get("beam_steering", "constant_eirp"))
+        if steering not in cls._STEERING:
+            raise ConfigError(
+                f"beam beam_steering must be one of {cls._STEERING!r}: {steering!r}"
+            )
+        anchor = d.get("pfd_anchor_elevation_deg")
+        if steering == "pfd_constant" and anchor is None:
+            raise ConfigError(
+                "beam beam_steering 'pfd_constant' requires 'pfd_anchor_elevation_deg'"
+            )
         return cls(
             peak_gain_dbi=float(d["peak_gain_dbi"]),
             beamwidth_deg=float(d["beamwidth_deg"]),
@@ -64,6 +77,8 @@ class Beam:
             bandwidth_mhz=float(d["bandwidth_mhz"]),
             system_noise_temp_k=float(d["system_noise_temp_k"]),
             source=str(d["source"]),
+            beam_steering=steering,
+            pfd_anchor_elevation_deg=float(anchor) if anchor is not None else None,
         )
 
 
@@ -185,6 +200,58 @@ class ExperimentConfig:
             seed=int(d.get("seed", 0)),
             params=dict(d.get("params", {})),
         )
+
+
+@dataclass(frozen=True)
+class LinkBudget:
+    """Earth-terminal parameters for the 25.261(d) Delta T/T criterion.
+
+    ``diameter_m`` / ``aperture_efficiency`` set the receive peak gain and the
+    ITU-R S.1428 (S.465 envelope) pattern; ``diameter_sweep_m`` is the sensitivity
+    set; ``implementation_margin_db`` is the ASSUMED Shannon coding/modulation
+    allowance used only for the secondary throughput result.
+    """
+
+    diameter_m: float
+    aperture_efficiency: float
+    pattern: str
+    diameter_sweep_m: list[float]
+    implementation_margin_db: float
+    source: str
+
+    @classmethod
+    def from_dict(cls, d: dict[str, Any]) -> "LinkBudget":
+        required = ("diameter_m", "aperture_efficiency", "pattern",
+                    "diameter_sweep_m", "implementation_margin_db", "source")
+        for key in required:
+            if key not in d:
+                raise ConfigError(f"link_budget missing required key {key!r}: {d!r}")
+        if float(d["diameter_m"]) <= 0.0:
+            raise ConfigError("link_budget.diameter_m must be positive")
+        if not 0.0 < float(d["aperture_efficiency"]) < 1.0:
+            raise ConfigError("link_budget.aperture_efficiency must be in (0, 1)")
+        if str(d["pattern"]) not in ("S1428", "S465"):
+            raise ConfigError("link_budget.pattern must be 'S1428' or 'S465'")
+        sweep = [float(v) for v in d["diameter_sweep_m"]]
+        if not sweep or any(v <= 0.0 for v in sweep):
+            raise ConfigError("link_budget.diameter_sweep_m must be positive and non-empty")
+        return cls(
+            diameter_m=float(d["diameter_m"]),
+            aperture_efficiency=float(d["aperture_efficiency"]),
+            pattern=str(d["pattern"]),
+            diameter_sweep_m=sweep,
+            implementation_margin_db=float(d["implementation_margin_db"]),
+            source=str(d["source"]),
+        )
+
+
+def load_link_budget(path: str | Path) -> LinkBudget:
+    """Load ``link_budget.yaml`` (earth-terminal receive parameters)."""
+    data = _load_yaml(path)
+    entry = data.get("user_terminal")
+    if not isinstance(entry, dict):
+        raise ConfigError("link_budget.yaml must define a 'user_terminal' mapping")
+    return LinkBudget.from_dict(entry)
 
 
 def _load_yaml(path: str | Path) -> dict[str, Any]:

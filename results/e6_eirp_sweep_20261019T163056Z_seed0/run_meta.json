@@ -1,0 +1,11 @@
+{
+  "experiment": "e6_eirp_sweep",
+  "seed": 0,
+  "timestamp_utc": "20261019T163056Z",
+  "git_hash": "6cebca0d41ef284be3e04c5a3b091be966f438e0",
+  "python": "3.11.10",
+  "platform": "Linux-6.8.0-138-generic-x86_64-with-glibc2.35",
+  "argv": [
+    "experiments/e6_eirp_sweep.py"
+  ]
+}

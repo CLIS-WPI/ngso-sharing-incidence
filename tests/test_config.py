@@ -60,11 +60,38 @@ def test_shipped_beams_declare_the_new_fields_and_a_source():
 
 
 def test_flight_provenance_of_sourced_beams():
-    """STARLINK/KUIPER beams cite filings; ONEWEB is still ASSUMED."""
+    """STARLINK/KUIPER beams cite filings; ONEWEB EIRP cites Del Portillo 2019."""
     cons = load_constellations(CONFIGS / "constellations.yaml")
     for name in ("STARLINK", "KUIPER"):
         for shell in cons[name].shells:
             assert "ASSUMED" != shell.beam.source.strip(), shell.name
             assert "FCC" in shell.beam.source or "fcc" in shell.beam.source, shell.name
     for shell in cons["ONEWEB"].shells:
-        assert shell.beam.source.strip().startswith("ASSUMED"), shell.name
+        src = shell.beam.source
+        assert "Del Portillo" in src, shell.name  # EIRP density is sourced
+        assert "ASSUMED" in src, shell.name       # gain / beamwidth remain ASSUMED
+
+
+def test_beam_steering_models():
+    """STARLINK is PFD-constant (filed); KUIPER/ONEWEB are ASSUMED constant-EIRP."""
+    cons = load_constellations(CONFIGS / "constellations.yaml")
+    for shell in cons["STARLINK"].shells:
+        assert shell.beam.beam_steering == "pfd_constant", shell.name
+        assert shell.beam.pfd_anchor_elevation_deg == pytest.approx(25.0)
+    for name in ("KUIPER", "ONEWEB"):
+        for shell in cons[name].shells:
+            assert shell.beam.beam_steering == "constant_eirp", shell.name
+            assert shell.beam.pfd_anchor_elevation_deg is None, shell.name
+
+
+def test_pfd_constant_requires_anchor():
+    base = {
+        "peak_gain_dbi": 44.0, "beamwidth_deg": 1.1,
+        "eirp_density_dbw_per_mhz": 15.68, "freq_ghz": 12.0,
+        "bandwidth_mhz": 240.0, "system_noise_temp_k": 150.0, "source": "x",
+    }
+    with pytest.raises(ValueError):
+        Beam.from_dict({**base, "beam_steering": "pfd_constant"})
+    ok = Beam.from_dict({**base, "beam_steering": "pfd_constant",
+                         "pfd_anchor_elevation_deg": 25.0})
+    assert ok.beam_steering == "pfd_constant"

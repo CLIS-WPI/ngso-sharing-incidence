@@ -75,8 +75,11 @@ def system_visibility(
     g = station_ecef.shape[0]
     t_total = len(times)
     max_vis = 1
+    pool_bins = 128
     pool_sum = torch.zeros(g, dtype=torch.float64, device=dev)
     pool_sqsum = torch.zeros(g, dtype=torch.float64, device=dev)
+    served_count = torch.zeros(g, dtype=torch.float64, device=dev)
+    pool_hist = torch.zeros(g, pool_bins, dtype=torch.float64, device=dev)
     shell_vis = torch.zeros(system.n_shells, g, dtype=torch.float64, device=dev)
     shell_hist = np.zeros((system.n_shells, len(lat_bins) - 1), dtype=np.int64)
     hist = np.zeros(len(lat_bins) - 1, dtype=np.int64)
@@ -91,6 +94,10 @@ def system_visibility(
         max_vis = max(max_vis, int(count.max()))
         pool_sum += count.sum(0)
         pool_sqsum += (count.to(torch.float64) ** 2).sum(0)
+        served_count += (count > 0).sum(0).to(torch.float64)
+        pool_hist += torch.nn.functional.one_hot(
+            count.to(torch.long).clamp(max=pool_bins - 1), pool_bins
+        ).sum(0).to(torch.float64)
         sat_lat = _sat_lat_deg(pos)  # [Tc, S]
         for i in range(system.n_shells):
             shell_vis[i] += vis[:, :, idx == i].sum(dim=(0, 2))
@@ -101,6 +108,8 @@ def system_visibility(
         "max_visible": max_vis,
         "pool_sum": pool_sum.cpu().numpy(),
         "pool_sqsum": pool_sqsum.cpu().numpy(),
+        "served_frac": (served_count / t_total).cpu().numpy(),
+        "pool_hist": pool_hist.cpu().numpy(),
         "n_samples": t_total,
         "shell_vis_sum": shell_vis.cpu().numpy(),
         "sub_lat_hist": hist,

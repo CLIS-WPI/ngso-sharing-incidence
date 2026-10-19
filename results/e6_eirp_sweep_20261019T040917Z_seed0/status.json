@@ -1,0 +1,33 @@
+{
+  "experiment": "e6_eirp_sweep",
+  "status": "ok",
+  "n_start_times": 4,
+  "start_offset_s": 18000.0,
+  "time_step_s": 10.0,
+  "duration_s": 86400.0,
+  "min_elevation_deg": 25.0,
+  "device": "cuda",
+  "common_epoch_jd": 2461331.50002315,
+  "sweep_system": "ONEWEB",
+  "eirp_sweep_dbw_per_mhz": [
+    -5.8,
+    -2.8,
+    0.2,
+    3.2,
+    6.2
+  ],
+  "n_sats": {
+    "STARLINK": 9737,
+    "ONEWEB": 648
+  },
+  "user_downlink_pairs": [
+    [
+      "STARLINK",
+      "ONEWEB"
+    ],
+    [
+      "ONEWEB",
+      "STARLINK"
+    ]
+  ]
+}

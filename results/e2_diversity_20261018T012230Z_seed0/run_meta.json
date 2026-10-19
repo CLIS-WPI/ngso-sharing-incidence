@@ -1,0 +1,11 @@
+{
+  "experiment": "e2_diversity",
+  "seed": 0,
+  "timestamp_utc": "20261018T012230Z",
+  "git_hash": "6ca7d0dc2a49a951e721820007e9a1410e7be1ad",
+  "python": "3.11.10",
+  "platform": "Linux-6.8.0-138-generic-x86_64-with-glibc2.35",
+  "argv": [
+    "experiments/e2_diversity.py"
+  ]
+}

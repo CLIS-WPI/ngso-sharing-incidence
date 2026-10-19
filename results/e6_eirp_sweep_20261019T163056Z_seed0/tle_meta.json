@@ -1,0 +1,94 @@
+{
+  "fetched_utc": "2026-10-19T16:30:56.981111+00:00",
+  "cache_dir": "/workspace/data/raw/tle",
+  "groups": {
+    "STARLINK": {
+      "group": "starlink",
+      "url": "https://celestrak.org/NORAD/elements/gp.php?GROUP=starlink&FORMAT=tle",
+      "n_sats_raw": 10651,
+      "n_kept": 9737,
+      "n_excluded_low": 914,
+      "n_excluded_high": 0,
+      "operational_band_km": [
+        450.0,
+        600.0
+      ],
+      "epoch_jd_min": 2461304.74252085,
+      "epoch_jd_max": 2461331.50002315
+    },
+    "ONEWEB": {
+      "group": "oneweb",
+      "url": "https://celestrak.org/NORAD/elements/gp.php?GROUP=oneweb&FORMAT=tle",
+      "n_sats_raw": 651,
+      "n_kept": 648,
+      "n_excluded_low": 3,
+      "n_excluded_high": 0,
+      "operational_band_km": [
+        1100.0,
+        1300.0
+      ],
+      "epoch_jd_min": 2461329.7711296,
+      "epoch_jd_max": 2461331.46755536
+    }
+  },
+  "common_epoch_jd": 2461331.50002315,
+  "experiment": "e6_eirp_sweep",
+  "cases": [
+    {
+      "name": "primary",
+      "eirp": {
+        "STARLINK": 15.68,
+        "ONEWEB": 10.6
+      },
+      "steering": null
+    },
+    {
+      "name": "starlink_low_end",
+      "eirp": {
+        "STARLINK": 12.1,
+        "ONEWEB": 10.6
+      },
+      "steering": null
+    },
+    {
+      "name": "delportillo_common",
+      "eirp": {
+        "STARLINK": 12.7,
+        "ONEWEB": 10.6
+      },
+      "steering": null
+    },
+    {
+      "name": "oneweb_cn_calibrated",
+      "eirp": {
+        "STARLINK": 15.68,
+        "ONEWEB": 0.2
+      },
+      "steering": null
+    },
+    {
+      "name": "starlink_constant_eirp",
+      "eirp": {
+        "STARLINK": 15.68,
+        "ONEWEB": 10.6
+      },
+      "steering": "constant_eirp"
+    },
+    {
+      "name": "starlink_pfd_minus3",
+      "eirp": {
+        "STARLINK": 12.68,
+        "ONEWEB": 10.6
+      },
+      "steering": null
+    },
+    {
+      "name": "starlink_pfd_minus6",
+      "eirp": {
+        "STARLINK": 9.68,
+        "ONEWEB": 10.6
+      },
+      "steering": null
+    }
+  ]
+}

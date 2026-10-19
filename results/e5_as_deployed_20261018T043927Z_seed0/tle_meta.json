@@ -1,0 +1,21 @@
+{
+  "fetched_utc": "2026-10-18T04:39:27.680214+00:00",
+  "cache_dir": "/workspace/data/raw/tle",
+  "groups": {
+    "STARLINK": {
+      "group": "starlink",
+      "url": "https://celestrak.org/NORAD/elements/gp.php?GROUP=starlink&FORMAT=tle",
+      "n_sats": 10651,
+      "epoch_jd_min": 2461304.74252085,
+      "epoch_jd_max": 2461331.58582508
+    },
+    "ONEWEB": {
+      "group": "oneweb",
+      "url": "https://celestrak.org/NORAD/elements/gp.php?GROUP=oneweb&FORMAT=tle",
+      "n_sats": 651,
+      "epoch_jd_min": 2461329.7711296,
+      "epoch_jd_max": 2461331.46755536
+    }
+  },
+  "common_epoch_jd": 2461331.58582508
+}

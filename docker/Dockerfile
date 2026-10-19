@@ -19,6 +19,16 @@ RUN apt-get update \
  && apt-get install -y --no-install-recommends git build-essential ca-certificates \
  && rm -rf /var/lib/apt/lists/*
 
+# LaTeX (Phase 3c paper build).  texlive-publishers provides IEEEtran.cls; the
+# -recommended/-extra sets provide graphicx, booktabs, etc.  latexmk drives the
+# multi-pass build (see scripts/build_paper.sh and `make paper`).
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+      biber latexmk \
+      texlive-latex-base texlive-latex-recommended texlive-latex-extra \
+      texlive-fonts-recommended texlive-publishers texlive-science \
+ && rm -rf /var/lib/apt/lists/*
+
 # Non-root user matching the host UID/GID so mounted files stay writable.
 RUN groupadd --gid "${USER_GID}" "${USERNAME}" \
  && useradd --uid "${USER_UID}" --gid "${USER_GID}" --create-home --shell /bin/bash "${USERNAME}"

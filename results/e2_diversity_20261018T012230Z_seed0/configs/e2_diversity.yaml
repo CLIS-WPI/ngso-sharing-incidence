@@ -1,0 +1,25 @@
+# Experiment 2 - satellite diversity and the burden of 25.261 rules.
+name: e2_diversity
+description: >
+  Compare in-line events that satellite diversity can resolve against those it
+  cannot, quantify the spectrum lost to 25.261(c) band-splitting, the burden of
+  25.261(d) degraded-throughput protection, the sensitivity to minimum elevation,
+  and the sensitivity to the Starlink 53 deg Walker phasing factor F.
+constellations: [STARLINK, KUIPER, ONEWEB]
+stations: stations.yaml
+seed: 0
+params:
+  thetas_deg: [1.0, 2.0, 5.0]
+  dtt_threshold: 0.06                 # 47 CFR 25.261(d) short-term
+  long_term_dtt: 0.03                 # 47 CFR 25.261(d) long-term
+  long_term_exceedance_fraction: 0.004
+  band_split_fraction: 0.5            # 25.261(c)
+  n_phasings: 8
+  time_step_s: 10                     # baseline sampling step
+  duration_s: 86400                   # 24 h baseline window
+  min_elevation_sweep_deg: [20.0, 35.0]
+  duration_step_s: 1                  # fine resolution for event durations
+  duration_window_s: 7200             # 2 h window at 1 s steps
+  phasing_f_sensitivity: [0, 36]      # Walker F alternatives for the 53 deg shells
+  chunk: 64
+  source: ASSUMED

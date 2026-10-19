@@ -1,0 +1,11 @@
+{
+  "experiment": "e3_capacity_diversity",
+  "seed": 0,
+  "timestamp_utc": "20261018T001333Z",
+  "git_hash": "7ef73dad9b12ff5fc70461a8ee6f9ba083baa726",
+  "python": "3.11.10",
+  "platform": "Linux-6.8.0-138-generic-x86_64-with-glibc2.35",
+  "argv": [
+    "experiments/e3_capacity_diversity.py"
+  ]
+}

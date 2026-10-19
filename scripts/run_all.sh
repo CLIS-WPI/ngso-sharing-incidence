@@ -11,10 +11,34 @@ python experiments/e1_event_rate.py
 echo "== e2_diversity =="
 python experiments/e2_diversity.py
 
+echo "== e3_capacity_diversity =="
+python experiments/e3_capacity_diversity.py
+
+echo "== e4_dtt =="
+python experiments/e4_dtt.py
+
+echo "== e5_as_deployed =="
+python experiments/e5_as_deployed.py
+
+echo "== e6_eirp_sweep =="
+python experiments/e6_eirp_sweep.py
+
 echo "== figures =="
 python figures/make_figures.py
 
 echo "== gate1 report =="
 python scripts/make_gate1_report.py
+
+echo "== phase 3a report =="
+python scripts/make_phase3a_report.py
+
+echo "== phase 3b report =="
+python scripts/make_phase3b_report.py
+
+echo "== paper numbers =="
+python scripts/make_numbers.py
+
+echo "== paper build =="
+bash scripts/build_paper.sh
 
 echo "done."

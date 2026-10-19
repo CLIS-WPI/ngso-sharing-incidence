@@ -1,0 +1,20 @@
+# Experiment 1 - geographic incidence of NGSO-NGSO in-line interference events.
+name: e1_event_rate
+description: >
+  Screen NGSO-NGSO in-line interference events on the latitude grid and report
+  the event rate per cell, the unresolved rate under satellite diversity, and the
+  latitude profile of burden. New research: no target values are assumed.
+constellations: [STARLINK, KUIPER, ONEWEB]
+stations: stations.yaml
+seed: 0
+params:
+  # Detection half-angle(s) at the antenna (degrees). Circle at 1 and 2 deg, plus
+  # a 5 deg reference. Placeholder pending a beamwidth-derived value.
+  thetas_deg: [1.0, 2.0, 5.0]
+  # 47 CFR 25.261(d) short-term Delta T/T (kept in sync with ngsi.constants).
+  dtt_threshold: 0.06
+  n_phasings: 8            # independent constellation phasings (unit of replication)
+  time_step_s: 10          # propagation / detection sampling step
+  duration_s: 86400        # simulated window (24 h)
+  chunk: 64                # time-chunk size for the batched GPU pipeline
+  source: ASSUMED

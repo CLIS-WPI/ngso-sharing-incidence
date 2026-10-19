@@ -1,0 +1,11 @@
+{
+  "experiment": "e9_min_elevation_diagnosis",
+  "seed": 0,
+  "timestamp_utc": "20261019T203400Z",
+  "git_hash": "69a5178ede72eb7f4e735adb63ebbccdd67bbe8b",
+  "python": "3.11.10",
+  "platform": "Linux-6.8.0-138-generic-x86_64-with-glibc2.35",
+  "argv": [
+    "scripts/diagnose_min_elevation.py"
+  ]
+}

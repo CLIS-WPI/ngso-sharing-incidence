@@ -24,5 +24,18 @@ results/**/*.png
 results/**/*.pdf
 results/**/raw_*.csv
 
+# --- Paper ---
+# LaTeX build artifacts are regenerated from paper/*.tex; the PDF is a build
+# product (rebuild with `make paper`).
+paper/*.aux
+paper/*.log
+paper/*.fls
+paper/*.fdb_latexmk
+paper/*.out
+paper/*.blg
+paper/*.bbl
+paper/*.bcf
+paper/*.pdf
+
 # --- Misc ---
 .DS_Store

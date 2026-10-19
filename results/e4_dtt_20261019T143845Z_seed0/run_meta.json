@@ -1,0 +1,13 @@
+{
+  "experiment": "e4_dtt",
+  "seed": 0,
+  "timestamp_utc": "20261019T143845Z",
+  "git_hash": "7b79519773fc3d7ac2b52d576b176b7062a05447",
+  "python": "3.11.10",
+  "platform": "Linux-6.8.0-138-generic-x86_64-with-glibc2.35",
+  "argv": [
+    "experiments/e4_dtt.py",
+    "--diversity-fspl",
+    "victim"
+  ]
+}

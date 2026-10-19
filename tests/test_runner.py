@@ -2,11 +2,23 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import pytest
 
-from ngsi.runner import _run_lengths, event_rate_per_hour, summarise, t95
+from ngsi.bands import load_bands
+from ngsi.runner import (
+    _band_overlap_table,
+    _run_lengths,
+    _weighted_percentile,
+    event_rate_per_hour,
+    summarise,
+    t95,
+)
+
+CONFIGS = Path(__file__).resolve().parents[1] / "configs"
 
 
 def test_run_lengths_basic() -> None:
@@ -38,3 +50,20 @@ def test_summarise_ci_width_scales() -> None:
     assert out.loc[0, "x_mean"] == pytest.approx(0.155)
     assert out.loc[0, "n_phasings"] == 4
     assert out.loc[0, "x_ci95"] > 0.0
+
+
+def test_weighted_percentile_from_histogram() -> None:
+    assert _weighted_percentile(np.array([0, 0, 0, 0, 10.0]), 10.0) == pytest.approx(4.0)
+    assert _weighted_percentile(np.array([0, 0, 0, 0, 0, 7.0]), 10.0) == pytest.approx(5.0)
+    assert np.isnan(_weighted_percentile(np.zeros(5), 10.0))
+
+
+def test_band_overlap_table_user_downlink_filter() -> None:
+    bands = load_bands(CONFIGS / "bands.yaml")
+    tab = _band_overlap_table(["STARLINK", "KUIPER", "ONEWEB"], bands)
+    udl = tab[tab["link_type"] == "user_downlink"].set_index(["system_a", "system_b"])
+    assert bool(udl.loc[("STARLINK", "ONEWEB"), "overlaps"])
+    assert udl.loc[("STARLINK", "ONEWEB"), "center_ghz"] == pytest.approx(11.7)
+    for pair in [("STARLINK", "KUIPER"), ("KUIPER", "STARLINK"),
+                 ("ONEWEB", "KUIPER"), ("KUIPER", "ONEWEB")]:
+        assert not bool(udl.loc[pair, "overlaps"])

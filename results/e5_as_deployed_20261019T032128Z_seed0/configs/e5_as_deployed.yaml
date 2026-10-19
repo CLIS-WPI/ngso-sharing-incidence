@@ -1,0 +1,32 @@
+# Experiment 5 - as-deployed constellation from a public TLE snapshot (Phase 3b).
+name: e5_as_deployed
+description: >
+  Replace the ideal Walker-Delta pattern and random phasing with the actual
+  as-deployed constellation: download the current CelesTrak TLE snapshot for
+  Starlink and OneWeb, advance every satellite's mean elements to a common epoch
+  with the analytic J2 secular rates, and run the same event-rate (geometric
+  theta) and 25.261(d) Delta T/T screens on the station grid.  The replication
+  unit is an independent simulation start time (the constellation is fixed).
+constellations: [STARLINK, ONEWEB]
+stations: stations.yaml
+seed: 0
+params:
+  n_start_times: 8          # independent simulation start times (unit of replication)
+  start_offset_s: 18000     # spacing between start times: 5 h ASSUMED (incommensurate
+                            # with the ~24 h ground-repeat and the ~1.5 h orbital period)
+  time_step_s: 10           # propagation / detection sampling step
+  duration_s: 86400         # simulated window (24 h)
+  chunk: 64                 # time-chunk size for the batched GPU pipeline
+  thetas_deg: [1.0, 2.0, 5.0]
+  tle_cache_dir: data/raw/tle
+  tle_groups:
+    STARLINK: starlink
+    ONEWEB: oneweb
+  # Operational altitude window per system, in km.  Satellites outside it are
+  # orbit-raising/deorbiting (below) or off-shell (above) and are excluded from
+  # the operational interference environment.  ASSUMED operating shells; the
+  # numbers bracket the modelled shell altitudes plus observed station-keeping.
+  operational_altitude_km:
+    STARLINK: [450, 600]
+    ONEWEB: [1100, 1300]
+  source: ASSUMED
