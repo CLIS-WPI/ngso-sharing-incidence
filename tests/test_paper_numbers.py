@@ -26,7 +26,7 @@ def test_every_number_macro_used_is_defined():
     used = set(re.findall(r"\\([A-Z][A-Za-z]+)", (PAPER / "main.tex").read_text()))
     latex_builtins = {
         "LaTeX", "IEEEPARstart", "IEEEtran", "IEEEkeywords", "IEEEpeerreviewmaketitle",
-        "DocumentMetadata", "TeX", "S", "T", "Delta",
+        "DocumentMetadata", "TeX", "S", "T", "Delta", "Pr",
     }
     missing = used - defined - latex_builtins
     assert not missing, f"main.tex uses undefined macros: {sorted(missing)}"
