@@ -1,0 +1,133 @@
+{
+  "fetched_utc": "2026-10-19T18:47:29.670491+00:00",
+  "cache_dir": "/workspace/data/raw/tle",
+  "groups": {
+    "STARLINK": {
+      "group": "starlink",
+      "url": "https://celestrak.org/NORAD/elements/gp.php?GROUP=starlink&FORMAT=tle",
+      "n_sats_raw": 10651,
+      "n_kept": 9737,
+      "n_excluded_low": 914,
+      "n_excluded_high": 0,
+      "operational_band_km": [
+        450.0,
+        600.0
+      ],
+      "epoch_jd_min": 2461304.74252085,
+      "epoch_jd_max": 2461331.50002315
+    },
+    "ONEWEB": {
+      "group": "oneweb",
+      "url": "https://celestrak.org/NORAD/elements/gp.php?GROUP=oneweb&FORMAT=tle",
+      "n_sats_raw": 651,
+      "n_kept": 648,
+      "n_excluded_low": 3,
+      "n_excluded_high": 0,
+      "operational_band_km": [
+        1100.0,
+        1300.0
+      ],
+      "epoch_jd_min": 2461329.7711296,
+      "epoch_jd_max": 2461331.46755536
+    }
+  },
+  "common_epoch_jd": 2461331.50002315,
+  "experiment": "e6_eirp_sweep",
+  "cases": [
+    {
+      "name": "primary",
+      "eirp": {
+        "STARLINK": 16.0018,
+        "ONEWEB": 10.6
+      },
+      "steering": null,
+      "noise": {},
+      "min_el": {}
+    },
+    {
+      "name": "starlink_low_end",
+      "eirp": {
+        "STARLINK": 12.1,
+        "ONEWEB": 10.6
+      },
+      "steering": null,
+      "noise": {},
+      "min_el": {}
+    },
+    {
+      "name": "delportillo_common",
+      "eirp": {
+        "STARLINK": 12.7,
+        "ONEWEB": 10.6
+      },
+      "steering": null,
+      "noise": {},
+      "min_el": {}
+    },
+    {
+      "name": "oneweb_cn_calibrated",
+      "eirp": {
+        "STARLINK": 16.0018,
+        "ONEWEB": 0.2
+      },
+      "steering": null,
+      "noise": {},
+      "min_el": {}
+    },
+    {
+      "name": "starlink_constant_eirp",
+      "eirp": {
+        "STARLINK": 16.0018,
+        "ONEWEB": 10.6
+      },
+      "steering": "constant_eirp",
+      "noise": {},
+      "min_el": {}
+    },
+    {
+      "name": "starlink_pfd_minus3",
+      "eirp": {
+        "STARLINK": 13.0018,
+        "ONEWEB": 10.6
+      },
+      "steering": null,
+      "noise": {},
+      "min_el": {}
+    },
+    {
+      "name": "starlink_gen1_design",
+      "eirp": {
+        "STARLINK": 9.9812,
+        "ONEWEB": 10.6
+      },
+      "steering": null,
+      "noise": {},
+      "min_el": {}
+    },
+    {
+      "name": "noise_assumed",
+      "eirp": {
+        "STARLINK": 16.0018,
+        "ONEWEB": 10.6
+      },
+      "steering": null,
+      "noise": {
+        "STARLINK": 150.0,
+        "ONEWEB": 200.0
+      },
+      "min_el": {}
+    },
+    {
+      "name": "oneweb_min_elev_55",
+      "eirp": {
+        "STARLINK": 16.0018,
+        "ONEWEB": 10.6
+      },
+      "steering": null,
+      "noise": {},
+      "min_el": {
+        "ONEWEB": 55.0
+      }
+    }
+  ]
+}

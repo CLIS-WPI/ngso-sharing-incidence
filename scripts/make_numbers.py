@@ -64,7 +64,14 @@ def _num(v, fmt: str = "{:.4g}") -> str:
 
 
 def _pct(v, nd: int = 2) -> str:
-    return f"{float(v) * 100.0:.{nd}f}"
+    # NaN = undefined, e.g. no station meets the 25.261(d) baseline-availability gate.
+    return "n/a" if pd.isna(v) else f"{float(v) * 100.0:.{nd}f}"
+
+
+def _at_max(g: pd.DataFrame, col: str, other: str) -> float:
+    """``other`` in the row where ``col`` is largest (NaN if ``col`` is all-NaN)."""
+    c = g[col].dropna()
+    return float(g.loc[c.idxmax(), other]) if len(c) else float("nan")
 
 
 def _peak(df: pd.DataFrame, value: str) -> pd.Series:
@@ -233,6 +240,16 @@ def main() -> int:
         add("NLongitudes", str(len(_g["longitudes_deg"])), e4)
         add("AperMaxM", _num(max(APERTURES), "{:g}"))
         add("InThresholdDb", _num(10.0 * math.log10(DTT_THRESHOLD), "{:.1f}"))
+        # Parameter table (Table I): values read from the run's copied configs.
+        for sysn, tag in (("STARLINK", "Star"), ("ONEWEB", "One")):
+            bm = _cons[sysn].shells[0].beam
+            add(f"{tag}PeakGainDbi", _num(bm.peak_gain_dbi, "{:g}"), e4)
+            add(f"{tag}BeamwidthDeg", _num(bm.beamwidth_deg, "{:g}"), e4)
+            add(f"{tag}NoiseK", _num(bm.system_noise_temp_k, "{:g}"), e4)
+            add(f"{tag}BwMhz", _num(bm.bandwidth_mhz, "{:g}"), e4)
+            add(f"{tag}EirpDbw", _num(bm.eirp_density_dbw_per_mhz, "{:g}"), e4)
+        _lb = yaml.safe_load((e4 / "configs" / "link_budget.yaml").read_text())["user_terminal"]
+        add("AperEff", _num(_lb["aperture_efficiency"], "{:g}"), e4)
         bind = d[d["system_a"] == VICTIM]
         rev = d[d["system_a"] != VICTIM]
         add("BindFilWorstPct", _pct(_peak(bind[bind["variant"] == 0], "event_frac_mean")[
@@ -347,7 +364,7 @@ def main() -> int:
         if e4 is not None:
             a = d[(d["system_a"] == VICTIM) & (d["variant"] == 0) & (d["diameter_m"] == HEAD_DIAM)]
             b = bind5[(bind5["variant"] == 0) & (bind5["diameter_m"] == HEAD_DIAM)]
-            latpk = b.loc[b["event_frac_mean"].idxmax(), "latitude_deg"]
+            latpk = _at_max(b, "event_frac_mean", "latitude_deg")
             fil_eq = a[a["latitude_deg"] == 0.0]["event_frac_mean"].iloc[0]
             dep_eq = b[b["latitude_deg"] == 0.0]["event_frac_mean"].iloc[0]
             fil_pk = a[a["latitude_deg"] == latpk]["event_frac_mean"].iloc[0]
@@ -380,6 +397,25 @@ def main() -> int:
         _p6 = float(cg("starlink_gen1_design", VICTIM, 0)["starlink_eirp_dbw_per_mhz"].iloc[0])
         add("PfdOffsetThreeDb", _num(_p0 - _p3, "{:g}"), e6)
         add("PfdOffsetGenOneDb", _num(_p0 - _p6, "{:.2f}"), e6)
+        # Gen1 design PFD and the OneWeb min-elevation case, from the run's E6 config.
+        from ngsi.analytic import pfd_constant_dbw_per_m2_per_mhz as _pfdc
+        from ngsi.config import load_constellations as _lc
+        _sh6 = _lc(e6 / "configs" / "constellations.yaml")["STARLINK"].shells[0]
+        add("GenOnePfdDbw", _num(_pfdc(_p6, _sh6.altitude_km,
+                                        _sh6.beam.pfd_anchor_elevation_deg), "{:.2f}"), e6)
+        add("GenOneEirpDbw", _num(_p6, "{:g}"), e6)
+        import yaml as _yaml
+        _c6 = {c["name"]: c for c in _yaml.safe_load(
+            (e6 / "configs" / "e6_eirp_sweep.yaml").read_text())["params"]["cases"]}
+        add("OnewebMinElevSensDeg",
+            _num(_c6["oneweb_min_elev_55"]["min_elevation_deg"]["ONEWEB"], "{:g}"), e6)
+        _g6 = _yaml.safe_load((e6 / "configs" / "stations.yaml").read_text())["station_grid"]
+        add("NStations", str(len(_g6["latitudes_deg"]) * len(_g6["longitudes_deg"])), e6)
+        add("MinElevQualStations",
+            str(int(cg("oneweb_min_elev_55", VICTIM, 0)["n_qual_min"].min())), e6)
+        add("NoiseAssumedOneK", _num(_c6["noise_assumed"]["noise_temp_k"]["ONEWEB"], "{:g}"), e6)
+        add("NoiseAssumedStarK",
+            _num(_c6["noise_assumed"]["noise_temp_k"]["STARLINK"], "{:g}"), e6)
         add("EirpSweepValues", ", ".join(
             _num(v, "{:g}") for v in sorted(s["starlink_eirp_dbw_per_mhz"].unique())), e6)
         add("EirpFwdInvariantPct", _pct(fwd0["event_frac_max"].max()), e6)
@@ -395,9 +431,9 @@ def main() -> int:
         add("EirpDegrMinPct", _pct(fwd_all["degr_max_qual"].min()), e6)
         add("EirpDegrMaxPct", _pct(fwd_all["degr_max_qual"].max()), e6)
         add("EirpDegrMinCi", _pct(fwd_all.loc[fwd_all["degr_max_qual"].idxmin(), "degr_max_qual_ci95"]), e6)
-        add("EirpDegrMaxCi", _pct(fwd_all.loc[fwd_all["degr_max_qual"].idxmax(), "degr_max_qual_ci95"]), e6)
+        add("EirpDegrMaxCi", _pct(_at_max(fwd_all, "degr_max_qual", "degr_max_qual_ci95")), e6)
         add("EirpDegrAtCalPct", _pct(fwd0["degr_max_qual"].max()), e6)
-        add("EirpDegrAtCalCi", _pct(fwd0.loc[fwd0["degr_max_qual"].idxmax(), "degr_max_qual_ci95"]), e6)
+        add("EirpDegrAtCalCi", _pct(_at_max(fwd0, "degr_max_qual", "degr_max_qual_ci95")), e6)
         add("EirpRevAtCalPct", _pct(rev0["event_frac_max"].max(), 2), e6)
         # Smallest OneWeb interferer EIRP at which the reverse (Starlink-victim)
         # trigger is still nonzero, i.e. where the reverse result still holds.
@@ -426,7 +462,7 @@ def main() -> int:
             add(f"Eirp{tag}FwdUnresPct", _pct(f0["unres_frac_max"].max()), e6)
             add(f"Eirp{tag}FwdDegrPct", _pct(f0["degr_max_qual"].max()), e6)
             add(f"Eirp{tag}FwdDegrCi",
-                _pct(f0.loc[f0["degr_max_qual"].idxmax(), "degr_max_qual_ci95"]), e6)
+                _pct(_at_max(f0, "degr_max_qual", "degr_max_qual_ci95")), e6)
             add(f"Eirp{tag}ColoPct", _pct(f1["event_frac_max"].max()), e6)
             add(f"Eirp{tag}RevWorstPct", _pct(r0["event_frac_max"].max()), e6)
 
@@ -438,20 +474,19 @@ def main() -> int:
                 _num(g["starlink_eirp_dbw_per_mhz"].iloc[0], "{:g}"), e6)
             add(f"Tab{tag}EventPct", _pct(g["event_frac_max"].max()), e6)
             add(f"Tab{tag}EventCi",
-                _pct(g.loc[g["event_frac_max"].idxmax(), "event_frac_max_ci95"]), e6)
+                _pct(_at_max(g, "event_frac_max", "event_frac_max_ci95")), e6)
             add(f"Tab{tag}DegrNoDivPct", _pct(g["degr_max_qual"].max()), e6)
             add(f"Tab{tag}DegrNoDivCi",
-                _pct(g.loc[g["degr_max_qual"].idxmax(), "degr_max_qual_ci95"]), e6)
+                _pct(_at_max(g, "degr_max_qual", "degr_max_qual_ci95")), e6)
             add(f"Tab{tag}DegrDivPct", _pct(g["degr_div_max_qual"].max()), e6)
             add(f"Tab{tag}DegrDivCi",
-                _pct(g.loc[g["degr_div_max_qual"].idxmax(), "degr_div_max_qual_ci95"]), e6)
+                _pct(_at_max(g, "degr_div_max_qual", "degr_div_max_qual_ci95")), e6)
             add(f"Tab{tag}UnavNoDivPct", _pct(g["unavail_max_qual"].max(), 3), e6)
             add(f"Tab{tag}UnavNoDivCi",
-                _pct(g.loc[g["unavail_max_qual"].idxmax(), "unavail_max_qual_ci95"], 3), e6)
+                _pct(_at_max(g, "unavail_max_qual", "unavail_max_qual_ci95"), 3), e6)
             add(f"Tab{tag}UnavDivPct", _pct(g["unavail_div_max_qual"].max(), 3), e6)
             add(f"Tab{tag}UnavDivCi",
-                _pct(g.loc[g["unavail_div_max_qual"].idxmax(),
-                          "unavail_div_max_qual_ci95"], 3), e6)
+                _pct(_at_max(g, "unavail_div_max_qual", "unavail_div_max_qual_ci95"), 3), e6)
 
     # --- E7/E8: analytic model and its diagnosis ---
     e7 = newest("e7_analytic")

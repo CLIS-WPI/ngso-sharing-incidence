@@ -631,13 +631,16 @@ def fig_b3_pfd(e6: Path) -> Path | None:
         lab = f"{r['degr_max_qual'] * 100:.2f}$\\pm${r['degr_max_qual_ci95'] * 100:.2f}"
         if names[r["case"]]:
             lab = names[r["case"]] + "\n" + lab
+        below = r["degr_max_qual"] * 100.0 < 3.0  # keep labels clear of the limit line
         ax.annotate(lab, (x, r["degr_max_qual"] * 100.0), textcoords="offset points",
-                    xytext=(0, 7), ha="center", fontsize=5.5)
+                    xytext=(0, -8 if below else 7), ha="center",
+                    va="top" if below else "bottom", fontsize=5.5)
     ax.axhline(3.0, color="k", ls=":", lw=1.1)
-    ax.text(0.8, 3.10, "3% limit", fontsize=6)
+    ax.text(0.8, 2.75, "3% limit", fontsize=6, va="top")
     ax.set_xlabel("Starlink PFD offset from limit [dB]")
     ax.set_ylabel("throughput degradation [%]")
     ax.set_xticks(sorted(off.round(2).unique()))
+    ax.xaxis.set_major_formatter(plt.FormatStrFormatter("%g"))
     ax.set_xlim(1, -7)
     ax.set_ylim(0, 1.3 * float((s["degr_max_qual"] * 100.0).max()))
     ax.grid(alpha=0.3)

@@ -122,8 +122,6 @@ def e6_rows(s: pd.DataFrame, diam: float = HEAD_DIAM):
     d = s[s["diameter_m"] == diam]
     out = []
     for (case, va, vb, var), g in d.groupby(["case", "victim", "interferer", "variant"]):
-        dn = g.loc[g["degr_max_qual"].idxmax()]
-        dd = g.loc[g["degr_div_max_qual"].idxmax()]
         out.append({
             "case": case,
             "pair": f"{va}<-{vb}",
@@ -133,8 +131,9 @@ def e6_rows(s: pd.DataFrame, diam: float = HEAD_DIAM):
             "oneweb_dbw": f'{g["oneweb_eirp_dbw_per_mhz"].iloc[0]:g}',
             "event_pct": fmt_pct(g["event_frac_max"].max()),
             "unres_pct": fmt_pct(g["unres_frac_max"].max()),
-            "degr_qual_pct": fmt_pct(dn["degr_max_qual"]),
-            "degr_qual_div_pct": fmt_pct(dd["degr_div_max_qual"]),
+            # NaN when no station qualifies (baseline availability < 99%).
+            "degr_qual_pct": fmt_pct(g["degr_max_qual"].max()),
+            "degr_qual_div_pct": fmt_pct(g["degr_div_max_qual"].max()),
             "avail0_min": f'{g["avail0_min"].min():.3f}',
         })
     return out
@@ -178,8 +177,8 @@ def pfd_limit_rows():
 
 
 def pfd_sensitivity_rows(s: pd.DataFrame, diam: float = HEAD_DIAM):
-    """PFD-3/6 dB Starlink rows (as-deployed) against the anchored primary."""
-    cases = ["primary", "starlink_pfd_minus3", "starlink_pfd_minus6"]
+    """PFD -3 dB and Gen1-design (-6.02 dB) Starlink rows against the anchored primary."""
+    cases = ["primary", "starlink_pfd_minus3", "starlink_gen1_design"]
     d = s[(s["diameter_m"] == diam) & (s["victim"] == VICTIM) & (s["case"].isin(cases))]
     out = []
     for (case, var), g in d.groupby(["case", "variant"]):
@@ -423,7 +422,7 @@ def main() -> int:
                        "pfd_edge_dbw_per_m2_per_mhz", "pfd_zenith_dbw_per_m2_per_mhz",
                        "limit_dbw_per_m2_per_mhz", "margin_edge_db", "margin_zenith_db"]))
     L.append("")
-    L.append("**Starlink PFD 3 dB and 6 dB below the 25.208(b) anchor (as-deployed "
+    L.append("**Starlink PFD 3 dB below and at the Gen1 design point (-146 dB(W/m^2/4kHz)) below the 25.208(b) anchor (as-deployed "
              "E6 sensitivity; ONEWEB victim, 0.45 m):**")
     L.append("")
     L.append(md_table(pfd_sensitivity_rows(s6),
@@ -433,8 +432,8 @@ def main() -> int:
     L.append("The primary fixes PFD-constant Starlink **exactly at** the 25.208(b) "
              "25-90 deg limit (`-116.00` dBW/m^2/MHz).  Cross-check: the "
              "unit-corrected top of the filed EIRP range (15.68 dBW/MHz) would give "
-             "`-116.32`, within 0.3 dB of the limit.  Lowering the primary PFD by "
-             "3/6 dB is the sensitivity test for how much of the exceedance depends "
+             "`-116.32`, within 0.3 dB of the limit.  Lowering the primary PFD by 3 dB, "
+             "and to the sourced Gen1 design PFD, tests how much of the exceedance depends "
              "on operating at the limit.")
     L.append("")
 
