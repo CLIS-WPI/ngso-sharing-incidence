@@ -21,6 +21,8 @@ S.465 envelope), selectable for sensitivity.
 
 from __future__ import annotations
 
+import math
+
 import numpy as np
 import torch
 
@@ -166,3 +168,105 @@ def pattern_gain_batch(
         ),
     )
     return g
+
+
+# --- ITU-R S.1528 satellite-pattern batch gain ------------------------------
+S1528_LS_DB: float = -6.75
+S1528_A: float = 2.58
+S1528_B: float = 6.32
+S1528_C: float = 14.6
+S1528_D: float = 26.6
+S1528_FLOOR_DBI: float = 0.0
+
+
+def s1528_gain_batch(
+    off_axis_deg: torch.Tensor,
+    peak_gain_dbi: float,
+    beamwidth_deg: float,
+    floor_dbi: float = S1528_FLOOR_DBI,
+) -> torch.Tensor:
+    """Batched ITU-R S.1528 (revised) satellite-antenna gain (dBi).
+
+    Matches :func:`ngsi.antennas.s1528_gain` element-wise.  ``off_axis_deg`` is the
+    angle measured *at the satellite* between the beam's pointing direction and the
+    victim; ``beamwidth_deg`` is the 3 dB half-power beamwidth ``psi_b``.
+    """
+    if beamwidth_deg <= 0.0:
+        raise ValueError("beamwidth_deg must be positive")
+    psi = torch.abs(off_axis_deg)
+    z = psi / float(beamwidth_deg)
+    zc = torch.clamp(z, min=1e-12)
+    g1 = peak_gain_dbi - 3.0 * z**2
+    g2 = torch.full_like(psi, peak_gain_dbi + S1528_LS_DB)
+    g3 = peak_gain_dbi + S1528_LS_DB - 20.0 * torch.log10(zc)
+    g4 = g3 - 25.0 * torch.log10(zc)
+    g = torch.where(
+        psi <= S1528_A * beamwidth_deg,
+        g1,
+        torch.where(
+            psi <= S1528_B * beamwidth_deg,
+            g2,
+            torch.where(
+                psi <= S1528_C * beamwidth_deg,
+                g3,
+                torch.where(psi <= S1528_D * beamwidth_deg, g4, torch.full_like(psi, floor_dbi)),
+            ),
+        ),
+    )
+    return torch.clamp(g, min=floor_dbi)
+
+
+# --- PFD-constant beam steering (FCC-22-91A1 para. 42) ----------------------
+def slant_range_km(
+    altitude_km: float,
+    elevation_deg: float,
+    earth_radius_km: float = 6371.0,
+) -> float:
+    """Slant range (km) to a satellite at ``altitude_km`` seen at ``elevation_deg``.
+
+    Spherical earth: ``r = -Re sin e + sqrt(Re^2 sin^2 e + h^2 + 2 Re h)``.  This is
+    the geometric maximum range of a link held at the system's minimum service
+    elevation, i.e. the ``r_max`` PFD-constant anchoring range.
+    """
+    h = float(altitude_km)
+    e = math.radians(float(elevation_deg))
+    re = float(earth_radius_km)
+    return float(-re * math.sin(e) + math.sqrt(re * re * math.sin(e) ** 2 + h * h + 2.0 * re * h))
+
+
+def slant_range_km_batch(
+    altitude_km: torch.Tensor,
+    elevation_deg: float,
+    earth_radius_km: float = 6371.0,
+) -> torch.Tensor:
+    """Batched :func:`slant_range_km` over a tensor of altitudes."""
+    e = math.radians(float(elevation_deg))
+    re = float(earth_radius_km)
+    sin_e = math.sin(e)
+    h = altitude_km
+    return -re * sin_e + torch.sqrt(re * re * sin_e**2 + h * h + 2.0 * re * h)
+
+
+def pfd_spreading_db(r_km) -> torch.Tensor:
+    """``10 log10(4 pi r^2)`` (dB) with ``r`` in km: the EIRP-defined PFD spreading.
+
+    A PFD (dBW/m^2) equals an EIRP density (dBW) minus this term, so PFD-constant
+    beam steering sets ``EIRP_density(r) = PFD_const + pfd_spreading_db(r)``.
+    """
+    r_m = torch.as_tensor(r_km, dtype=torch.float64) * 1e3
+    return 10.0 * torch.log10(4.0 * np.pi * r_m**2)
+
+
+def pfd_constant_from_eirp(eirp_max_density_dbw_per_mhz: float, r_max_km: float) -> float:
+    """PFD (dBW/m^2/MHz) held constant by power control at the service edge.
+
+    ``PFD_const = EIRP_max - 10 log10(4 pi r_max^2)`` with ``r_max`` the slant range
+    at the system's minimum service elevation (FCC-22-91A1 para. 42).
+    """
+    r_m = float(r_max_km) * 1e3
+    return float(eirp_max_density_dbw_per_mhz) - float(10.0 * np.log10(4.0 * np.pi * r_m**2))
+
+
+def pfd_eirp_density_dbw_per_mhz(pfd_const_dbw_per_m2_per_mhz: float, r_km) -> torch.Tensor:
+    """EIRP density (dBW/MHz) toward a point at range ``r`` under PFD-constant steering."""
+    return float(pfd_const_dbw_per_m2_per_mhz) + pfd_spreading_db(r_km)

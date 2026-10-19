@@ -48,10 +48,12 @@ constellations:
           freq_ghz: 12.0
           bandwidth_mhz: 240.0
           system_noise_temp_k: 150.0
+          beam_steering: pfd_constant
+          pfd_anchor_elevation_deg: 25.0
           source: >-
             WORST-CASE (max) convention. peak_gain_dbi: SpaceX Gen2 Ku-band
-            maximum antenna gain 44 dBi, FCC-22-91A1 (2022) para. 190.
-            eirp_density_dbw_per_mhz: UNIT-CORRECTED from FCC-22-91A1 para. 191.
+            maximum antenna gain 44 dBi, FCC-22-91A1 (2022) para. 42.
+            eirp_density_dbw_per_mhz: UNIT-CORRECTED from FCC-22-91A1 para. 42.
             The order prints "maximum EIRP density between -11.9 dBw/MHz and
             -8.3 dBw/MHz", but 47 CFR Part 25 specifies Ku-band (below 15 GHz)
             EIRP density per 4 kHz, and -8.3 is a PER-4-kHz EIRP: SpaceX's 2016
@@ -66,10 +68,17 @@ constellations:
             downlink 10.7-12.7 GHz. bandwidth_mhz: Starlink Ku channel, emission
             designator 240MD7W (SpaceX FCC filings). system_noise_temp_k:
             ASSUMED terminal value.
-            PFD: SpaceX steers the beam while adjusting power to keep the surface
-            PFD constant (FCC-22-91A1 para. 192); the pfd_constant screening
-            option models this by scaling the interferer EIRP with slant range so
-            the ground PFD stays at its nadir value.
+            beam_steering: PFD-CONSTANT is the primary Starlink Ku model. SpaceX
+            "adjusts power to maintain a constant PFD on the surface of the Earth"
+            as the beam steers (FCC-22-91A1 para. 42); the 10.7-11.7 GHz Ku
+            operations are authorized up to the section 25.208(b) PFD limits
+            (FCC-22-91A1 para. 43; 47 CFR 25.208(b): -140 dBW/m^2 per 4 kHz, or
+            -116 dBW/m^2 per 1 MHz, for 25-90 deg). pfd_anchor_elevation_deg:
+            25 deg, the Starlink Ku minimum service elevation below 62 deg N
+            latitude (FCC-22-91A1 para. 42/45; 5 deg at/above 62 deg N). The
+            EIRP_max at this edge fixes PFD_const = EIRP_max - 10log10(4 pi
+            r_max^2), so EIRP density grows as 10log10(4 pi r^2) with slant range
+            r and the received interference is range-independent.
       - name: STARLINK-s2-540-53
         altitude_km: 540.0
         inclination_deg: 53.2
@@ -121,7 +130,11 @@ constellations:
           freq_ghz: 19.8
           bandwidth_mhz: 500.0
           system_noise_temp_k: 200.0
+          beam_steering: constant_eirp
           source: >-
+            beam_steering: constant-EIRP, ASSUMED (no Kuiper filing in our record
+            states PFD-constant power control, and the Kuiper Ka-band user
+            downlink does not overlap the Starlink/OneWeb Ku co-frequency pair).
             peak_gain_dbi / beamwidth_deg / freq_ghz: Kuiper experimental STA
             satellite user beam 35 dBi, 2.8 deg 3-dB spot beam at 19.8 GHz,
             apps.fcc.gov/els/GetAtt.html?id=347260 (19.6-20.1 GHz).
@@ -168,7 +181,11 @@ constellations:
           freq_ghz: 12.0
           bandwidth_mhz: 125.0
           system_noise_temp_k: 200.0
+          beam_steering: constant_eirp
           source: >-
+            beam_steering: constant-EIRP, ASSUMED. The Starlink-specific
+            PFD-constant power control (FCC-22-91A1 para. 42) has no cited OneWeb
+            equivalent in our record, so ONEWEB-as-interferer keeps constant EIRP.
             peak_gain_dbi / beamwidth_deg: ASSUMED (OneWeb user-beam values; no
             citable per-beam value, FCC-17-77 only references binary Ku/Ka
             antenna-gain mask files). eirp_density_dbw_per_mhz: Del Portillo et

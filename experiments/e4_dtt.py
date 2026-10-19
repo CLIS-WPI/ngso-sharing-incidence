@@ -25,12 +25,15 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--results-root", type=Path, default=REPO_ROOT / "results")
     parser.add_argument("--diversity-fspl", choices=("interferer", "victim"), default=None,
                         help="diversity path loss: 'interferer' (default) or legacy 'victim'")
-    parser.add_argument("--pfd-constant", action="store_true", default=None,
-                        help="model PFD-constant interferer beam steering")
+    parser.add_argument("--steering", choices=("config", "constant_eirp", "pfd_constant"),
+                        default=None,
+                        help="interferer beam steering: 'config' (default, per-beam), "
+                             "'constant_eirp' or 'pfd_constant'")
     args = parser.parse_args(argv)
 
+    steering = None if args.steering in (None, "config") else args.steering
     run_dir = run_e4(args.config, args.results_root, diversity_fspl=args.diversity_fspl,
-                     pfd_constant=args.pfd_constant)
+                     steering=steering)
     print(f"[e4] run complete: {run_dir}")
     return 0
 

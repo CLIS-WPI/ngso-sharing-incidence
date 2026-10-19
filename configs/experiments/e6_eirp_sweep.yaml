@@ -1,25 +1,29 @@
 # Experiment 6 - sensitivity of the Delta T/T results to the EIRP assumptions.
 #
 # Each case overrides one or more systems' Ku user-downlink EIRP density (dBW/MHz)
-# and selects constant-EIRP or PFD-constant interferer beam steering.  The
-# as-deployed CelesTrak snapshot is held fixed; replication is over independent
-# simulation start times (constellation fixed).  Cases:
+# and selects the interferer beam-steering model.  The as-deployed CelesTrak
+# snapshot is held fixed; replication is over independent simulation start times
+# (constellation fixed).  Cases:
 #
 #   primary              Starlink +15.68 (FCC-22-91A1 Ku, unit-corrected from
-#                        dBW/4kHz), OneWeb +10.6 (Del Portillo 2019, Table 3).
+#                        dBW/4kHz), OneWeb +10.6 (Del Portillo 2019, Table 3);
+#                        steering: config -> Starlink PFD-constant (primary),
+#                        OneWeb constant-EIRP (ASSUMED).
 #   starlink_low_end     Starlink at the low end of the filed 4-kHz range
 #                        (-11.9 dBW/4kHz = +12.1 dBW/MHz).
 #   delportillo_common   both systems from Del Portillo 2019 (Starlink +12.7).
 #   oneweb_cn_calibrated OneWeb at the earlier C/N-target calibration (+0.2),
 #                        retained only as a sensitivity row (not a design rule).
-#   primary_pfd_constant the primary values with PFD-constant beam steering.
+#   starlink_constant_eirp the primary EIRPs with Starlink forced to
+#                        constant-EIRP steering (the constant-EIRP sensitivity).
 name: e6_eirp_sweep
 description: >
   Sensitivity of both ordered co-frequency user-downlink Delta T/T exceedance
   fractions and the qualified 25.261(d) throughput degradation to the EIRP
   assumptions: the FCC unit-corrected Starlink value, the low end of the filed
   range, a single common (Del Portillo) source for both systems, the retired
-  C/N-calibrated OneWeb value, and constant-EIRP vs PFD-constant beam steering.
+  C/N-calibrated OneWeb value, and PFD-constant (primary) vs constant-EIRP
+  Starlink beam steering.
 constellations: [STARLINK, ONEWEB]
 stations: stations.yaml
 seed: 0
@@ -40,17 +44,17 @@ params:
   cases:
     - name: primary
       eirp_dbw_per_mhz: {STARLINK: 15.68, ONEWEB: 10.6}
-      pfd_constant: false
+      steering: config
     - name: starlink_low_end
       eirp_dbw_per_mhz: {STARLINK: 12.1, ONEWEB: 10.6}
-      pfd_constant: false
+      steering: config
     - name: delportillo_common
       eirp_dbw_per_mhz: {STARLINK: 12.7, ONEWEB: 10.6}
-      pfd_constant: false
+      steering: config
     - name: oneweb_cn_calibrated
       eirp_dbw_per_mhz: {STARLINK: 15.68, ONEWEB: 0.2}
-      pfd_constant: false
-    - name: primary_pfd_constant
+      steering: config
+    - name: starlink_constant_eirp
       eirp_dbw_per_mhz: {STARLINK: 15.68, ONEWEB: 10.6}
-      pfd_constant: true
+      steering: constant_eirp
   source: ASSUMED

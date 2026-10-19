@@ -37,6 +37,8 @@ class Beam:
     bandwidth_mhz: float
     system_noise_temp_k: float
     source: str
+    beam_steering: str = "constant_eirp"
+    pfd_anchor_elevation_deg: float | None = None
 
     _REQUIRED = (
         "peak_gain_dbi",
@@ -47,6 +49,7 @@ class Beam:
         "system_noise_temp_k",
         "source",
     )
+    _STEERING = ("constant_eirp", "pfd_constant")
 
     @classmethod
     def from_dict(cls, d: dict[str, Any]) -> "Beam":
@@ -56,6 +59,16 @@ class Beam:
         for key in ("beamwidth_deg", "freq_ghz", "bandwidth_mhz", "system_noise_temp_k"):
             if float(d[key]) <= 0.0:
                 raise ConfigError(f"beam {key!r} must be positive: {d!r}")
+        steering = str(d.get("beam_steering", "constant_eirp"))
+        if steering not in cls._STEERING:
+            raise ConfigError(
+                f"beam beam_steering must be one of {cls._STEERING!r}: {steering!r}"
+            )
+        anchor = d.get("pfd_anchor_elevation_deg")
+        if steering == "pfd_constant" and anchor is None:
+            raise ConfigError(
+                "beam beam_steering 'pfd_constant' requires 'pfd_anchor_elevation_deg'"
+            )
         return cls(
             peak_gain_dbi=float(d["peak_gain_dbi"]),
             beamwidth_deg=float(d["beamwidth_deg"]),
@@ -64,6 +77,8 @@ class Beam:
             bandwidth_mhz=float(d["bandwidth_mhz"]),
             system_noise_temp_k=float(d["system_noise_temp_k"]),
             source=str(d["source"]),
+            beam_steering=steering,
+            pfd_anchor_elevation_deg=float(anchor) if anchor is not None else None,
         )
 
 

@@ -37,8 +37,9 @@ def newest_where(prefix: str, **status_kv) -> Path | None:
     """Newest run of ``prefix`` whose ``status.json`` matches every key/value.
 
     Used to pin the headline E4/E5 macros to the primary configuration
-    (correct interferer-range diversity, constant-EIRP) when sensitivity reruns
-    (legacy ``diversity_fspl=victim``, ``pfd_constant=true``) share the prefix.
+    (correct interferer-range diversity, per-beam steering: Starlink
+    PFD-constant / OneWeb constant-EIRP) when sensitivity reruns
+    (legacy ``diversity_fspl=victim``, forced ``steering``) share the prefix.
     """
     runs = sorted(p for p in RESULTS.glob(f"{prefix}_*") if p.is_dir())
     for run in reversed(runs):
@@ -144,7 +145,7 @@ def main() -> int:
     # availability is >= 99% (the domain in which the rule is defined);
     # `avail0_frac_mean` is the mean over phasings/longitudes of the fraction of
     # time the victim link keeps C/N >= 0 dB.
-    e4 = newest_where("e4_dtt", diversity_fspl="interferer", pfd_constant=False)
+    e4 = newest_where("e4_dtt", diversity_fspl="interferer", steering=None)
     if e4 is not None:
         d = pd.read_csv(e4 / "summary_dtt.csv")
         st4 = json.loads((e4 / "status.json").read_text())
@@ -201,7 +202,7 @@ def main() -> int:
         add("UnavailIncCi", _pct(_ci_at(qb, "unavail_incr_frac"), 3) if len(qb) else "n/a", e4)
 
     # --- E5: as-deployed CelesTrak snapshot ---
-    e5 = newest_where("e5_as_deployed", diversity_fspl="interferer", pfd_constant=False)
+    e5 = newest_where("e5_as_deployed", diversity_fspl="interferer", steering=None)
     if e5 is not None:
         st = json.loads((e5 / "status.json").read_text())
         add("NStarlinkRaw", str(int(st["n_sats_raw"]["STARLINK"])), e5)
@@ -320,7 +321,7 @@ def main() -> int:
             "starlink_low_end": "Low",
             "delportillo_common": "DpCommon",
             "oneweb_cn_calibrated": "CnCal",
-            "primary_pfd_constant": "Pfd",
+            "starlink_constant_eirp": "ConstEirp",
         }
         for case, tag in case_tags.items():
             f0 = cg(case, VICTIM, 0)

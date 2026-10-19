@@ -36,7 +36,7 @@ from .geometry import station_ecef_spherical
 from .io import new_run_dir
 from .rules import BAND_SPLIT_FRACTION
 from .sanity import analytic_density_per_deg, analytic_visible_count, max_relative_deviation
-from .dtt_screen import screen_pair_dtt
+from .dtt_screen import VARIANT_NAMES, screen_pair_dtt
 from .screening import ScreenConfig, screen_pair, system_visibility
 from .systems import build_as_deployed_system, build_system
 from .tle import celestrak_url, common_epoch_jd, fetch_group, filter_operational, parse_tle
@@ -871,14 +871,16 @@ def run_e4(
     n_phasings: int | None = None,
     time_step_s: float | None = None,
     duration_s: float | None = None,
-    pfd_constant: bool | None = None,
+    steering: str | None = None,
     diversity_fspl: str | None = None,
 ) -> Path:
-    """Run E4 (47 CFR 25.261(d) Delta T/T screening + throughput degradation).
+    """Run E4 (47 CFR 25.261(c)/(d) Delta T/T screening + throughput degradation).
 
     The geometric theta proxy stays in E1/E2 as the secondary comparison; this
     experiment uses the regulatory power criterion for every co-frequency
-    user-downlink pair and sweeps the ASSUMED terminal aperture.
+    user-downlink pair and sweeps the ASSUMED terminal aperture.  ``steering``
+    overrides the per-beam interferer beam-steering model (``None`` uses each
+    interferer beam's configured value).
     """
     sim, exp, grid_cfg, grid, sanity_grid = _load_inputs(exp_path, repo_root)
     bands = load_bands(repo_root / "configs" / "bands.yaml")
@@ -893,7 +895,8 @@ def run_e4(
     device = device_str()
     radius = sim.earth.radius_km
     jd = epoch_jd(sim)
-    pfd_const = bool(p.get("pfd_constant", False)) if pfd_constant is None else bool(pfd_constant)
+    steer = (p.get("steering") if steering is None else steering)
+    steer = None if steer in (None, "config", "null") else str(steer)
     div_fspl = (str(p.get("diversity_fspl", "interferer"))
                 if diversity_fspl is None else str(diversity_fspl))
 
@@ -937,13 +940,11 @@ def run_e4(
                     systems[a], systems[b], vis[a]["max_visible"], vis[b]["max_visible"],
                     grid.ecef, grid.up, times, victim_beam, interf_beam, freq, rx_peak, diam,
                     lb.implementation_margin_db, min_el, radius, jd, device=device, chunk=chunk,
-                    pattern=lb.pattern, pfd_constant=pfd_const, diversity_fspl=div_fspl,
+                    pattern=lb.pattern, steering=steer, diversity_fspl=div_fspl,
                 )
-                for vi in (0, 1):
-                    unavail_int = (res["unavail_nodiv_worst_frac"] if vi == 0
-                                   else res["unavail_nodiv_colo_frac"])
-                    unavail_incr = (res["unavail_incr_worst_frac"] if vi == 0
-                                    else res["unavail_incr_colo_frac"])
+                dtt_by_var = (res["dtt_realistic_mean"], res["dtt_colo_mean"],
+                              res["dtt_upper_mean"])
+                for vi in range(3):
                     for gi in range(grid.ecef.shape[0]):
                         r0 = res["r0_mean"][gi]
                         r1i = res["r_int_mean"][vi][gi]
@@ -961,15 +962,15 @@ def run_e4(
                              "cn0_median": float(res["cn0_median"][gi]),
                              "cn0_p10": float(res["cn0_p10"][gi]),
                              "avail0_frac": float(res["avail0_frac"][gi]),
-                             "dtt_mean": float(res["dtt_colo_mean"][gi] if vi == 1
-                                               else res["dtt_worst_mean"][gi]),
+                             "dtt_mean": float(dtt_by_var[vi][gi]),
                              "r0_mean": float(r0), "r_int_mean": float(r1i),
                              "r_div_mean": float(r1d),
                              "degradation_nodiv": 1.0 - float(r1i) / float(r0) if r0 else np.nan,
                              "degradation_div": 1.0 - float(r1d) / float(r0) if r0 else np.nan,
                              "unavail0_frac": float(res["unavail0_frac"][gi]),
-                             "unavail_int_frac": float(unavail_int[gi]),
-                             "unavail_incr_frac": float(unavail_incr[gi])}
+                             "unavail_int_frac": float(res["unavail_nodiv_frac"][vi][gi]),
+                             "unavail_incr_frac": float(res["unavail_incr_nodiv_frac"][vi][gi]),
+                             "unavail_incr_div_frac": float(res["unavail_incr_div_frac"][vi][gi])}
                         )
     df = pd.DataFrame(rows)
     df.to_parquet(run_dir / "raw_dtt.parquet", index=False)
@@ -978,7 +979,7 @@ def run_e4(
     summ = summarise(
         df, ("event_frac", "unres_frac", "served_frac", "cn0_mean", "cn0_median", "cn0_p10",
              "avail0_frac", "dtt_mean", "degradation_nodiv", "degradation_div",
-             "unavail0_frac", "unavail_int_frac", "unavail_incr_frac"),
+             "unavail0_frac", "unavail_int_frac", "unavail_incr_frac", "unavail_incr_div_frac"),
         keys,
     )
     summ.to_csv(run_dir / "summary_dtt.csv", index=False)
@@ -987,7 +988,8 @@ def run_e4(
                 "cn0_median_mean", "cn0_p10_mean", "avail0_frac_mean",
                 "degradation_nodiv_mean", "degradation_nodiv_ci95",
                 "degradation_div_mean", "degradation_div_ci95",
-                "unavail0_frac_mean", "unavail_int_frac_mean", "unavail_incr_frac_mean"]]
+                "unavail0_frac_mean", "unavail_int_frac_mean", "unavail_incr_frac_mean",
+                "unavail_incr_div_frac_mean"]]
     thr.to_csv(run_dir / "summary_throughput.csv", index=False)
 
     _write_json(run_dir, "status.json",
@@ -995,7 +997,9 @@ def run_e4(
                  "duration_s": dur, "min_elevation_deg": min_el, "device": device,
                  "dtt_threshold": 0.06, "diameter_sweep_m": lb.diameter_sweep_m,
                  "pattern": lb.pattern, "implementation_margin_db": lb.implementation_margin_db,
-                 "pfd_constant": pfd_const, "diversity_fspl": div_fspl,
+                 "steering": steer, "diversity_fspl": div_fspl,
+                 "beam_steering": {n: sim.systems[n].shells[0].beam.beam_steering
+                                   for n in exp.constellations},
                  "beam_eirp_dbw_per_mhz": {
                      n: float(sim.systems[n].shells[0].beam.eirp_density_dbw_per_mhz)
                      for n in exp.constellations},
@@ -1060,7 +1064,7 @@ def run_e5(
     n_start_times: int | None = None,
     time_step_s: float | None = None,
     duration_s: float | None = None,
-    pfd_constant: bool | None = None,
+    steering: str | None = None,
     diversity_fspl: str | None = None,
 ) -> Path:
     """Run E5 (Phase 3b: as-deployed CelesTrak TLE scenario).
@@ -1086,7 +1090,8 @@ def run_e5(
     device = device_str()
     radius = sim.earth.radius_km
     lat_bins = np.arange(-90.0, 90.0 + 1e-9, 5.0)
-    pfd_const = bool(p.get("pfd_constant", False)) if pfd_constant is None else bool(pfd_constant)
+    steer = (p.get("steering") if steering is None else steering)
+    steer = None if steer in (None, "config", "null") else str(steer)
     div_fspl = (str(p.get("diversity_fspl", "interferer"))
                 if diversity_fspl is None else str(diversity_fspl))
 
@@ -1154,10 +1159,12 @@ def run_e5(
                     systems[a], systems[b], vis[a]["max_visible"], vis[b]["max_visible"],
                     grid.ecef, grid.up, times, victim_beam, interf_beam, freq, rx_peak, diam,
                     lb.implementation_margin_db, min_el, radius, epoch, device=device,
-                    chunk=chunk, pattern=lb.pattern, pfd_constant=pfd_const,
+                    chunk=chunk, pattern=lb.pattern, steering=steer,
                     diversity_fspl=div_fspl,
                 )
-                for vi in (0, 1):
+                dtt_by_var = (dres["dtt_realistic_mean"], dres["dtt_colo_mean"],
+                              dres["dtt_upper_mean"])
+                for vi in range(3):
                     for g in range(grid.ecef.shape[0]):
                         r0 = dres["r0_mean"][g]
                         r1i = dres["r_int_mean"][vi][g]
@@ -1173,14 +1180,12 @@ def run_e5(
                              "cn0_median": float(dres["cn0_median"][g]),
                              "cn0_p10": float(dres["cn0_p10"][g]),
                              "avail0_frac": float(dres["avail0_frac"][g]),
-                             "dtt_mean": float(dres["dtt_worst_mean"][g] if vi == 0
-                                               else dres["dtt_colo_mean"][g]),
+                             "dtt_mean": float(dtt_by_var[vi][g]),
                              "degradation_nodiv": 1.0 - float(r1i) / float(r0) if r0 else np.nan,
                              "degradation_div": 1.0 - float(r1d) / float(r0) if r0 else np.nan,
                              "unavail0_frac": float(dres["unavail0_frac"][g]),
-                             "unavail_incr_frac": float(
-                                 (dres["unavail_incr_worst_frac"] if vi == 0
-                                  else dres["unavail_incr_colo_frac"])[g])}
+                             "unavail_incr_frac": float(dres["unavail_incr_nodiv_frac"][vi][g]),
+                             "unavail_incr_div_frac": float(dres["unavail_incr_div_frac"][vi][g])}
                         )
 
     ev = pd.DataFrame(event_rows)
@@ -1195,7 +1200,7 @@ def run_e5(
     dtt_s = summarise(
         dtt, ("event_frac", "unres_frac", "cn0_mean", "cn0_median", "cn0_p10", "avail0_frac",
               "dtt_mean", "degradation_nodiv", "degradation_div",
-              "unavail0_frac", "unavail_incr_frac"),
+              "unavail0_frac", "unavail_incr_frac", "unavail_incr_div_frac"),
         ["system_a", "system_b", "diameter_m", "variant", "latitude_deg"],
     )
     dtt_s.to_csv(run_dir / "summary_dtt.csv", index=False)
@@ -1212,7 +1217,9 @@ def run_e5(
                   "operational_altitude_km": {n: tle_meta["groups"][n]["operational_band_km"]
                                               for n in exp.constellations},
                   "dtt_threshold": 0.06, "diameter_sweep_m": lb.diameter_sweep_m,
-                  "pfd_constant": pfd_const, "diversity_fspl": div_fspl,
+                  "steering": steer, "diversity_fspl": div_fspl,
+                  "beam_steering": {n: systems[n].shells[0].beam.beam_steering
+                                    for n in exp.constellations},
                   "beam_eirp_dbw_per_mhz": {
                       n: float(systems[n].shells[0].beam.eirp_density_dbw_per_mhz)
                       for n in exp.constellations},
@@ -1251,7 +1258,8 @@ def run_e6(
                 "name": str(c.get("name", f"case{i}")),
                 "eirp": {str(k): float(v)
                          for k, v in (c.get("eirp_dbw_per_mhz") or {}).items()},
-                "pfd_constant": bool(c.get("pfd_constant", False)),
+                "steering": (None if c.get("steering") in (None, "config", "null")
+                             else str(c.get("steering"))),
             }
             for i, c in enumerate(cases_raw)
         ]
@@ -1259,7 +1267,8 @@ def run_e6(
         target = str(p.get("sweep_system", "ONEWEB"))
         cases = [
             {"name": f"{target}_{float(x):+.2f}", "eirp": {target: float(x)},
-             "pfd_constant": bool(p.get("pfd_constant", False))}
+             "steering": (None if p.get("steering") in (None, "config", "null")
+                          else str(p.get("steering")))}
             for x in p.get("eirp_sweep_dbw_per_mhz", [-26.0, -20.0, -14.0, -8.3])
         ]
     n_st = int(n_start_times if n_start_times is not None else p.get("n_start_times", 4))
@@ -1321,21 +1330,24 @@ def run_e6(
                         grid.ecef, grid.up, times, victim_beam, interf_beam, freq, rx_peak,
                         diam, lb.implementation_margin_db, min_el, radius, epoch,
                         device=device, chunk=chunk, pattern=lb.pattern,
-                        pfd_constant=case["pfd_constant"],
+                        steering=case["steering"],
                     )
                     r0 = dres["r0_mean"]
                     avail0 = dres["avail0_frac"]
                     qual = avail0 >= 0.99
-                    for vi in (0, 1):
+                    dtt_by_var = (dres["dtt_realistic_mean"], dres["dtt_colo_mean"],
+                                  dres["dtt_upper_mean"])
+                    for vi in range(3):
                         ef = dres["event_frac"][vi]
                         un = dres["unres_frac"][vi]
-                        dtt = (dres["dtt_worst_mean"] if vi == 0
-                               else dres["dtt_colo_mean"])
+                        dtt = dtt_by_var[vi]
                         degr = np.where(r0 > 0.0, 1.0 - dres["r_int_mean"][vi] / np.where(r0 > 0.0, r0, 1.0), np.nan)
+                        degr_d = np.where(r0 > 0.0, 1.0 - dres["r_div_mean"][vi] / np.where(r0 > 0.0, r0, 1.0), np.nan)
+                        una_d = dres["unavail_incr_div_frac"][vi]
                         dq = degr[qual]
                         rows.append({
                             "case": case["name"],
-                            "pfd_constant": case["pfd_constant"],
+                            "steering": (case["steering"] or "config"),
                             "starlink_eirp_dbw_per_mhz": case["eirp"].get("STARLINK", np.nan),
                             "oneweb_eirp_dbw_per_mhz": case["eirp"].get("ONEWEB", np.nan),
                             "phasing": k,
@@ -1352,11 +1364,17 @@ def run_e6(
                             "degr_max": float(np.nanmax(degr)) if np.any(np.isfinite(degr)) else np.nan,
                             "degr_max_qual": (float(np.nanmax(dq))
                                               if dq.size and np.any(np.isfinite(dq)) else np.nan),
+                            "degr_div_max": float(np.nanmax(degr_d)) if np.any(np.isfinite(degr_d)) else np.nan,
+                            "degr_div_max_qual": (float(np.nanmax(degr_d[qual]))
+                                                  if dq.size and np.any(np.isfinite(degr_d[qual])) else np.nan),
+                            "unavail_div_max": float(np.nanmax(una_d)) if np.any(np.isfinite(una_d)) else np.nan,
+                            "unavail_div_max_qual": (float(np.nanmax(una_d[qual]))
+                                                     if dq.size and np.any(np.isfinite(una_d[qual])) else np.nan),
                         })
 
     df = pd.DataFrame(rows)
     df.to_parquet(run_dir / "raw_eirp_sweep.parquet", index=False)
-    grp = ["case", "pfd_constant", "starlink_eirp_dbw_per_mhz", "oneweb_eirp_dbw_per_mhz",
+    grp = ["case", "steering", "starlink_eirp_dbw_per_mhz", "oneweb_eirp_dbw_per_mhz",
            "victim", "interferer", "diameter_m", "variant"]
     sw = df.groupby(grp, as_index=False, dropna=False).agg(
         event_frac_mean=("event_frac_mean", "mean"),
@@ -1369,6 +1387,10 @@ def run_e6(
         n_qual_min=("n_qual_stations", "min"),
         degr_max=("degr_max", "max"),
         degr_max_qual=("degr_max_qual", "max"),
+        degr_div_max=("degr_div_max", "max"),
+        degr_div_max_qual=("degr_div_max_qual", "max"),
+        unavail_div_max=("unavail_div_max", "max"),
+        unavail_div_max_qual=("unavail_div_max_qual", "max"),
     )
 
     def _ci95(s: pd.Series) -> float:
@@ -1380,6 +1402,7 @@ def run_e6(
     ci = df.groupby(grp, as_index=False, dropna=False).agg(
         event_frac_mean_ci95=("event_frac_mean", _ci95),
         degr_max_qual_ci95=("degr_max_qual", _ci95),
+        degr_div_max_qual_ci95=("degr_div_max_qual", _ci95),
     )
     sw = sw.merge(ci, on=grp, how="left")
     sw.to_csv(run_dir / "summary_eirp_sweep.csv", index=False)

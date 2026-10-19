@@ -16,9 +16,10 @@ params:
   time_step_s: 10          # propagation / detection sampling step
   duration_s: 86400        # simulated window (24 h)
   chunk: 64                # time-chunk size for the batched GPU pipeline
-  # Interferer beam-steering model: constant-EIRP (false) or PFD-constant (true,
-  # EIRP scaled with slant range so the ground PFD stays at its nadir value).
-  pfd_constant: false
+  # Interferer beam-steering model: null/config = per-beam (STARLINK PFD-constant
+  # is the primary Ku model, ONEWEB constant-EIRP ASSUMED); "constant_eirp" or
+  # "pfd_constant" force one model for the sensitivity runs.
+  steering: config
   # Diversity path-loss: "interferer" (station->interferer range, correct);
   # "victim" reproduces the earlier victim-range approximation for attribution.
   diversity_fspl: interferer

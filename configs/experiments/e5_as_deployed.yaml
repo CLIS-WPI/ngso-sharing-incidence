@@ -29,8 +29,10 @@ params:
   operational_altitude_km:
     STARLINK: [450, 600]
     ONEWEB: [1100, 1300]
-  # Interferer beam-steering model: constant-EIRP (false) or PFD-constant (true).
-  pfd_constant: false
+  # Interferer beam-steering model: config = per-beam (STARLINK PFD-constant is
+  # the primary Ku model, ONEWEB constant-EIRP ASSUMED); constant_eirp or
+  # pfd_constant force one model for the sensitivity runs.
+  steering: config
   # Diversity path-loss: "interferer" (correct) or "victim" (legacy sensitivity).
   diversity_fspl: interferer
   source: ASSUMED
