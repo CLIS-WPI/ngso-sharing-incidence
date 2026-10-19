@@ -20,6 +20,8 @@ increase at C/N = 0 dB.
 
 from __future__ import annotations
 
+import warnings
+
 import numpy as np
 import torch
 
@@ -76,8 +78,10 @@ def screen_pair_dtt(
     """Screen one ordered pair under the Delta T/T criterion.
 
     Returns per-station ``event_frac``/``unres_frac`` of shape ``[2, G]`` (variants
-    0 worst case, 1 co-located), victim C/N, and accumulator sums for the
-    throughput secondary result (all means are ``sum / n_samples``).
+    0 worst case, 1 co-located), the victim C/N distribution (``cn0_mean``,
+    ``cn0_median``, ``cn0_p10``) and its baseline availability at C/N = 0 dB
+    (``avail0_frac``), and accumulator sums for the throughput secondary result
+    (all means are ``sum / n_samples``).
     """
     g = station_ecef.shape[0]
     t_total = len(times)
@@ -98,9 +102,12 @@ def screen_pair_dtt(
     unavail0 = torch.zeros(g, dtype=torch.float64, device=device)
     unavail_int = {0: torch.zeros(g, dtype=torch.float64, device=device),
                    1: torch.zeros(g, dtype=torch.float64, device=device)}
+    unavail_incr = {0: torch.zeros(g, dtype=torch.float64, device=device),
+                    1: torch.zeros(g, dtype=torch.float64, device=device)}
     cn0_sum = torch.zeros(g, dtype=torch.float64, device=device)
     dtt_colo_sum = torch.zeros(g, dtype=torch.float64, device=device)
     dtt_worst_sum = torch.zeros(g, dtype=torch.float64, device=device)
+    cn0_blocks: list[np.ndarray] = []
 
     for s in range(0, t_total, chunk):
         e = min(s + chunk, t_total)
@@ -183,13 +190,25 @@ def screen_pair_dtt(
             r_int[vi] += (torch.where(event, r1, r0) * served).sum(0)
             r_div[vi] += (torch.where(unres, r1, r0) * served).sum(0)
             unavail_int[vi] += ((cni < 0.0) & event).sum(0).to(torch.float64)
+            # Absolute availability change = A0 - A_int = P(C/N0 >= 0 and C/Nint < 0):
+            # only samples that were available at baseline count as a *new* outage.
+            unavail_incr[vi] += ((cn0 >= 0.0) & (cni < 0.0) & served).sum(0).to(torch.float64)
         r0_sum += (r0 * served).sum(0)
         unavail0 += ((cn0 < 0.0) & served).sum(0).to(torch.float64)
         cn0_sum += (cn0 * served).sum(0)
         dtt_colo_sum += (dtt_c * served).sum(0)
         dtt_worst_sum += (dtt_w * served).sum(0)
+        cn0_blocks.append(
+            torch.where(served, cn0, torch.full_like(cn0, float("nan"))).cpu().numpy()
+        )
 
     n = float(t_total)
+    cn0_all = np.concatenate(cn0_blocks, axis=0) if cn0_blocks else np.empty((0, g))
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", category=RuntimeWarning)
+        cn0_median = np.nanmedian(cn0_all, axis=0) if t_total else np.full(g, np.nan)
+        cn0_p10 = np.nanpercentile(cn0_all, 10.0, axis=0) if t_total else np.full(g, np.nan)
+    avail0_frac = (cn0_all >= 0.0).mean(axis=0) if t_total else np.zeros(g)
     return {
         "event_frac": (event_count / n).cpu().numpy(),
         "unres_frac": (unres_count / n).cpu().numpy(),
@@ -198,10 +217,15 @@ def screen_pair_dtt(
         "r_int_mean": {vi: (r_int[vi] / served_count.clamp(min=1.0)).cpu().numpy() for vi in (0, 1)},
         "r_div_mean": {vi: (r_div[vi] / served_count.clamp(min=1.0)).cpu().numpy() for vi in (0, 1)},
         "cn0_mean": (cn0_sum / served_count.clamp(min=1.0)).cpu().numpy(),
+        "cn0_median": cn0_median,
+        "cn0_p10": cn0_p10,
+        "avail0_frac": avail0_frac,
         "dtt_colo_mean": (dtt_colo_sum / served_count.clamp(min=1.0)).cpu().numpy(),
         "dtt_worst_mean": (dtt_worst_sum / served_count.clamp(min=1.0)).cpu().numpy(),
         "unavail_nodiv_colo_frac": (unavail_int[1] / n).cpu().numpy(),
         "unavail_nodiv_worst_frac": (unavail_int[0] / n).cpu().numpy(),
+        "unavail_incr_colo_frac": (unavail_incr[1] / n).cpu().numpy(),
+        "unavail_incr_worst_frac": (unavail_incr[0] / n).cpu().numpy(),
         "unavail0_frac": (unavail0 / n).cpu().numpy(),
         "n_samples": t_total,
     }

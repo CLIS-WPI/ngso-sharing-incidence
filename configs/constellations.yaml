@@ -150,12 +150,21 @@ constellations:
         beam:
           peak_gain_dbi: 30.0
           beamwidth_deg: 3.0
-          eirp_density_dbw_per_mhz: -20.0
+          eirp_density_dbw_per_mhz: 0.2
           freq_ghz: 12.0
           bandwidth_mhz: 125.0
           system_noise_temp_k: 200.0
           source: >-
-            ASSUMED. No citable OneWeb user-beam gain / beamwidth / EIRP value
-            found; FCC-17-77 only references binary Ku/Ka antenna-gain mask files
-            (Petition, "Ku masks"/"Ka masks"). Ku-band downlink is nominally
-            10.7-12.7 GHz.
+            ASSUMED (calibrated). OneWeb user-beam peak gain / beamwidth remain
+            ASSUMED (no citable per-beam value; FCC-17-77 only references binary
+            Ku/Ka antenna-gain mask files). The EIRP density is calibrated in this
+            model's own scale by scripts/calibrate_oneweb_eirp.py: the value that
+            gives a time-median clear-sky C/N of 5 dB (target band 4-6 dB) for the
+            0.6 m reference terminal at 45 deg in the shared Ku user downlink, so
+            the OneWeb link closes with positive margin (baseline availability
+            ~100%). Absolute public values disagree by >10 dB and mix per-beam,
+            per-MHz and PFD quantities (Eutelsat/OneWeb ITU-submitted analysis,
+            FCC IBFS SAT-MOD-20181108-00083, gives +10.6 dBW/MHz; Del Portillo et
+            al. 2019 give ~+10.6 dBW/MHz for OneWeb vs ~+12.7 dBW/MHz for Starlink
+            from the same FCC filings, ~2 dB apart), so no single public value is
+            imported. Ku-band downlink is nominally 10.7-12.7 GHz.

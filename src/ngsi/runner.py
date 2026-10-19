@@ -937,6 +937,8 @@ def run_e4(
                 for vi in (0, 1):
                     unavail_int = (res["unavail_nodiv_worst_frac"] if vi == 0
                                    else res["unavail_nodiv_colo_frac"])
+                    unavail_incr = (res["unavail_incr_worst_frac"] if vi == 0
+                                    else res["unavail_incr_colo_frac"])
                     for gi in range(grid.ecef.shape[0]):
                         r0 = res["r0_mean"][gi]
                         r1i = res["r_int_mean"][vi][gi]
@@ -951,6 +953,9 @@ def run_e4(
                              "unres_frac": float(res["unres_frac"][vi, gi]),
                              "served_frac": float(res["served_frac"][gi]),
                              "cn0_mean": float(res["cn0_mean"][gi]),
+                             "cn0_median": float(res["cn0_median"][gi]),
+                             "cn0_p10": float(res["cn0_p10"][gi]),
+                             "avail0_frac": float(res["avail0_frac"][gi]),
                              "dtt_mean": float(res["dtt_colo_mean"][gi] if vi == 1
                                                else res["dtt_worst_mean"][gi]),
                              "r0_mean": float(r0), "r_int_mean": float(r1i),
@@ -958,23 +963,26 @@ def run_e4(
                              "degradation_nodiv": 1.0 - float(r1i) / float(r0) if r0 else np.nan,
                              "degradation_div": 1.0 - float(r1d) / float(r0) if r0 else np.nan,
                              "unavail0_frac": float(res["unavail0_frac"][gi]),
-                             "unavail_int_frac": float(unavail_int[gi])}
+                             "unavail_int_frac": float(unavail_int[gi]),
+                             "unavail_incr_frac": float(unavail_incr[gi])}
                         )
     df = pd.DataFrame(rows)
     df.to_parquet(run_dir / "raw_dtt.parquet", index=False)
     keys = ["system_a", "system_b", "link_type", "shared_freq_ghz", "diameter_m", "variant",
             "latitude_deg"]
     summ = summarise(
-        df, ("event_frac", "unres_frac", "served_frac", "cn0_mean", "dtt_mean",
-             "degradation_nodiv", "degradation_div", "unavail0_frac", "unavail_int_frac"),
+        df, ("event_frac", "unres_frac", "served_frac", "cn0_mean", "cn0_median", "cn0_p10",
+             "avail0_frac", "dtt_mean", "degradation_nodiv", "degradation_div",
+             "unavail0_frac", "unavail_int_frac", "unavail_incr_frac"),
         keys,
     )
     summ.to_csv(run_dir / "summary_dtt.csv", index=False)
 
     thr = summ[["system_a", "system_b", "diameter_m", "variant", "latitude_deg",
+                "cn0_median_mean", "cn0_p10_mean", "avail0_frac_mean",
                 "degradation_nodiv_mean", "degradation_nodiv_ci95",
                 "degradation_div_mean", "degradation_div_ci95",
-                "unavail0_frac_mean", "unavail_int_frac_mean"]]
+                "unavail0_frac_mean", "unavail_int_frac_mean", "unavail_incr_frac_mean"]]
     thr.to_csv(run_dir / "summary_throughput.csv", index=False)
 
     _write_json(run_dir, "status.json",
@@ -982,6 +990,9 @@ def run_e4(
                  "duration_s": dur, "min_elevation_deg": min_el, "device": device,
                  "dtt_threshold": 0.06, "diameter_sweep_m": lb.diameter_sweep_m,
                  "pattern": lb.pattern, "implementation_margin_db": lb.implementation_margin_db,
+                 "beam_eirp_dbw_per_mhz": {
+                     n: float(sim.systems[n].shells[0].beam.eirp_density_dbw_per_mhz)
+                     for n in exp.constellations},
                  "user_downlink_pairs": [list(q) for q in udl_pairs]})
     return run_dir
 
@@ -1147,10 +1158,17 @@ def run_e5(
                              "event_frac": float(dres["event_frac"][vi, g]),
                              "unres_frac": float(dres["unres_frac"][vi, g]),
                              "cn0_mean": float(dres["cn0_mean"][g]),
+                             "cn0_median": float(dres["cn0_median"][g]),
+                             "cn0_p10": float(dres["cn0_p10"][g]),
+                             "avail0_frac": float(dres["avail0_frac"][g]),
                              "dtt_mean": float(dres["dtt_worst_mean"][g] if vi == 0
                                                else dres["dtt_colo_mean"][g]),
                              "degradation_nodiv": 1.0 - float(r1i) / float(r0) if r0 else np.nan,
-                             "degradation_div": 1.0 - float(r1d) / float(r0) if r0 else np.nan}
+                             "degradation_div": 1.0 - float(r1d) / float(r0) if r0 else np.nan,
+                             "unavail0_frac": float(dres["unavail0_frac"][g]),
+                             "unavail_incr_frac": float(
+                                 (dres["unavail_incr_worst_frac"] if vi == 0
+                                  else dres["unavail_incr_colo_frac"])[g])}
                         )
 
     ev = pd.DataFrame(event_rows)
@@ -1163,8 +1181,9 @@ def run_e5(
     dtt = pd.DataFrame(dtt_rows)
     dtt.to_parquet(run_dir / "raw_as_deployed_dtt.parquet", index=False)
     dtt_s = summarise(
-        dtt, ("event_frac", "unres_frac", "cn0_mean", "dtt_mean",
-              "degradation_nodiv", "degradation_div"),
+        dtt, ("event_frac", "unres_frac", "cn0_mean", "cn0_median", "cn0_p10", "avail0_frac",
+              "dtt_mean", "degradation_nodiv", "degradation_div",
+              "unavail0_frac", "unavail_incr_frac"),
         ["system_a", "system_b", "diameter_m", "variant", "latitude_deg"],
     )
     dtt_s.to_csv(run_dir / "summary_dtt.csv", index=False)
@@ -1181,6 +1200,9 @@ def run_e5(
                   "operational_altitude_km": {n: tle_meta["groups"][n]["operational_band_km"]
                                               for n in exp.constellations},
                   "dtt_threshold": 0.06, "diameter_sweep_m": lb.diameter_sweep_m,
+                  "beam_eirp_dbw_per_mhz": {
+                      n: float(systems[n].shells[0].beam.eirp_density_dbw_per_mhz)
+                      for n in exp.constellations},
                   "tle_groups": {n: str(tle_meta["groups"][n]["group"])
                                  for n in exp.constellations},
                   "user_downlink_pairs": [list(q) for q in udl_pairs]})
@@ -1270,11 +1292,16 @@ def run_e6(
                         diam, lb.implementation_margin_db, min_el, radius, epoch,
                         device=device, chunk=chunk, pattern=lb.pattern,
                     )
+                    r0 = dres["r0_mean"]
+                    avail0 = dres["avail0_frac"]
+                    qual = avail0 >= 0.99
                     for vi in (0, 1):
                         ef = dres["event_frac"][vi]
                         un = dres["unres_frac"][vi]
                         dtt = (dres["dtt_worst_mean"] if vi == 0
                                else dres["dtt_colo_mean"])
+                        degr = np.where(r0 > 0.0, 1.0 - dres["r_int_mean"][vi] / np.where(r0 > 0.0, r0, 1.0), np.nan)
+                        dq = degr[qual]
                         rows.append({
                             "eirp_dbw_per_mhz": eirp, "phasing": k,
                             "victim": a, "interferer": b, "diameter_m": float(diam),
@@ -1283,6 +1310,13 @@ def run_e6(
                             "event_frac_max": float(ef.max()),
                             "unres_frac_max": float(un.max()),
                             "dtt_max": float(dtt.max()),
+                            "cn0_median_mean": float(np.nanmean(dres["cn0_median"])),
+                            "cn0_p10_mean": float(np.nanmean(dres["cn0_p10"])),
+                            "avail0_min": float(avail0.min()),
+                            "n_qual_stations": int(qual.sum()),
+                            "degr_max": float(np.nanmax(degr)) if np.any(np.isfinite(degr)) else np.nan,
+                            "degr_max_qual": (float(np.nanmax(dq))
+                                              if dq.size and np.any(np.isfinite(dq)) else np.nan),
                         })
 
     df = pd.DataFrame(rows)
@@ -1295,6 +1329,12 @@ def run_e6(
         event_frac_max=("event_frac_max", "max"),
         unres_frac_max=("unres_frac_max", "max"),
         dtt_max=("dtt_max", "max"),
+        cn0_median_mean=("cn0_median_mean", "mean"),
+        cn0_p10_mean=("cn0_p10_mean", "mean"),
+        avail0_min=("avail0_min", "min"),
+        n_qual_min=("n_qual_stations", "min"),
+        degr_max=("degr_max", "max"),
+        degr_max_qual=("degr_max_qual", "max"),
     )
     sw.to_csv(run_dir / "summary_eirp_sweep.csv", index=False)
 

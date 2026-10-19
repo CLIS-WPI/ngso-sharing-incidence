@@ -48,6 +48,7 @@ def _peak(df: pd.DataFrame, value: str) -> pd.Series:
 def main() -> int:
     macros: list[tuple[str, str]] = []
     sources: list[str] = []
+    oneweb_eirp: float | None = None
 
     def add(name: str, value: str, run: Path | None = None) -> None:
         macros.append((name, value))
@@ -115,10 +116,18 @@ def main() -> int:
                 _num(r.unres_per_served_mean), e3)
 
     # --- E4: 25.261 section (c)/(d) criteria, modelled (as-filed Walker) ---
+    # The 25.261(d) metrics are computed only over cases whose modelled baseline
+    # availability is >= 99% (the domain in which the rule is defined);
+    # `avail0_frac_mean` is the mean over phasings/longitudes of the fraction of
+    # time the victim link keeps C/N >= 0 dB.
     e4 = newest("e4_dtt")
     if e4 is not None:
         d = pd.read_csv(e4 / "summary_dtt.csv")
+        st4 = json.loads((e4 / "status.json").read_text())
+        oneweb_eirp = float(st4["beam_eirp_dbw_per_mhz"]["ONEWEB"])
+        add("OnewebEirpDbw", _num(oneweb_eirp, "{:g}"), e4)
         bind = d[d["system_a"] == VICTIM]
+        rev = d[d["system_a"] != VICTIM]
         add("BindFilWorstPct", _pct(_peak(bind[bind["variant"] == 0], "event_frac_mean")[
             "event_frac_mean"]), e4)
         add("BindFilColoPct", _pct(_peak(bind[bind["variant"] == 1], "event_frac_mean")[
@@ -126,15 +135,40 @@ def main() -> int:
         add("BindFilWorstLat", _num(_peak(bind[bind["variant"] == 0], "event_frac_mean")[
             "latitude_deg"], "{:.0f}"), e4)
         add("BindWithDivPct", _pct(bind["unres_frac_mean"].max(), 3), e4)
-        # Per-aperture worst-case throughput degradation, binding direction.
+        add("BindFilStarWorstPct", _pct(_peak(rev[rev["variant"] == 0], "event_frac_mean")[
+            "event_frac_mean"]), e4)
+        add("BindFilStarColoPct", _pct(_peak(rev[rev["variant"] == 1], "event_frac_mean")[
+            "event_frac_mean"]), e4)
+        # Baseline C/N (median, p10) and availability per direction, worst latitude.
+        for sysn, tag in ((VICTIM, "One"), ("STARLINK", "Star")):
+            dd = d[d["system_a"] == sysn]
+            add(f"BaselineCnMed{tag}Db", _num(dd["cn0_median_mean"].min(), "{:.1f}"), e4)
+            add(f"BaselineCnPTen{tag}Db", _num(dd["cn0_p10_mean"].min(), "{:.1f}"), e4)
+            add(f"BaselineAvail{tag}MinPct", _pct(dd["avail0_frac_mean"].min(), 0), e4)
+            ref = dd[(dd["diameter_m"] == 0.6) & (dd["latitude_deg"] == 45.0)]
+            if sysn == VICTIM and len(ref):
+                add("CalRefCnMedDb", _num(ref["cn0_median_mean"].iloc[0], "{:.1f}"), e4)
+                add("CalRefCnPTenDb", _num(ref["cn0_p10_mean"].iloc[0], "{:.1f}"), e4)
+            tot = dd[["diameter_m", "variant", "latitude_deg"]].drop_duplicates().shape[0]
+            qual = dd[dd["avail0_frac_mean"] >= 0.99]
+            add(f"Qual{tag}Cases", str(int(qual[["diameter_m", "variant", "latitude_deg"]]
+                                            .drop_duplicates().shape[0])), e4)
+            add(f"Qual{tag}Total", str(int(tot)), e4)
+        # Per-aperture worst-case qualified degradation, binding direction.
         for ap in APERTURES:
-            w = bind[(bind["variant"] == 0) & (bind["diameter_m"] == ap)]
-            add(f"DegrFilWorstPct{APERTURE_WORD[ap]}", _pct(w["degradation_nodiv_mean"].max()), e4)
-        st = d[d["system_a"] == "STARLINK"]
-        add("DegrFilStarPct", _pct(st["degradation_nodiv_mean"].max(), 3), e4)
-        add("BaselineAvailStarMinPct", _pct(1.0 - st["unavail0_frac_mean"].max(), 0), e4)
-        add("BaselineAvailOnePct", _pct(1.0 - bind["unavail0_frac_mean"].max(), 0), e4)
-        inc = (bind["unavail_int_frac_mean"] - bind["unavail0_frac_mean"]).max()
+            w = bind[(bind["variant"] == 0) & (bind["diameter_m"] == ap)
+                     & (bind["avail0_frac_mean"] >= 0.99)]
+            add(f"DegrFilWorstPct{APERTURE_WORD[ap]}",
+                _pct(w["degradation_nodiv_mean"].max()) if len(w) else "n/a", e4)
+        qb = bind[(bind["variant"] == 0) & (bind["avail0_frac_mean"] >= 0.99)]
+        add("DegrFilMaxPct", _pct(qb["degradation_nodiv_mean"].max()) if len(qb) else "n/a", e4)
+        qbc = bind[(bind["variant"] == 1) & (bind["avail0_frac_mean"] >= 0.99)]
+        add("DegrFilColoPct", _pct(qbc["degradation_nodiv_mean"].max()) if len(qbc) else "n/a", e4)
+        add("UnavailIncColoPct", _pct(qbc["unavail_incr_frac_mean"].max(), 3)
+            if len(qbc) else "n/a", e4)
+        qs = rev[rev["avail0_frac_mean"] >= 0.99]
+        add("DegrFilStarPct", _pct(qs["degradation_nodiv_mean"].max(), 2) if len(qs) else "n/a", e4)
+        inc = qb["unavail_incr_frac_mean"].max() if len(qb) else 0.0
         add("UnavailIncPct", _pct(max(inc, 0.0), 3), e4)
 
     # --- E5: as-deployed CelesTrak snapshot ---
@@ -156,16 +190,32 @@ def main() -> int:
         add("BindDepColoPct", _pct(cp["event_frac_mean"]), e5)
         add("BindDepColoCi", _pct(cp["event_frac_ci95"]), e5)
         add("BindDepColoLat", _num(cp["latitude_deg"], "{:.0f}"), e5)
+        # Per-aperture worst-case degradation, restricted to cases with >=99%
+        # baseline availability (the 25.261(d) domain).
         for ap in APERTURES:
-            w = bind5[(bind5["variant"] == 0) & (bind5["diameter_m"] == ap)]
-            add(f"DegrDepWorstPct{APERTURE_WORD[ap]}", _pct(w["degradation_nodiv_mean"].max()), e5)
+            w = bind5[(bind5["variant"] == 0) & (bind5["diameter_m"] == ap)
+                      & (bind5["avail0_frac_mean"] >= 0.99)]
+            add(f"DegrDepWorstPct{APERTURE_WORD[ap]}",
+                _pct(w["degradation_nodiv_mean"].max()) if len(w) else "n/a", e5)
+        q5 = bind5[(bind5["variant"] == 0) & (bind5["avail0_frac_mean"] >= 0.99)]
+        add("DegrDepMaxPct", _pct(q5["degradation_nodiv_mean"].max()) if len(q5) else "n/a", e5)
+        add("UnavailIncDepPct", _pct(q5["unavail_incr_frac_mean"].max(), 3) if len(q5) else "n/a", e5)
+        q5c = bind5[(bind5["variant"] == 1) & (bind5["avail0_frac_mean"] >= 0.99)]
+        add("DegrDepColoPct", _pct(q5c["degradation_nodiv_mean"].max()) if len(q5c) else "n/a", e5)
+        add("UnavailIncColoDepPct", _pct(q5c["unavail_incr_frac_mean"].max(), 3)
+            if len(q5c) else "n/a", e5)
+        add("BaselineAvailOneDepPct", _pct(bind5["avail0_frac_mean"].min(), 0), e5)
+        add("BindDepStarWorstPct", _pct(_peak(
+            ddtt[(ddtt["system_a"] == "STARLINK") & (ddtt["variant"] == 0)],
+            "event_frac_mean")["event_frac_mean"]), e5)
         # Aperture sensitivity of the headline binding fraction (worst case).
         peak_by_ap = [bind5[(bind5["variant"] == 0) & (bind5["diameter_m"] == ap)][
             "event_frac_mean"].max() for ap in APERTURES]
         add("BindMinApertureDepPct", _pct(min(peak_by_ap)), e5)
         add("BindMaxApertureDepPct", _pct(max(peak_by_ap)), e5)
-        add("DegrDepStarPct", _pct(ddtt[ddtt["system_a"] == "STARLINK"][
-            "degradation_nodiv_mean"].max(), 3), e5)
+        q5s = ddtt[(ddtt["system_a"] == "STARLINK") & (ddtt["avail0_frac_mean"] >= 0.99)]
+        add("DegrDepStarPct", _pct(q5s["degradation_nodiv_mean"].max(), 2)
+            if len(q5s) else "n/a", e5)
         add("DegrWithDivPct", _pct(ddtt["degradation_div_mean"].max(), 3), e5)
         # as-deployed vs as-filed binding ratio (worst case, headline aperture).
         ev5 = pd.read_csv(e5 / "summary_event_rate.csv")
@@ -198,6 +248,17 @@ def main() -> int:
         add("EirpFwdInvariantPct", _pct(fwd["event_frac_mean"].max()), e6)
         add("EirpRevMinPct", _pct(rev["event_frac_mean"].min(), 2), e6)
         add("EirpRevMaxPct", _pct(rev["event_frac_mean"].max(), 2), e6)
+        # 25.261(d) sensitivity: qualified throughput degradation, forward direction.
+        fwd_all = s[(s["victim"] == VICTIM) & (s["variant"] == 0)]
+        add("EirpDegrMinPct", _pct(fwd_all["degr_max_qual"].min()), e6)
+        add("EirpDegrMaxPct", _pct(fwd_all["degr_max_qual"].max()), e6)
+        if oneweb_eirp is not None:
+            eirps = sorted(s["eirp_dbw_per_mhz"].unique())
+            cal = min(eirps, key=lambda v: abs(v - oneweb_eirp))
+            at = fwd_all[fwd_all["eirp_dbw_per_mhz"] == cal]
+            add("EirpDegrAtCalPct", _pct(at["degr_max_qual"].max()), e6)
+            rev_at = rev[rev["eirp_dbw_per_mhz"] == cal]
+            add("EirpRevAtCalPct", _pct(rev_at["event_frac_mean"].max(), 2), e6)
 
     # --- write ---
     header = [

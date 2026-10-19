@@ -33,10 +33,14 @@ every co-frequency user-downlink pair over a global latitude grid, and evaluate
 $\Delta T/T$ with a link budget. Only Starlink and OneWeb share a co-frequency
 user downlink (Ku, \SharedFreqGhz~GHz). The trigger fires in the OneWeb-victim
 direction a peak of \BindFilColoPct\% of the time co-located and \BindFilWorstPct\%
-under a worst-case bound (as-filed); unlimited satellite diversity drives it to
-zero. The \S\,25.261(d) limits on degraded throughput and link availability are
-not exceeded in the direction where that rule applies. A real CelesTrak snapshot
-preserves the ordering, and we mark every assumed parameter.
+under a worst-case bound (as-filed; \BindDepWorstPct\% as-deployed), while the
+reverse direction reaches \BindFilStarWorstPct\%; unlimited satellite diversity
+drives both to zero. Calibrating the OneWeb downlink so its own link closes lifts
+the modelled baseline availability to \BaselineAvailOneMinPct--100\% and makes the
+\S\,25.261(d) rule apply in both directions; the co-located throughput limit is
+then met, but the 3\% degraded-throughput limit is exceeded by the smallest
+terminal under the conservative worst-case bound as-deployed. A real
+CelesTrak snapshot preserves the ordering, and we mark every assumed parameter.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -82,7 +86,12 @@ circular-orbit two-body model plus $J_2$ secular drift of the right ascension of
 the ascending node and the argument of latitude. A batched GPU implementation
 keeps the full constellation in one tensor. The analytic propagator is validated
 against SGP4 (residual $\approx\!15.7$~km/day). Earth is a sphere of radius
-$R=6371$~km (assumed); the epoch is 2025-01-01T00:00:00Z. The unit of
+$R=6371$~km (assumed); the epoch is 2025-01-01T00:00:00Z. The OneWeb
+user-downlink EIRP density is calibrated in the model's own scale (see
+\texttt{scripts/calibrate\_oneweb\_eirp.py}) so that its link closes, placing the
+0.6~m reference terminal at a \CalRefCnMedDb~dB time-median clear-sky C/N at
+$45^\circ$ (target band 4--6~dB); public absolute values disagree by more
+than 10~dB and are not imported~\cite{delportillo2019}. The unit of
 replication is an independent constellation phasing (modelled cases) or an
 independent simulation start time (as-deployed case), with \EventNPhasings\
 independent phasings and \NStartTimes\ independent start times respectively.
@@ -110,9 +119,12 @@ $N=kT_{\text{sys}}B$~\cite{cfr25261,fcc2329}. Section~25.261(d) separately
 requires a later-round system to show, via a degraded-throughput methodology, no
 more than \DegradeLimitPct\% time-weighted average degraded throughput and no more
 than \UnavailLimitPct\% absolute change in link availability, for links with at
-least 99\% baseline availability at a C/N of 0~dB~\cite{fcc24117}. We compute
-throughput from a Shannon capacity with a 3~dB implementation margin and treat
-C/N${}=0$~dB as the availability threshold. The victim receive gain uses the
+least 99\% baseline availability at a C/N of 0~dB~\cite{fcc24117}. We therefore
+apply the two limits only to station--aperture cases whose modelled baseline
+availability---the fraction of time the victim link keeps C/N$\ge0$~dB---is at
+least 99\%, and report the availability change as the difference of the baseline
+and interfered availabilities. We compute throughput from a Shannon capacity with
+a 3~dB implementation margin and treat C/N${}=0$~dB as the availability threshold. The victim receive gain uses the
 ITU-R S.465 earth-station reference pattern~\cite{itu465} (the code's S.1428
 option reduces to this envelope outside the main lobe~\cite{itu1428}); the
 interferer is evaluated at peak EIRP density toward the victim, so the ITU-R
@@ -128,11 +140,17 @@ $\Delta T/T$ trigger is exceeded, versus latitude, for the single co-frequency
 pair. The trigger is direction-asymmetric. In the OneWeb-victim direction it
 peaks at \BindFilColoPct\% of the time co-located and \BindFilWorstPct\% under the
 worst-case bound (as-filed Walker geometry), both near
-\BindFilWorstLat$^\circ$; the reverse, Starlink-victim direction is negligible
-with the shipped power densities. The as-deployed snapshot raises the worst-case
-peak to \BindDepWorstPct\% (\BindDepWorstLat$^\circ$) and the co-located peak to
+\BindFilWorstLat$^\circ$. The reverse, Starlink-victim direction is weaker but not
+negligible---\BindFilStarColoPct\% co-located and \BindFilStarWorstPct\% under the
+worst-case bound---because the calibrated OneWeb link is no longer a negligible
+emitter. The as-deployed snapshot raises the worst-case peak to
+\BindDepWorstPct\% (\BindDepWorstLat$^\circ$) and the co-located peak to
 \BindDepColoPct\% (\BindDepColoLat$^\circ$), because the deployed geometry packs
-more interfering satellites into the same shell. The two ordered directions
+more interfering satellites into the same shell, and lifts the reverse worst-case
+peak to \BindDepStarWorstPct\%. The direction asymmetry is thus real but
+partial: it rests on the OneWeb satellites sitting at 1200~km, where the longer
+slant range lowers the interfering power density relative to the 550~km Starlink
+shell~(\S\ref{sec:sens}). The two ordered directions
 coincide for the purely geometric co-located variant, since the
 serving-to-serving separation does not depend on the victim label.
 
@@ -158,21 +176,29 @@ at its peak latitude than the filed model. The geometric proxy shows a milder
 driven by the real along-track spacing rather than by a change of regime.
 
 \subsection{The \texorpdfstring{\S\,25.261(d)}{25.261(d)} degraded-throughput limits}
-Fig.~\ref{fig:throughput} reports the time-weighted throughput degradation with
-no diversity, per aperture, and the 3\% limit. With unlimited diversity it is
-\DegrWithDivPct\% for every aperture. Without diversity the worst-case value
-reaches \DegrDepWorstPctFourFive\%, \DegrDepWorstPctSixZero\%, and
-\DegrDepWorstPctSevenFive\% for the \EirpHeadDiam, 0.6, and 0.75~m terminals
-(as-deployed) and \DegrFilWorstPctFourFive\%, \DegrFilWorstPctSixZero\%,
-\DegrFilWorstPctSevenFive\% as-filed, so the 3\% limit is exceeded for the
-smallest apertures in the worst case. This exceedance, however, occurs entirely
-in the OneWeb-victim direction, whose modelled baseline availability is
-\BaselineAvailOnePct\% at the assumed OneWeb downlink EIRP and therefore lies
-outside the $\geq 99\%$ baseline-availability domain in which \S\,25.261(d) is
-defined. In the Starlink-victim direction, where the baseline availability is at
-least \BaselineAvailStarMinPct\%, degradation is $\leq\!\DegrDepStarPct\%$ and no
-case approaches 3\%. The absolute link-availability change is \UnavailIncPct\% in
-all cases, below the \UnavailLimitPct\% limit.
+With the calibrated OneWeb downlink the minimum modelled baseline availability is
+\BaselineAvailOneMinPct\% in the OneWeb-victim direction and
+\BaselineAvailStarMinPct\% in the Starlink-victim direction, so the rule now
+applies in both directions: \QualOneCases\ of \QualOneTotal\ and \QualStarCases\
+of \QualStarTotal\ station--aperture cases clear the 99\% gate, and the remaining
+cases (concentrated at the smallest aperture and the worst latitude) are excluded.
+Fig.~\ref{fig:throughput} reports the time-weighted throughput degradation with no
+diversity, per aperture, and the 3\% limit. In the realistic co-located
+configuration the throughput limit is met: the worst qualified degradation is
+\DegrFilColoPct\% as-filed and \DegrDepColoPct\% as-deployed. The availability
+change is \UnavailIncColoPct\% as-filed (within the limit) but
+\UnavailIncColoDepPct\% as-deployed, marginally above the \UnavailLimitPct\%
+limit at the smallest aperture. Under the
+conservative worst-case bound (every visible interferer, no diversity) the
+smallest aperture becomes marginal: the throughput degradation reaches
+\DegrFilMaxPct\% as-filed (inside the limit) but \DegrDepMaxPct\% as-deployed,
+\emph{above} the \DegradeLimitPct\% limit, while the availability change reaches
+\UnavailIncPct\% and \UnavailIncDepPct\%, above the \UnavailLimitPct\% limit; the
+0.6 and 0.75~m terminals stay within both limits in every case. With unlimited
+diversity the degradation is \DegrWithDivPct\% for every aperture. The
+\S\,25.261(d) obligation is thus met for the realistic co-located configuration
+except the as-deployed availability change at the smallest aperture, and binds the
+smallest terminal under the conservative worst-case bound.
 
 \begin{figure}[t]
 \centering
@@ -206,15 +232,21 @@ CI over \EventNPhasings\ phasings (co-located, $\Delta T/T>6\%$).}
 \end{figure}
 
 \subsection{Sensitivity of the headline result}
+\label{sec:sens}
 Table~\ref{tab:sens} varies the three parameters that could move the trigger
-fraction. The OneWeb-victim peak is invariant to the assumed OneWeb downlink EIRP
-density across \EirpSweepValues~dBW/MHz, fixed at \EirpFwdInvariantPct\%; only the
-reverse, Starlink-victim direction responds, growing from \EirpRevMinPct\% to
-\EirpRevMaxPct\% when OneWeb is given the larger Starlink power. The aperture
-moves the as-deployed worst-case peak between \BindMinApertureDepPct\% and
-\BindMaxApertureDepPct\%, and the minimum elevation has no effect on the geometric
-peak over \MinElevLowDeg--\MinElevHighDeg$^\circ$. The direction asymmetry is
-therefore geometric and power-driven, not an artefact of the assumed OneWeb value.
+fraction. The OneWeb-victim peak is invariant to the OneWeb downlink EIRP density
+across \EirpSweepValues~dBW/MHz, fixed at \EirpFwdInvariantPct\%, because the
+trigger is set by the \emph{interferer's} power. Only the reverse, Starlink-victim
+direction responds, growing from \EirpRevMinPct\% to \EirpRevMaxPct\% as OneWeb is
+given up to 6~dB more power; at the top of that band the two directions are nearly
+equal, so the asymmetry is a consequence of the calibrated OneWeb level rather
+than a structural property. The same sweep keeps the qualified worst-case
+throughput degradation between \EirpDegrMinPct\% and \EirpDegrMaxPct\%
+(\EirpDegrAtCalPct\% at the calibrated value), so the \S\,25.261(d) verdict is
+robust to the calibration. The aperture moves the as-deployed worst-case peak
+between \BindMinApertureDepPct\% and \BindMaxApertureDepPct\%, and the minimum
+elevation has no effect on the geometric peak over
+\MinElevLowDeg--\MinElevHighDeg$^\circ$.
 
 \begin{table}[t]
 \caption{Sensitivity of the headline \S\,25.261(c) binding fraction (fraction of
@@ -229,7 +261,7 @@ only for the geometric proxy.}
 \toprule
 Parameter (case) & Range & Min & Max\\
 \midrule
-EIRP density (worst, both dir.) & \EirpSweepValues\ dBW/MHz
+EIRP density (both dir.) [dBW/MHz] & \EirpSweepValues
   & \EirpRevMinPct & \EirpFwdInvariantPct\\
 Aperture (worst, deployed) & 0.45--0.75~m
   & \BindMinApertureDepPct & \BindMaxApertureDepPct\\
@@ -267,9 +299,8 @@ both by centring on the \S\,25.261(c) $\Delta T/T$ trigger, reporting its
 latitude-resolved incidence for both directions of a real co-frequency Ku
 downlink pair, and separating the filed from the as-deployed geometry. Recent
 FCC orders~\cite{fcc2329,fcc24117} define the degraded-throughput metric we
-evaluate; claims by operators about observed in-line events are noted in the
-bibliography but no unverified figures are quoted here.
-% TODO(authors): add verified operator-filing citations with page numbers.
+evaluate, and del~Portillo et al.~\cite{delportillo2019} compile the FCC-derived
+system parameters we use as a cross-check when calibrating the OneWeb link.
 
 \section{Discussion and Limitations}
 The headline result rests on several assumptions. (a) We associate each station
@@ -280,22 +311,33 @@ model the user downlink only and omit gateways and feeder links. (d) Parameters
 tagged \textsc{assumed} in \texttt{configs/}---satellite beamwidths, all system
 noise temperatures, every Walker phasing factor, the terminal aperture, the
 minimum elevation and the operating-altitude windows---are placeholders. The
-OneWeb-victim baseline availability is additionally degenerate at the assumed
-OneWeb EIRP, which is why its throughput figure is reported only for
-completeness. Event fractions are sampling-limited; the two-body-plus-$J_2$
-propagator is an approximation to SGP4; and the diversity result assumes perfect
-knowledge of the interfering system's serving satellite.
+OneWeb downlink EIRP density is calibrated in the model's own scale so that its
+link closes (\OnewebEirpDbw~dBW/MHz; a \CalRefCnMedDb~dB median clear-sky C/N at
+$45^\circ$ for the 0.6~m terminal), because public absolute values disagree by
+more than 10~dB~\cite{delportillo2019}. The \S\,25.261(d) availability result is
+sensitive to the modelled link margin: at the \EirpHeadDiam~m headline aperture
+and the worst latitude the clear-sky C/N is only a couple of dB above the 0~dB
+availability reference, so the reported availability change would shrink for a
+link designed with more margin; the calibration is swept by
+$\pm6$~dB~(\S\ref{sec:sens}) to bound this. Event fractions are sampling-limited;
+the two-body-plus-$J_2$ propagator is an approximation to SGP4; and the diversity
+result assumes perfect knowledge of the interfering system's serving satellite.
 
 \section{Conclusion}
 For the one co-frequency Ku user-downlink pair among Starlink, OneWeb, and
 Kuiper, the \S\,25.261(c) 6\% $\Delta T/T$ trigger fires in the OneWeb-victim
 direction a peak of \BindFilColoPct\% of the time co-located and \BindFilWorstPct\%
 under a worst-case bound as-filed (\BindDepWorstPct\% as-deployed), but satellite
-diversity reduces it to \BindWithDivPct\%. The \S\,25.261(d) 3\% throughput and
-\UnavailLimitPct\% availability limits are not exceeded in the direction where
-that rule applies. The obligation therefore binds only in a narrow, worst-case
-OneWeb-victim configuration, and not at all once diversity is available. All
-numbers are generated from the project's result files.
+diversity reduces it to \BindWithDivPct\%. With a calibrated OneWeb downlink both
+directions clear the \S\,25.261(d) 99\% availability gate; the co-located
+throughput limit is met (worst \DegrDepColoPct\%), while the 3\%
+degraded-throughput limit is exceeded (\DegrDepMaxPct\%) by the
+\EirpHeadDiam~m terminal under the conservative worst-case bound as-deployed and
+the \UnavailLimitPct\% availability limit is exceeded in the no-diversity worst
+case. The obligation therefore binds only in a narrow, worst-case,
+smallest-aperture OneWeb-victim configuration, and not at all once diversity is
+available. All numbers are generated from the project's result
+files.
 
 \bibliographystyle{IEEEtran}
 \bibliography{refs}

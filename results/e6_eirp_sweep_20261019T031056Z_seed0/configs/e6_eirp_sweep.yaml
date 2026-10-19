@@ -1,0 +1,41 @@
+# Experiment 6 - pre-paper check: sensitivity to the calibrated OneWeb EIRP density.
+#
+# The OneWeb Ku user-downlink EIRP density is ASSUMED (calibrated) at +0.2 dBW/MHz
+# (configs/constellations.yaml; scripts/calibrate_oneweb_eirp.py calibrates the
+# 0.6 m reference terminal to a 5 dB time-median clear-sky C/N at 45 deg, target
+# band 4-6 dB, so the OneWeb link closes).  No unambiguous public value exists
+# (candidate filings disagree by >10 dB), so this experiment holds the as-deployed
+# CelesTrak snapshot fixed and sweeps that value over the calibrated value +/-6 dB
+# in 3 dB steps, reporting the 25.261(d) Delta T/T exceedance and the
+# baseline-availability-qualified throughput degradation for both ordered
+# user-downlink pairs.  It shows which conclusions depend on the calibrated value,
+# including whether the binding direction can reverse.  Replication is over
+# independent simulation start times (constellation fixed); fewer than E5 to bound
+# runtime.
+name: e6_eirp_sweep
+description: >
+  Sweep the calibrated OneWeb downlink EIRP density (+0.2 dBW/MHz) by +/-6 dB on
+  the as-deployed TLE snapshot and report both ordered user-downlink Delta T/T
+  exceedance fractions and the qualified 25.261(d) throughput degradation, to test
+  whether the direction asymmetry found in Phases 3a/3b is an artefact of the
+  calibrated value.
+constellations: [STARLINK, ONEWEB]
+stations: stations.yaml
+seed: 0
+params:
+  n_start_times: 4          # independent start times (fewer than E5 to bound runtime)
+  start_offset_s: 18000     # 5 h ASSUMED, as in E5
+  time_step_s: 10
+  duration_s: 86400
+  chunk: 64
+  thetas_deg: [5.0]
+  tle_cache_dir: data/raw/tle
+  tle_groups:
+    STARLINK: starlink
+    ONEWEB: oneweb
+  operational_altitude_km:
+    STARLINK: [450, 600]
+    ONEWEB: [1100, 1300]
+  sweep_system: ONEWEB
+  eirp_sweep_dbw_per_mhz: [-5.8, -2.8, 0.2, 3.2, 6.2]  # calibrated 0.2 dBW/MHz +/-6
+  source: ASSUMED
