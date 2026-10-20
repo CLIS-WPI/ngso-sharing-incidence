@@ -608,7 +608,8 @@ def _handoff_policies(p: dict, subset: list[str] | None = None
     """Handoff policies from the experiment params and the name of the primary one.
 
     ``subset`` (CLI ``--handoff-policies``) keeps only the named policies of the
-    config's list, in that order; the primary must be among them.
+    config's list, in that order; if the configured primary is not among them,
+    the subset's first policy becomes the run's primary.
     """
     raw = p.get("handoff_policies")
     pols = tuple(HandoffPolicy.from_dict(d) for d in raw) if raw else (LEGACY_POLICY,)
@@ -620,7 +621,11 @@ def _handoff_policies(p: dict, subset: list[str] | None = None
         pols = tuple(by[n] for n in subset)
     primary = str(p.get("primary_handoff", pols[0].name))
     if primary not in [q.name for q in pols]:
-        raise ValueError(f"primary_handoff {primary!r} not among the handoff policies")
+        if not subset:
+            raise ValueError(f"primary_handoff {primary!r} not among the handoff policies")
+        # A subset without the configured primary (e.g. a legacy-only run): its
+        # first policy feeds the *_div columns; status.json records which.
+        primary = pols[0].name
     return pols, primary
 
 
