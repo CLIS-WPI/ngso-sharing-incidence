@@ -62,3 +62,23 @@ def test_classify_generation_first_match() -> None:
     ]
     recs = [_rec(43.0, 560.0), _rec(53.0, 525.0), _rec(53.05, 550.0), _rec(70.0, 570.0)]
     assert classify_generation(recs, R, rule) == ["gen2", "gen2", "gen1", "unclassified"]
+
+
+def test_launch_designator_tie_break() -> None:
+    from dataclasses import replace
+
+    from ngsi.tle import launch_key
+
+    base = _rec(53.1, 470.0)
+    old = replace(base, line1="1 47000U 22175A   26293.50000000")
+    new = replace(base, line1="1 55000U 22177B   26293.50000000")
+    later = replace(base, line1="1 60000U 24010C   26293.50000000")
+    assert launch_key(old) == (2022, 175) and launch_key(later) == (2024, 10)
+    rule = [
+        {"generation": "gen2", "inclination_deg": 53.1, "inclination_tol_deg": 0.6,
+         "altitude_min_km": 0, "altitude_max_km": 1e5, "launched_on_or_after": "2022-177"},
+        {"generation": "gen1", "inclination_deg": 53.1, "inclination_tol_deg": 0.6,
+         "altitude_min_km": 0, "altitude_max_km": 1e5, "launched_before": "2022-177"},
+    ]
+    labels, idx = classify_generation([old, new, later], R, rule, return_index=True)
+    assert labels == ["gen1", "gen2", "gen2"] and idx == [1, 0, 0]

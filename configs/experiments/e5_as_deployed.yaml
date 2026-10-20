@@ -35,4 +35,53 @@ params:
   steering: config
   # Diversity path-loss: "interferer" (correct) or "victim" (legacy sensitivity).
   diversity_fspl: interferer
+  # Starlink generation of the STARLINK system (Phase 4): gen2 (primary) keeps the
+  # operational satellites classified Gen2 by starlink_generation_rule below; gen1
+  # / all are the Gen1-only and all-Starlink sensitivity runs
+  # (--starlink-generation).
+  starlink_generation: gen2
+  starlink_generation_rule: [
+    # Ordered; first match wins (ngsi.tle.classify_generation).  Generation is
+    # the authorization a satellite operates under, read from its shell.
+    # Altitudes no longer identify shells: the snapshot has the 43 deg shell at
+    # ~490 km and the 53 deg shells at ~465-475 km, not at the filed 525-550 km,
+    # so the altitude bounds only span the operational window.
+    {generation: gen2, shell: 43deg, inclination_deg: 43.0, inclination_tol_deg: 1.0,
+     altitude_min_km: 0, altitude_max_km: 100000,
+     source: "FCC 22-91 paras. 1, 19: Gen2 granted at 43 deg (no Gen1 shell at 43 deg)"},
+    {generation: gen2, shell: 33deg, inclination_deg: 33.0, inclination_tol_deg: 1.0,
+     altitude_min_km: 0, altitude_max_km: 100000,
+     source: "FCC 22-91 paras. 1, 19: Gen2 granted at 33 deg"},
+    # 53 deg is shared by Gen1 (550/53.0, 540/53.2) and Gen2 (525/53) and the
+    # snapshot puts them in one band (53.1-53.2 deg, ~465-475 km), so the tie-break
+    # is the launch: on or after the first launch into the Gen2-only 43 deg shell
+    # in this snapshot (international designator 2022-177, after the FCC 22-91
+    # grant released 2022-12-01) -> Gen2.  ASSUMED: replacement launches into the
+    # Gen1 53 deg shells after that date, if any, are counted as Gen2.
+    {generation: gen2, shell: 53deg-post-grant, inclination_deg: 53.1, inclination_tol_deg: 0.6,
+     altitude_min_km: 0, altitude_max_km: 100000, launched_on_or_after: "2022-177",
+     source: "ASSUMED launch-date tie-break (see comment); shell FCC 22-91 para. 1"},
+    {generation: gen1, shell: 53deg-pre-grant, inclination_deg: 53.1, inclination_tol_deg: 0.6,
+     altitude_min_km: 0, altitude_max_km: 100000, launched_before: "2022-177",
+     source: "Gen1 shells 550/53.0 and 540/53.2 (Pachler et al. 2021 Table II)"},
+    # FCC 22-91 grants Gen2 no shell at 70 or 97.6 deg, so these are Gen1 by shell
+    # even when launched after 2022 (later authorizations are not modelled).
+    {generation: gen1, shell: 70deg, inclination_deg: 70.0, inclination_tol_deg: 1.0,
+     altitude_min_km: 0, altitude_max_km: 100000,
+     source: "Gen1 shell 570/70 (Pachler et al. 2021 Table II); no Gen2 grant at 70 deg"},
+    {generation: gen1, shell: 97deg, inclination_deg: 97.4, inclination_tol_deg: 1.0,
+     altitude_min_km: 0, altitude_max_km: 100000,
+     source: "Gen1 shells 560/97.6 (Pachler et al. 2021 Table II); no Gen2 grant near 97 deg"},
+  ]
+  # Satellite-diversity (handoff) policies; see ngsi.dtt_screen.  k and
+  # min_interval_s: ASSUMED constraint values.
+  handoff_policies:
+    - {name: full, link_cn: candidate}
+    - {name: full_keep_serving, link_cn: candidate, keep_serving_if_better: true}
+    - {name: legacy, link_cn: serving}
+    - {name: full_k2, link_cn: candidate, k: 2}
+    - {name: full_k3, link_cn: candidate, k: 3}
+    - {name: full_n10, link_cn: candidate, min_interval_s: 10}
+    - {name: full_n60, link_cn: candidate, min_interval_s: 60}
+  primary_handoff: full
   source: ASSUMED

@@ -1,0 +1,21 @@
+{
+  "experiment": "e4_dtt",
+  "seed": 0,
+  "timestamp_utc": "20261020T174152Z",
+  "git_hash": "1c188286ac2ce06563753bff7573ef139e08152e",
+  "git_worktree": {
+    "dirty": false,
+    "modified_files": [],
+    "diff_sha256": null
+  },
+  "compute_dtype": "float32",
+  "python": "3.11.10",
+  "platform": "Linux-6.18.40.1-microsoft-standard-WSL2-x86_64-with-glibc2.35",
+  "argv": [
+    "experiments/e4_dtt.py",
+    "--starlink-generation",
+    "all",
+    "--handoff-policies",
+    "full"
+  ]
+}

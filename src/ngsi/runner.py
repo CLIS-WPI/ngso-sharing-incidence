@@ -1130,28 +1130,24 @@ def _split_starlink_generation(records, radius: float, rule: list[dict],
     """Label Starlink records by generation; keep the selected one."""
     from .tle import classify_generation
 
-    labels = classify_generation(records, radius, rule)
+    labels, index = classify_generation(records, radius, rule, return_index=True)
     counts = {g: labels.count(g) for g in ("gen1", "gen2", "unclassified")}
     alt = np.array([r.semi_major_axis_km - radius for r in records])
     inc = np.array([r.inclination_deg for r in records])
-    lab = np.array(labels)
+    idx = np.array(index)
     table = []
-    for g in ("gen1", "gen2", "unclassified"):
-        for e in [e for e in rule if e["generation"] == g] + ([None] if g == "unclassified" else []):
-            if e is None:
-                m = lab == g
-            else:
-                m = ((lab == g) & (np.abs(inc - float(e["inclination_deg"]))
-                                   <= float(e["inclination_tol_deg"]))
-                     & (alt >= float(e["altitude_min_km"])) & (alt < float(e["altitude_max_km"])))
-            if m.any():
-                table.append({"generation": g,
-                              "rule_shell": None if e is None else str(e.get("shell", "")),
-                              "n_sats": int(m.sum()),
-                              "inclination_mean_deg": float(inc[m].mean()),
-                              "altitude_mean_km": float(alt[m].mean()),
-                              "altitude_min_km": float(alt[m].min()),
-                              "altitude_max_km": float(alt[m].max())})
+    for i in list(range(len(rule))) + [-1]:
+        e = rule[i] if i >= 0 else None
+        m = idx == i
+        g = "unclassified" if e is None else str(e["generation"])
+        if m.any():
+            table.append({"rule": i + 1, "generation": g,
+                          "rule_shell": None if e is None else str(e.get("shell", "")),
+                          "n_sats": int(m.sum()),
+                          "inclination_mean_deg": float(inc[m].mean()),
+                          "altitude_mean_km": float(alt[m].mean()),
+                          "altitude_min_km": float(alt[m].min()),
+                          "altitude_max_km": float(alt[m].max())})
     if generation in (None, "all"):
         kept = list(records)
     elif generation in ("gen1", "gen2"):

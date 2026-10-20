@@ -295,31 +295,56 @@ def filter_operational(
     return kept, low, high
 
 
+def _designator_key(designator: str) -> tuple[int, int]:
+    """``"YYYY-NNN"`` -> ``(YYYY, NNN)``."""
+    y, n = designator.split("-")
+    return int(y), int(n)
+
+
+def launch_key(record: TleRecord) -> tuple[int, int]:
+    """(launch year, launch number) from the TLE international designator (line 1, cols 10-14).
+
+    Two-digit years follow the TLE convention: 57-99 -> 19xx, 00-56 -> 20xx.
+    """
+    yy, nnn = int(record.line1[9:11]), int(record.line1[11:14])
+    return (1900 + yy if yy >= 57 else 2000 + yy), nnn
+
+
 def classify_generation(
     records: list[TleRecord],
     earth_radius_km: float,
     rule: list[dict],
-) -> list[str]:
+    return_index: bool = False,
+) -> list[str] | tuple[list[str], list[int]]:
     """Label each record with the generation of the first matching shell rule.
 
     ``rule`` is an ordered list of ``{generation, inclination_deg,
     inclination_tol_deg, altitude_min_km, altitude_max_km}`` entries (from the
     experiment config); a record matches when its inclination is within the
     tolerance and its circular altitude is in ``[altitude_min_km,
-    altitude_max_km)``.  Records that match no entry are ``"unclassified"``.
+    altitude_max_km)``.  Optional ``launched_on_or_after`` / ``launched_before``
+    (international designator ``"YYYY-NNN"``, launch year and launch number) also
+    bound the launch.  Records that match no entry are ``"unclassified"``.
+    ``return_index=True`` also returns the matched rule index (-1 = none).
     """
     labels: list[str] = []
+    index: list[int] = []
     for r in records:
         alt = r.semi_major_axis_km - earth_radius_km
-        lab = "unclassified"
-        for e in rule:
+        lab, idx = "unclassified", -1
+        for i, e in enumerate(rule):
+            lo = e.get("launched_on_or_after")
+            hi = e.get("launched_before")
             if (abs(r.inclination_deg - float(e["inclination_deg"]))
                     <= float(e["inclination_tol_deg"])
-                    and float(e["altitude_min_km"]) <= alt < float(e["altitude_max_km"])):
-                lab = str(e["generation"])
+                    and float(e["altitude_min_km"]) <= alt < float(e["altitude_max_km"])
+                    and (lo is None or launch_key(r) >= _designator_key(str(lo)))
+                    and (hi is None or launch_key(r) < _designator_key(str(hi)))):
+                lab, idx = str(e["generation"]), i
                 break
         labels.append(lab)
-    return labels
+        index.append(idx)
+    return (labels, index) if return_index else labels
 
 
 def _count_planes(raan_deg: NDArray[np.float64], tol_deg: float = 5.0) -> int:
