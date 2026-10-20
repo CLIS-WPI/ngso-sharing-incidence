@@ -94,6 +94,18 @@ LIGHT_SPEED_M_S = 299792458.0
 VARIANT_NAMES = ("realistic", "co_located", "upper_bound")
 _STEERING = ("constant_eirp", "pfd_constant")
 _LINK_CN = ("candidate", "serving")
+# I/N histogram bin edges (dB) for the event I/N statistics (0.01 dB bins).
+IN_HIST_EDGES_DB = np.round(np.arange(-30.0, 50.0 + 1e-9, 0.01), 2)
+
+
+def hist_quantile(counts: np.ndarray, q: float, edges: np.ndarray = IN_HIST_EDGES_DB) -> float:
+    """``q``-quantile (0-1) from ``event_in_hist`` counts (upper bin edge; NaN if empty)."""
+    c = np.asarray(counts, dtype=np.float64)
+    tot = c.sum()
+    if tot <= 0:
+        return float("nan")
+    i = int(np.searchsorted(np.cumsum(c), q * tot))
+    return float(edges[min(max(i, 0), len(edges) - 1)])
 
 
 @dataclass(frozen=True)
@@ -367,6 +379,9 @@ def screen_pair_dtt(
     cn0_sum = torch.zeros(g, dtype=torch.float64, device=device)
     dtt_sum = {vi: torch.zeros(g, dtype=torch.float64, device=device) for vi in range(3)}
     cn0_blocks: list[np.ndarray] = []
+    in_edges_t = torch.as_tensor(IN_HIST_EDGES_DB, dtype=torch.float64, device=device)
+    in_hist = {k: torch.zeros(len(IN_HIST_EDGES_DB) + 1, dtype=torch.float64, device=device)
+               for k in ("serving", "aggregate")}
     names = [p.name for p in handoff_policies]
     if len(set(names)) != len(names):
         raise ValueError(f"duplicate handoff policy names: {names}")
@@ -472,6 +487,13 @@ def screen_pair_dtt(
         for vi in range(3):
             event = has_a & has_b_var[vi] & (dtts[vi] > DTT_THRESHOLD)
             event_count[vi] += event.sum(0).to(torch.float64)
+        # I/N histograms over realistic-variant events (all stations pooled): the
+        # serving interferer beam alone and the realistic aggregate.
+        ev0 = has_a & has_b_var[0] & (dtts[0] > DTT_THRESHOLD)
+        for key, lin in (("serving", dtt_colo), ("aggregate", dtts[0])):
+            in_db = 10.0 * torch.log10(torch.clamp(lin[ev0], min=1e-30))
+            b = torch.bucketize(in_db.to(torch.float64), in_edges_t).clamp_(0, len(IN_HIST_EDGES_DB))
+            in_hist[key] += torch.bincount(b, minlength=len(IN_HIST_EDGES_DB) + 1).to(torch.float64)
 
         # --- diversity: alternate visible A satellites (link actually used) ---
         cand = vis_ka & (eye_a.reshape(1, 1, -1) != 0)
@@ -558,6 +580,9 @@ def screen_pair_dtt(
         "unavail_incr_div_frac": {vi: (unavail_incr_div[vi] / n).cpu().numpy() for vi in range(3)},
         "unavail0_frac": (unavail0 / n).cpu().numpy(),
         "n_samples": t_total,
+        # Counts of realistic-variant event samples per I/N bin (dB); bin i holds
+        # IN_HIST_EDGES_DB[i-1] < I/N <= IN_HIST_EDGES_DB[i] (0 / last = under / over).
+        "event_in_hist": {k: v.cpu().numpy() for k, v in in_hist.items()},
         "policies": {
             p.name: {
                 "r_div_mean": {vi: a["r"][vi] / served_np for vi in range(3)},

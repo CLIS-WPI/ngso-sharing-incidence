@@ -42,7 +42,13 @@ from .geometry import station_ecef_spherical
 from .io import new_run_dir
 from .rules import BAND_SPLIT_FRACTION, THROUGHPUT_DEGRADE_MAX, UNAVAILABILITY_INCREASE_MAX
 from .sanity import analytic_density_per_deg, analytic_visible_count, max_relative_deviation
-from .dtt_screen import LEGACY_POLICY, VARIANT_NAMES, HandoffPolicy, screen_pair_dtt
+from .dtt_screen import (
+    LEGACY_POLICY,
+    VARIANT_NAMES,
+    HandoffPolicy,
+    hist_quantile,
+    screen_pair_dtt,
+)
 from .screening import ScreenConfig, screen_pair, system_visibility
 from .systems import build_as_deployed_system, build_system
 from .tle import celestrak_url, common_epoch_jd, fetch_group, filter_operational, parse_tle
@@ -1027,6 +1033,7 @@ def run_e4(
                        thetas_deg=(2.0,), chunk=chunk, device=device)
     rows = []
     ho_rows: list[dict] = []
+    in_acc: dict = {}
     pool_rows: list[dict] = []
     for pi in range(n_ph):
         rng = np.random.default_rng(exp.seed + 137 * pi)
@@ -1053,6 +1060,8 @@ def run_e4(
                     res, {"phasing": pi, "system_a": a, "system_b": b,
                           "diameter_m": float(diam)}, grid, pols))
                 prim = res["policies"][primary]
+                for key, h in res["event_in_hist"].items():
+                    in_acc.setdefault((a, b, float(diam)), {}).setdefault(key, []).append(h)
                 dtt_by_var = (res["dtt_realistic_mean"], res["dtt_colo_mean"],
                               res["dtt_upper_mean"])
                 for vi in range(3):
@@ -1086,6 +1095,7 @@ def run_e4(
     df = pd.DataFrame(rows)
     df.to_parquet(run_dir / "raw_dtt.parquet", index=False)
     _write_handoff(run_dir, ho_rows)
+    _write_event_in(run_dir, in_acc)
     _service_pool_summary(pd.DataFrame(pool_rows)).to_csv(
         run_dir / "summary_service_pool.csv", index=False)
     keys = ["system_a", "system_b", "link_type", "shared_freq_ghz", "diameter_m", "variant",
@@ -1172,6 +1182,31 @@ def _pool_rows(vis: dict, grid, rep: int) -> list[dict]:
                          "pool_mean": float(pm[gi]), "served_frac": float(sf[gi]),
                          "pool_p10": np.nan})
     return rows
+
+
+def _write_event_in(run_dir: Path, acc: dict) -> None:
+    """``summary_event_in.csv``: I/N (dB) of realistic-variant event samples.
+
+    ``acc[(a, b, diam)] = {"serving": [hist per replication], "aggregate": [...]}``;
+    quantiles pooled over all event samples of all replications and stations, and
+    the per-replication medians' mean and 95% t-CI.
+    """
+    rows = []
+    for (a, b, diam), d in acc.items():
+        row = {"system_a": a, "system_b": b, "diameter_m": diam}
+        for key, hs in d.items():
+            tot = np.sum(hs, axis=0)
+            row[f"n_events_{key}"] = float(tot.sum())
+            for q, lab in ((0.1, "p10"), (0.5, "median"), (0.9, "p90")):
+                row[f"in_{key}_{lab}_db"] = hist_quantile(tot, q)
+            med = np.array([hist_quantile(h, 0.5) for h in hs])
+            med = med[np.isfinite(med)]
+            row[f"in_{key}_median_rep_mean_db"] = float(med.mean()) if med.size else np.nan
+            row[f"in_{key}_median_rep_ci95_db"] = (
+                float(t95(med.size) * np.std(med, ddof=1) / np.sqrt(med.size))
+                if med.size >= 2 else 0.0)
+        rows.append(row)
+    pd.DataFrame(rows).to_csv(run_dir / "summary_event_in.csv", index=False)
 
 
 def _write_handoff(run_dir: Path, ho_rows: list[dict]) -> None:
@@ -1334,6 +1369,7 @@ def run_e5(
     event_rows: list[dict] = []
     dtt_rows: list[dict] = []
     ho_rows: list[dict] = []
+    in_acc: dict = {}
     pool_rows: list[dict] = []
     for k in range(n_st):
         times = k * offset + np.arange(0.0, dur, dt)
@@ -1372,6 +1408,8 @@ def run_e5(
                     dres, {"phasing": k, "system_a": a, "system_b": b,
                            "diameter_m": float(diam)}, grid, pols))
                 prim = dres["policies"][primary]
+                for key, h in dres["event_in_hist"].items():
+                    in_acc.setdefault((a, b, float(diam)), {}).setdefault(key, []).append(h)
                 dtt_by_var = (dres["dtt_realistic_mean"], dres["dtt_colo_mean"],
                               dres["dtt_upper_mean"])
                 for vi in range(3):
@@ -1408,6 +1446,7 @@ def run_e5(
     dtt = pd.DataFrame(dtt_rows)
     dtt.to_parquet(run_dir / "raw_as_deployed_dtt.parquet", index=False)
     _write_handoff(run_dir, ho_rows)
+    _write_event_in(run_dir, in_acc)
     _service_pool_summary(pd.DataFrame(pool_rows)).to_csv(
         run_dir / "summary_service_pool.csv", index=False)
     dtt_s = summarise(

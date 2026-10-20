@@ -202,12 +202,84 @@ def classification_section(sel: dict) -> list[str]:
     return L
 
 
+POLICY_LABEL = {
+    "full": "event-avoiding handoff",
+    "full_keep_serving": "rate-maximizing handoff",
+    "legacy": "legacy handoff (pre-Phase-4)",
+    "full_k2": "event-avoiding, K = 2",
+    "full_k3": "event-avoiding, K = 3",
+    "full_n10": "event-avoiding, N = 10 s",
+    "full_n60": "event-avoiding, N = 60 s",
+}
+HEADLINE_POLICIES = ("full", "full_keep_serving", "legacy")
+PAPER_COMMIT = "45b4aa8"   # numbers.tex as committed before Phase 4 regenerated it
+PAPER_LABEL = "paper now (Phase 3 numbers.tex)"
+
+
+def paper_macros() -> dict[str, str]:
+    """Macros of the pre-Phase-4 numbers.tex (the numbers the paper prints now)."""
+    import re
+
+    try:
+        txt = subprocess.check_output(["git", "show", f"{PAPER_COMMIT}:paper/numbers.tex"],
+                                      cwd=REPO_ROOT, text=True)
+    except Exception:  # noqa: BLE001
+        return {}
+    return dict(re.findall(r"\\newcommand\{\\([A-Za-z]+)\}\{([^}]*)\}", txt))
+
+
+def run_with_policy(prefix: str, gen, policy: str) -> Path | None:
+    """Newest primary-configuration run of ``gen`` that evaluated ``policy``."""
+    for run in reversed(runs(prefix)):
+        try:
+            st = status(run)
+        except (OSError, ValueError):
+            continue
+        if (st.get("starlink_generation") == gen and st.get("steering") is None
+                and st.get("diversity_fspl") == "interferer"
+                and policy in [q["name"] for q in st.get("handoff_policies", [])]
+                and (run / "raw_handoff.parquet").exists()):
+            return run
+    return None
+
+
+def cell(raw: pd.DataFrame, col: str, nd: int) -> str:
+    """mean +/- CI [verdict]; station-replications over the limit; largest value."""
+    lim = LIMITS["degradation" if "degradation" in col else "unavail"]
+    m, ci, _ = rep_worst(raw, col)
+    e = exceed(raw, col, lim)
+    return (f"{pm(m, ci, nd)} [{verdict(m, ci, lim)}]; {e['n_exceed']}/{e['n_qual']} over; "
+            f"max {pct(e['max'], nd)}")
+
+
 def headline_rows(sel: dict, prefix: str) -> list[dict]:
-    """Headline 25.261(d) numbers per generation (OneWeb victim, realistic, 0.45 m)."""
-    cols = {}
-    for g in (None, *GENS):
-        run = sel[prefix].get(g)
-        if run is None:
+    """Headline 25.261(d) numbers per generation (OneWeb victim, realistic, 0.45 m).
+
+    Both handoff rules (event-avoiding, rate-maximizing) are headline rows; the
+    legacy rule is shown for attribution.  The first column is the paper as it
+    stands (pre-Phase-4 numbers.tex for E5; the pre-Phase-4 run for E4).
+    """
+    cols: dict[str, dict] = {}
+    pm_ = paper_macros()
+    if prefix == "e5_as_deployed" and pm_:
+        g = lambda k: pm_.get(k, "n/a")  # noqa: E731
+        cols[PAPER_LABEL] = {
+            "run": f"numbers.tex @ {PAPER_COMMIT} (2026-10-18 snapshot, all Starlink)",
+            "Starlink satellites": g("NStarlinkOp"),
+            "event peak % (lat)": f"{g('BindDepWorstPct')} +/- {g('BindDepWorstCi')} "
+                                  f"({g('BindDepWorstLat')})",
+            "degradation, no handoff %": f"{g('DegrDepMaxPct')} +/- {g('DegrDepMaxCi')}",
+            "avail. change, no handoff %": f"{g('UnavailIncDepPct')} +/- {g('UnavailIncDepCi')}",
+            f"degradation, {POLICY_LABEL['legacy']} %": f"{g('DegrDepDivPct')} +/- "
+                                                         f"{g('DegrDepDivCi')}",
+            f"avail. change, {POLICY_LABEL['legacy']} %": f"{g('UnavailDepDivPct')} +/- "
+                                                           f"{g('UnavailDepDivCi')}",
+            "Starlink-victim degradation, no handoff % (comparison)":
+                f"{g('DegrDepStarPct')} +/- {g('DegrDepStarCi')}",
+        }
+    for gen in (None, *GENS):
+        run = sel[prefix].get(gen)
+        if run is None or (gen is None and prefix == "e5_as_deployed"):
             continue
         raw = raw_dtt(run)
         st = status(run)
@@ -217,24 +289,33 @@ def headline_rows(sel: dict, prefix: str) -> list[dict]:
         vals = {
             "run": f"`{run.name}`",
             "Starlink satellites": str(st.get("n_sats", {}).get("STARLINK", "n/a")),
-            "handoff policy (div columns)": st.get("primary_handoff", "legacy"),
             "event peak % (lat)": f"{pct(pk['event_frac_mean'])} +/- "
                                   f"{pct(pk['event_frac_ci95'])} ({pk['latitude_deg']:g})",
+            "degradation, no handoff %": cell(raw, "degradation_nodiv", 2),
+            "avail. change, no handoff %": cell(raw, "unavail_incr_frac", 3),
         }
-        for lab, col, nd in (("degradation no div %", "degradation_nodiv", 2),
-                             ("degradation with div %", "degradation_div", 2),
-                             ("avail. change no div %", "unavail_incr_frac", 3),
-                             ("avail. change with div %", "unavail_incr_div_frac", 3)):
-            m, ci, _ = rep_worst(raw, col)
-            lim = LIMITS["degradation" if "degradation" in col else "unavail"]
-            vals[lab] = f"{pm(m, ci, nd)} [{verdict(m, ci, lim)}]"
+        if gen is None:
+            vals[f"degradation, {POLICY_LABEL['legacy']} %"] = cell(raw, "degradation_div", 2)
+            vals[f"avail. change, {POLICY_LABEL['legacy']} %"] = cell(raw, "unavail_incr_div_frac",
+                                                                     3)
+        else:
+            for pol in HEADLINE_POLICIES:
+                pr = run_with_policy(prefix, gen, pol)
+                if pr is None:
+                    continue
+                ho = pd.read_parquet(pr / "raw_handoff.parquet")
+                ho = ho[ho["policy"] == pol]
+                vals[f"degradation, {POLICY_LABEL[pol]} %"] = cell(ho, "degradation_div", 2)
+                vals[f"avail. change, {POLICY_LABEL[pol]} %"] = cell(ho, "unavail_incr_div_frac", 3)
         m, ci, _ = rep_worst(raw, "degradation_nodiv", system_a="STARLINK")
-        vals["Starlink-victim degradation no div % (comparison)"] = pm(m, ci)
-        cols[GEN_LABEL[g]] = vals
+        vals["Starlink-victim degradation, no handoff % (comparison)"] = pm(m, ci)
+        cols[GEN_LABEL[gen]] = vals
     if not cols:
         return []
-    keys = list(next(iter(cols.values())).keys())
-    return [{"metric": k, **{c: v[k] for c, v in cols.items()}} for k in keys]
+    keys: list[str] = []
+    for v in cols.values():
+        keys += [k for k in v if k not in keys]
+    return [{"metric": k, **{c: v.get(k, "-") for c, v in cols.items()}} for k in keys]
 
 
 def table1_rows(sel: dict) -> list[dict]:
@@ -300,12 +381,15 @@ Implemented in `ngsi.dtt_screen` (`HandoffPolicy`, `_evaluate_policies`,
 - **Trigger.** The terminal stays on the highest-elevation satellite (the same
   policy as the baseline) and considers a handoff only while that link is in
   event (aggregate Delta T/T > 6%).  Not a continuous best-C/(N+I) choice.
-- **Selection rule (primary, `full`).** During an event, switch to the
-  admissible (non-triggered) alternate with the highest C/(N+I).  If none is
-  admissible (unresolvable), stay on the highest-elevation satellite with its
-  degraded SINR.  Sensitivity `full_keep_serving`: the same, but the terminal also
-  stays when the serving satellite's degraded C/(N+I) beats every admissible
-  alternate.
+- **Two selection rules, both reported as headline rows (neither is chosen).**
+  - **Event-avoiding handoff** (`full`, the code's primary): during an event the
+    terminal always leaves the triggered satellite, for the admissible
+    (non-triggered) alternate with the highest C/(N+I).  If none is admissible
+    (unresolvable), it stays on the highest-elevation satellite with its degraded
+    SINR.
+  - **Rate-maximizing handoff** (`full_keep_serving`): the same, except the
+    terminal stays on the triggered satellite when its degraded C/(N+I) is higher
+    than every admissible alternate's.
 - **New link's C/N (full link budget).** `C/N_k = EIRP_OneWeb + G_rx,peak -
   FSPL(r_k) - N`, with `r_k` the slant range to candidate k (the terminal re-points,
   so the receive gain toward it is the peak gain); the interference is the
@@ -345,7 +429,7 @@ def policy_rows(run: Path) -> list[dict]:
         k = g["k"].iloc[0]
         ni = g["min_interval_s"].iloc[0]
         rows.append({
-            "policy": pol, "link C/N": g["link_cn"].iloc[0],
+            "policy": f"{POLICY_LABEL.get(pol, pol)} (`{pol}`)", "link C/N": g["link_cn"].iloc[0],
             "K": "all" if pd.isna(k) else f"{k:g}", "N_s": "-" if pd.isna(ni) else f"{ni:g}",
             "degr with div %": f"{pm(md, cd)} [{verdict(md, cd, THROUGHPUT_DEGRADE_MAX)}]",
             "avail. change with div %": f"{pm(mu, cu, 3)} "

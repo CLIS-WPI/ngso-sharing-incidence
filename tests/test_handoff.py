@@ -178,3 +178,27 @@ def test_longer_rate_limit_lowers_baseline_and_switch_rate(screened) -> None:
     n600, n_dt = screened["policies"]["n600"], screened["policies"]["n_dt"]
     assert (n600["r_base_mean"] <= screened["r0_mean"] * (1 + 1e-12)).all()
     assert (n600["switches_per_hour"][0] <= n_dt["switches_per_hour"][0] + 1e-12).all()
+
+
+def test_event_in_histogram_counts_events(screened) -> None:
+    # Every realistic-variant event sample lands in exactly one I/N bin, and the
+    # aggregate I/N of an event is above the 6% threshold (-12.2 dB).
+    from ngsi.dtt_screen import IN_HIST_EDGES_DB, hist_quantile
+
+    n_events = screened["event_frac"][0].sum() * screened["n_samples"]
+    for key in ("serving", "aggregate"):
+        assert screened["event_in_hist"][key].sum() == pytest.approx(n_events)
+    agg = screened["event_in_hist"]["aggregate"]
+    assert agg[: int(np.searchsorted(IN_HIST_EDGES_DB, -12.22))].sum() == 0
+    # Serving beam alone never exceeds the aggregate it is part of.
+    assert hist_quantile(screened["event_in_hist"]["serving"], 0.5) <= hist_quantile(agg, 0.5)
+
+
+def test_hist_quantile_hand_check() -> None:
+    from ngsi.dtt_screen import hist_quantile
+
+    edges = np.array([0.0, 1.0, 2.0, 3.0])
+    counts = np.array([0, 1, 2, 1, 0])  # 1 in (0,1], 2 in (1,2], 1 in (2,3]
+    assert hist_quantile(counts, 0.5, edges) == 2.0
+    assert hist_quantile(counts, 0.1, edges) == 1.0
+    assert np.isnan(hist_quantile(np.zeros(5), 0.5, edges))
