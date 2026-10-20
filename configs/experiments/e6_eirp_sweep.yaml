@@ -46,7 +46,7 @@ stations: stations.yaml
 seed: 0
 params:
   n_start_times: 8          # independent start times (Phase 4: as many as E5)
-  start_offset_s: 18000     # 5 h ASSUMED, as in E5
+  start_offset_s: 86400     # 24 h ASSUMED, as in E5 (non-overlapping consecutive days)
   time_step_s: 10
   duration_s: 86400
   chunk: 64
