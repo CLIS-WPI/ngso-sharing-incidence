@@ -1,0 +1,21 @@
+{
+  "experiment": "e6_eirp_sweep",
+  "seed": 0,
+  "timestamp_utc": "20261020T200504Z",
+  "git_hash": "ef5990e473653ce3fd9d2e350f3fa6667a8d8316",
+  "git_worktree": {
+    "dirty": true,
+    "modified_files": [
+      "scripts/make_phase4_report.py"
+    ],
+    "diff_sha256": "88499f4cc4ebd35b8c1ab09dc3ac6b299a07687eab705ac7ec3cf4808a36d22f"
+  },
+  "compute_dtype": "float32",
+  "python": "3.11.10",
+  "platform": "Linux-6.18.40.1-microsoft-standard-WSL2-x86_64-with-glibc2.35",
+  "argv": [
+    "experiments/e6_eirp_sweep.py",
+    "--starlink-generation",
+    "gen2"
+  ]
+}
