@@ -1157,7 +1157,10 @@ def _split_starlink_generation(records, radius: float, rule: list[dict],
                           "inclination_mean_deg": float(inc[m].mean()),
                           "altitude_mean_km": float(alt[m].mean()),
                           "altitude_min_km": float(alt[m].min()),
-                          "altitude_max_km": float(alt[m].max())})
+                          "altitude_max_km": float(alt[m].max()),
+                          "altitude_p10_km": float(np.percentile(alt[m], 10.0)),
+                          "altitude_median_km": float(np.median(alt[m])),
+                          "altitude_p90_km": float(np.percentile(alt[m], 90.0))})
     if generation in (None, "all"):
         kept = list(records)
     elif generation in ("gen1", "gen2"):
