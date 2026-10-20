@@ -185,6 +185,10 @@ def classification_section(sel: dict) -> list[str]:
                         "inclination_deg": f"{e['inclination_deg']:g}",
                         "tol_deg": f"{e['inclination_tol_deg']:g}",
                         "altitude_km": f"[{e['altitude_min_km']:g}, {e['altitude_max_km']:g})",
+                        "launch (COSPAR)": (f">= {e['launched_on_or_after']}"
+                                            if e.get("launched_on_or_after") else
+                                            f"< {e['launched_before']}"
+                                            if e.get("launched_before") else "any"),
                         "source": " ".join(str(e.get("source", "")).split())}
                        for i, e in enumerate(gm["rule"])]))
     L.append("")
@@ -263,17 +267,26 @@ def headline_rows(sel: dict, prefix: str) -> list[dict]:
     pm_ = paper_macros()
     if prefix == "e5_as_deployed" and pm_:
         g = lambda k: pm_.get(k, "n/a")  # noqa: E731
+
+        def gv(m: str, c: str, lim: float) -> str:
+            try:
+                return f"{g(m)} +/- {g(c)} [{verdict(float(g(m)) / 100, float(g(c)) / 100, lim)}]"
+            except ValueError:
+                return f"{g(m)} +/- {g(c)}"
+
         cols[PAPER_LABEL] = {
             "run": f"numbers.tex @ {PAPER_COMMIT} (2026-10-18 snapshot, all Starlink)",
             "Starlink satellites": g("NStarlinkOp"),
             "event peak % (lat)": f"{g('BindDepWorstPct')} +/- {g('BindDepWorstCi')} "
                                   f"({g('BindDepWorstLat')})",
-            "degradation, no handoff %": f"{g('DegrDepMaxPct')} +/- {g('DegrDepMaxCi')}",
-            "avail. change, no handoff %": f"{g('UnavailIncDepPct')} +/- {g('UnavailIncDepCi')}",
-            f"degradation, {POLICY_LABEL['legacy']} %": f"{g('DegrDepDivPct')} +/- "
-                                                         f"{g('DegrDepDivCi')}",
-            f"avail. change, {POLICY_LABEL['legacy']} %": f"{g('UnavailDepDivPct')} +/- "
-                                                           f"{g('UnavailDepDivCi')}",
+            "degradation, no handoff %": gv("DegrDepMaxPct", "DegrDepMaxCi",
+                                            THROUGHPUT_DEGRADE_MAX),
+            "avail. change, no handoff %": gv("UnavailIncDepPct", "UnavailIncDepCi",
+                                              UNAVAILABILITY_INCREASE_MAX),
+            f"degradation, {POLICY_LABEL['legacy']} %": gv("DegrDepDivPct", "DegrDepDivCi",
+                                                            THROUGHPUT_DEGRADE_MAX),
+            f"avail. change, {POLICY_LABEL['legacy']} %": gv("UnavailDepDivPct", "UnavailDepDivCi",
+                                                              UNAVAILABILITY_INCREASE_MAX),
             "Starlink-victim degradation, no handoff % (comparison)":
                 f"{g('DegrDepStarPct')} +/- {g('DegrDepStarCi')}",
         }
@@ -352,6 +365,36 @@ def table1_rows(sel: dict) -> list[dict]:
     return rows
 
 
+def _verdict_of(cellv: str) -> str | None:
+    return cellv[cellv.find("[") + 1:cellv.find("]")] if cellv and "[" in cellv else None
+
+
+def changes(rows: list[dict]) -> list[str]:
+    """Limit verdicts of the paper vs Gen2 only, per metric and handoff rule.
+
+    The paper's with-handoff numbers use the legacy rule, so they are compared with
+    Gen2 under the event-avoiding and the rate-maximizing rule.
+    """
+    by = {r["metric"]: r for r in rows}
+    base = PAPER_LABEL if rows and PAPER_LABEL in rows[0] else GEN_LABEL[None]
+    out = []
+    pairs = []
+    for m in ("degradation", "avail. change"):
+        pairs.append((f"{m}, no handoff %", f"{m}, no handoff %", f"{m}, no handoff"))
+        for pol in ("full", "full_keep_serving"):
+            pairs.append((f"{m}, {POLICY_LABEL['legacy']} %", f"{m}, {POLICY_LABEL[pol]} %",
+                          f"{m}, with handoff: paper (legacy) -> Gen2 {POLICY_LABEL[pol]}"))
+    for ref_key, new_key, label in pairs:
+        a = by.get(ref_key, {}).get(base)
+        b = by.get(new_key, {}).get(GEN_LABEL["gen2"])
+        va, vb = _verdict_of(a), _verdict_of(b)
+        if va is None or vb is None:
+            continue
+        mark = "**changes**" if va != vb else "unchanged"
+        out.append(f"- {label}: {va} ({a.split(' [')[0]}) -> {vb} ({b.split(' [')[0]}): {mark}")
+    return out
+
+
 def flips(rows: list[dict], ref: str = GEN_LABEL[None], new: str = GEN_LABEL["gen2"]) -> list[str]:
     """Rows whose limit verdict differs between the paper's numbers and Gen2 only."""
     out = []
@@ -416,8 +459,21 @@ Implemented in `ngsi.dtt_screen` (`HandoffPolicy`, `_evaluate_policies`,
 """
 
 
-def policy_rows(run: Path) -> list[dict]:
-    ho = pd.read_parquet(run / "raw_handoff.parquet")
+def policy_frame(prefix: str, gen) -> pd.DataFrame | None:
+    """Per-station handoff rows of every policy, each from the newest run that has it."""
+    parts = []
+    for pol in POLICY_LABEL:
+        run = run_with_policy(prefix, gen, pol)
+        if run is None:
+            continue
+        ho = pd.read_parquet(run / "raw_handoff.parquet")
+        ho = ho[ho["policy"] == pol].copy()
+        ho["run"] = run.name
+        parts.append(ho)
+    return pd.concat(parts, ignore_index=True) if parts else None
+
+
+def policy_rows(ho: pd.DataFrame) -> list[dict]:
     rows = []
     for pol, g in ho.groupby("policy", sort=False):
         md, cd, n = rep_worst(g, "degradation_div")
@@ -439,14 +495,13 @@ def policy_rows(run: Path) -> list[dict]:
             "time on alternate % (mean)": pct(h["diverted_frac"].mean()),
             "switches/h (mean)": ("-" if h["switches_per_hour"].isna().all()
                                   else f"{h['switches_per_hour'].mean():.1f}"),
-            "replications": n,
+            "replications": n, "run": f"`{g['run'].iloc[0]}`",
         })
     return rows
 
 
 # ------------------------------------------------------------------ section 3
-def exceed_rows_raw(run: Path) -> list[dict]:
-    ho = pd.read_parquet(run / "raw_handoff.parquet")
+def exceed_rows_raw(ho: pd.DataFrame) -> list[dict]:
     rows = []
     for pol, g in ho.groupby("policy", sort=False):
         if pol == ho["policy"].iloc[0]:
@@ -515,6 +570,80 @@ def latitude_rows(e4: Path, e5: Path) -> list[dict]:
     return rows
 
 
+SCOPE_NOTES = [
+    "## 0. Scope and changes of input", "",
+    "- **As-deployed snapshot.** All Phase 4 as-deployed results use the CelesTrak "
+    "`starlink` / `oneweb` TLE groups downloaded 2026-10-20T19:25Z (URLs, object counts, "
+    "epochs and sha256 in `data/raw/README.md`).  The 2026-10-18 snapshot behind the "
+    "paper's current as-deployed numbers was not reachable from this machine, so the "
+    "column 'paper now' is read from the committed `paper/numbers.tex` at "
+    f"`{PAPER_COMMIT}`, not re-run.",
+    "- **Step 0 bandwidth re-runs skipped.** The E5/E6 re-runs on the old snapshot were "
+    "not made.  Bandwidth invariance rests on E4 run on two machines: the 250 MHz run "
+    "here vs the committed 240/125 MHz Linux run, every summary column within 4.4e-16 "
+    "(`results/e10_bandwidth_invariance_20261020T165626Z_seed0/`).",
+    "- **Precision.** Phase 4 final runs are float32 (`run_meta.json` `compute_dtype`); "
+    "on one complete E4 case all 84 paper macros were identical to float64 at printed "
+    "precision (`results/e11_precision_check_20261020T171436Z_seed0/`).",
+    "- **Not re-run.** E1-E3 (geometric screen, Gen1 Walker), E7/E8 (analytic model, "
+    "Gen1 shells) and E9 (55 deg mask diagnosis, old snapshot) are unchanged.",
+    "",
+]
+
+ANALYTIC_NK = [
+    "## 4. How n_k is computed in the analytic model (E7)", "",
+    "`ngsi.analytic.visibility_stats` gives the mean visible count of constellation k at "
+    "station latitude phi as the sum over its shells of "
+    "`ngsi.sanity.analytic_visible_count`: for a Walker shell with N_s = planes x "
+    "sats-per-plane satellites, inclination i and altitude h,",
+    "",
+    "    n_k(phi) = sum_s N_s * < (1/pi) * arccos( (cos psi - sin delta sin phi) / "
+    "(cos delta cos phi) ) >_u ,   delta = asin(sin i sin u),",
+    "",
+    "averaged over the argument of latitude u uniform on [0, 2 pi) (20,000 points), where "
+    "psi(h, e_min) is the Earth-central half-angle of the visibility cap at the 25 deg "
+    "mask (`earth_central_angle_cap`) and the arccos argument is clipped to [-1, 1].  "
+    "The bracket is the fraction of longitudes whose sub-satellite point lies inside the "
+    "cap.  n_k enters the event model through V_k = 1 - exp(-n_k) and the nearest-of-n_k "
+    "serving-direction density.  It is validated against the simulated visible counts by "
+    "the sanity gate (`ngsi.sanity`, `sanity.json`).  The E7 run in `results/` uses the "
+    "Gen1 Walker shells (it was not re-run in Phase 4).",
+    "",
+]
+
+
+def event_in_section(sel: dict) -> list[str]:
+    """Clear-sky C/N of the OneWeb victim and the I/N during events (Gen2 headline)."""
+    L = ["### Victim C/N and interference during events (Gen2 only)", ""]
+    rows = []
+    for prefix, geo in (("e5_as_deployed", "as deployed"), ("e4_dtt", "as filed")):
+        run = sel[prefix].get("gen2")
+        if run is None:
+            continue
+        s = pd.read_csv(run / "summary_dtt.csv")
+        b = s[(s["system_a"] == VICTIM) & (s["variant"] == 0) & (s["diameter_m"] == HEAD_DIAM)]
+        row = {"geometry": geo, "run": f"`{run.name}`",
+               "clear-sky C/N median dB (lat. range)": f"{b['cn0_median_mean'].min():.1f} .. "
+                                                      f"{b['cn0_median_mean'].max():.1f}",
+               "clear-sky C/N p10 dB (lat. range)": f"{b['cn0_p10_mean'].min():.1f} .. "
+                                                   f"{b['cn0_p10_mean'].max():.1f}"}
+        f = run / "summary_event_in.csv"
+        if f.exists():
+            e = pd.read_csv(f)
+            e = e[(e["system_a"] == VICTIM) & (e["diameter_m"] == HEAD_DIAM)].iloc[0]
+            for key, lab in (("serving", "serving-beam I/N"), ("aggregate", "aggregate I/N")):
+                row[f"{lab} during events, p10 / median / p90 dB"] = (
+                    f"{e[f'in_{key}_p10_db']:.1f} / {e[f'in_{key}_median_db']:.1f} / "
+                    f"{e[f'in_{key}_p90_db']:.1f}")
+            row["event samples"] = f"{int(e['n_events_aggregate'])}"
+        rows.append(row)
+    L += ["OneWeb victim, 0.45 m, realistic variant.  C/N: per-latitude means over meridians "
+          "and replications of each station's time median / 10th percentile; I/N: pooled over "
+          "all event samples (aggregate Delta T/T > 6%) of all stations and replications.  The "
+          "event threshold is I/N = -12.2 dB.", "", md_table(rows), ""]
+    return L
+
+
 def main() -> int:
     sel = select_runs()
     L = ["# Phase 4 - WCNC review: Gen1/Gen2 separation, handoff, compliance reporting", "",
@@ -535,6 +664,7 @@ def main() -> int:
              "victim, realistic variant, 0.45 m.")
     L.append("")
 
+    L += SCOPE_NOTES
     L += ["## 1. Gen1 / Gen2 separation", ""]
     L += shells_section(sel)
     L += classification_section(sel)
@@ -542,9 +672,8 @@ def main() -> int:
                           ("e5_as_deployed", "1.4 As deployed (E5, CelesTrak snapshot)")):
         rows = headline_rows(sel, prefix)
         L += [f"### {title}", "", md_table(rows), ""]
-        f = flips(rows)
-        L += ["Verdicts that change from the paper's numbers to Gen2 only:", ""]
-        L += (f or ["- none"]) + [""]
+        L += ["Limit verdicts, the paper's numbers vs Gen2 only:", ""]
+        L += (changes(rows) or ["- (not comparable)"]) + [""]
     rows6 = table1_rows(sel)
     L += ["### 1.5 Table I (E6 sensitivity cases, as deployed)", "", md_table(rows6), ""]
     f = flips(rows6)
@@ -552,25 +681,29 @@ def main() -> int:
     L += (f or ["- none"]) + [""]
 
     L += ["## 2. Handoff definition and constrained diversity", "", HANDOFF_DEFINITION, ""]
+    k = 0
     for prefix, title in (("e5_as_deployed", "as deployed (E5)"), ("e4_dtt", "as filed (E4)")):
         for g in GENS:
-            run = sel[prefix].get(g)
-            if run is None or not (run / "raw_handoff.parquet").exists():
+            ho = policy_frame(prefix, g)
+            if ho is None:
                 continue
-            L += [f"### 2.x Policies, {title}, {GEN_LABEL[g]} (`results/{run.name}/`)", "",
-                  md_table(policy_rows(run)), ""]
+            k += 1
+            L += [f"### 2.{k} Handoff rules and constraints, {title}, {GEN_LABEL[g]}", "",
+                  md_table(policy_rows(ho)), ""]
+    L += event_in_section(sel)
 
     L += ["## 3. Compliance reporting", ""]
     L += ["### 3.1 Station-replications above each limit (E4 / E5, per handoff policy)", "",
           "station-reps = stations x replications at the headline aperture; qualified = "
           "baseline availability >= 99% (the 25.261(d) domain).", ""]
-    for prefix in ("e4_dtt", "e5_as_deployed"):
+    for prefix in ("e5_as_deployed", "e4_dtt"):
         for g in GENS:
-            run = sel[prefix].get(g)
-            if run is None or not (run / "raw_handoff.parquet").exists():
+            ho = policy_frame(prefix, g)
+            if ho is None:
                 continue
-            L += [f"**{prefix}, {GEN_LABEL[g]}** (`results/{run.name}/`)", "",
-                  md_table(exceed_rows_raw(run)), ""]
+            L += [f"**{prefix}, {GEN_LABEL[g]}** (runs: "
+                  f"{', '.join(f'`{r}`' for r in ho['run'].unique())})", "",
+                  md_table(exceed_rows_raw(ho)), ""]
     L += ["### 3.2 Station-replications above each limit (E6 cases)", ""]
     for g in GENS:
         run = sel["e6_eirp_sweep"].get(g)
@@ -623,6 +756,7 @@ def main() -> int:
                  " pp.")
         L.append("")
 
+    L += ANALYTIC_NK
     OUT.write_text("\n".join(L) + "\n", encoding="utf-8")
     print(f"[phase4] wrote {OUT} ({len(L)} lines)")
     return 0
