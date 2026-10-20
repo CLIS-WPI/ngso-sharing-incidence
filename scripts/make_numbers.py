@@ -36,7 +36,8 @@ STARLINK_FILED_TOP_DBW_PER_4KHZ = -8.3
 
 
 def newest(prefix: str) -> Path | None:
-    runs = sorted(p for p in RESULTS.glob(f"{prefix}_*") if p.is_dir())
+    runs = sorted(p for p in RESULTS.glob(f"{prefix}_*")
+                  if p.is_dir() and ((p / "status.json").exists() or (p / "diagnosis.json").exists()))
     return runs[-1] if runs else None
 
 
@@ -56,7 +57,9 @@ def newest_where(prefix: str, **status_kv) -> Path | None:
             continue
         if all(st.get(k) == v for k, v in status_kv.items()):
             return run
-    return runs[-1] if runs else None
+    # No match: fall back to the newest *finished* run (status.json present).
+    done = [r for r in runs if (r / "status.json").exists()]
+    return done[-1] if done else None
 
 
 def primary_generation(prefix: str) -> str | None:
@@ -145,6 +148,190 @@ def _sign_bands(lat: pd.Series, err: pd.Series, sign: int) -> list[tuple[float, 
             bands.append([la, la])
         prev_in = now_in
     return [(lo, hi) for lo, hi in bands]
+
+
+# ----------------------------------------------------------------- Phase 4 macros
+GEN_TAG = {"gen2": "GenTwo", "gen1": "GenOne", "all": "GenAll"}
+GEO_TAG = {"e4_dtt": "Fil", "e5_as_deployed": "Dep"}
+RULE_TAG = {"full": "EvAv", "full_keep_serving": "RateMax", "legacy": "Legacy"}
+CONSTRAINED_TAG = {"full_k2": "KTwo", "full_k3": "KThree", "full_n10": "NTen",
+                   "full_n60": "NSixty"}
+LAT_WORD = {0: "Zero", 5: "Five", 10: "Ten", 15: "Fifteen", 20: "Twenty",
+            25: "TwentyFive", 30: "Thirty", 35: "ThirtyFive", 40: "Forty",
+            45: "FortyFive", 50: "Fifty", 55: "FiftyFive", 60: "Sixty", 65: "SixtyFive"}
+QUAL = 0.99
+
+
+def _status(run: Path) -> dict:
+    return json.loads((run / "status.json").read_text())
+
+
+def headline_run(prefix: str, gen: str) -> Path | None:
+    """Newest primary-configuration run of ``prefix`` for Starlink generation ``gen``."""
+    runs = sorted(p for p in RESULTS.glob(f"{prefix}_*") if p.is_dir())
+    for run in reversed(runs):
+        try:
+            st = _status(run)
+        except (OSError, ValueError):
+            continue
+        if (st.get("starlink_generation") == gen and st.get("steering") is None
+                and st.get("diversity_fspl") == "interferer"):
+            return run
+    return None
+
+
+def run_with_policy(prefix: str, gen: str, policy: str) -> Path | None:
+    """Newest primary-configuration run of ``gen`` that evaluated handoff ``policy``."""
+    runs = sorted(p for p in RESULTS.glob(f"{prefix}_*") if p.is_dir())
+    for run in reversed(runs):
+        try:
+            st = _status(run)
+        except (OSError, ValueError):
+            continue
+        if (st.get("starlink_generation") == gen and st.get("steering") is None
+                and st.get("diversity_fspl") == "interferer"
+                and policy in [q["name"] for q in st.get("handoff_policies", [])]
+                and (run / "raw_handoff.parquet").exists()):
+            return run
+    return None
+
+
+def _head(df: pd.DataFrame) -> pd.DataFrame:
+    return df[(df["system_a"] == VICTIM) & (df["variant"] == 0)
+              & (df["diameter_m"] == HEAD_DIAM)]
+
+
+def _over(df: pd.DataFrame, col: str, limit: float) -> tuple[int, int, float]:
+    """(station-replications over ``limit``, qualifying ones, largest value) at the headline."""
+    q = _head(df)
+    q = q[q["avail0_frac"] >= QUAL]
+    v = q[col].dropna()
+    return int((v > limit).sum()), int(len(q)), float(v.max()) if len(v) else float("nan")
+
+
+def phase4_macros(add) -> None:
+    """Macros for the Phase 4 results (Gen1/Gen2, both handoff rules, constraints)."""
+    from ngsi.constants import THROUGHPUT_DEGRADE_MAX as DLIM
+    from ngsi.constants import UNAVAILABILITY_INCREASE_MAX as ULIM
+
+    def metric(prefix_tag: str, df: pd.DataFrame, run: Path, cols: tuple[str, str]) -> None:
+        for name, col, lim, nd in (("Degr", cols[0], DLIM, 2), ("Unav", cols[1], ULIM, 3)):
+            m, ci = _rep_worst(df, col, VICTIM, 0)
+            n_over, n_q, mx = _over(df, col, lim)
+            add(f"{prefix_tag}{name}Pct", _pct(m, nd), run)
+            add(f"{prefix_tag}{name}Ci", _pct(ci, nd), run)
+            add(f"{prefix_tag}{name}Over", str(n_over), run)
+            add(f"{prefix_tag}{name}Max", _pct(mx, nd), run)
+
+    for prefix, geo in GEO_TAG.items():
+        raw_name = "raw_dtt.parquet" if prefix == "e4_dtt" else "raw_as_deployed_dtt.parquet"
+        for gen, gtag in GEN_TAG.items():
+            run = headline_run(prefix, gen)
+            if run is None:
+                continue
+            st = _status(run)
+            tag = f"{geo}{gtag}"
+            add(f"{tag}NSats", str(int(st["n_sats"]["STARLINK"])), run)
+            raw = pd.read_parquet(run / raw_name)
+            h = _head(raw)
+            add(f"{tag}Reps", str(int(len(h))), run)
+            add(f"{tag}QualReps", str(int((h["avail0_frac"] >= QUAL).sum())), run)
+            s = _head(pd.read_csv(run / "summary_dtt.csv"))
+            pk = s.loc[s["event_frac_mean"].idxmax()]
+            add(f"{tag}EventPeakPct", _pct(pk["event_frac_mean"]), run)
+            add(f"{tag}EventPeakCi", _pct(pk["event_frac_ci95"]), run)
+            add(f"{tag}EventPeakLat", _num(pk["latitude_deg"], "{:.0f}"), run)
+            metric(f"{tag}NoHo", raw, run, ("degradation_nodiv", "unavail_incr_frac"))
+            for pol, rtag in RULE_TAG.items():
+                pr = run_with_policy(prefix, gen, pol)
+                if pr is None:
+                    continue
+                ho = pd.read_parquet(pr / "raw_handoff.parquet")
+                ho = ho[ho["policy"] == pol]
+                metric(f"{tag}{rtag}", ho, pr, ("degradation_div", "unavail_incr_div_frac"))
+                q = _head(ho)
+                q = q[q["avail0_frac"] >= QUAL]
+                add(f"{tag}{rtag}AltPct", _pct(q["diverted_frac"].mean()), pr)
+
+        # Constrained handoff (event-avoiding rule), Gen2 only.
+        for pol, ctag in CONSTRAINED_TAG.items():
+            pr = run_with_policy(prefix, "gen2", pol)
+            if pr is None:
+                continue
+            ho = pd.read_parquet(pr / "raw_handoff.parquet")
+            ho = ho[ho["policy"] == pol]
+            tag = f"{geo}{ctag}"
+            metric(tag, ho, pr, ("degradation_div", "unavail_incr_div_frac"))
+            q = _head(ho)
+            q = q[q["avail0_frac"] >= QUAL]
+            add(f"{tag}UnresPct", _pct(q["unres_frac"].mean(), 3), pr)
+            add(f"{tag}AltPct", _pct(q["diverted_frac"].mean()), pr)
+            if q["switches_per_hour"].notna().any():
+                add(f"{tag}SwitchesPerHour", _num(q["switches_per_hour"].mean(), "{:.1f}"), pr)
+                m, ci = _rep_worst(ho, "base_loss", VICTIM, 0)
+                add(f"{tag}SwitchOnlyPct", _pct(m, 3), pr)
+                add(f"{tag}SwitchOnlyCi", _pct(ci, 3), pr)
+                m, ci = _rep_worst(ho, "degradation_div_vs_base", VICTIM, 0)
+                add(f"{tag}DegrVsBasePct", _pct(m), pr)
+                add(f"{tag}DegrVsBaseCi", _pct(ci), pr)
+
+        # Clear-sky C/N of the OneWeb victim and the event I/N (Gen2 headline run).
+        run = headline_run(prefix, "gen2")
+        if run is not None:
+            s = _head(pd.read_csv(run / "summary_dtt.csv"))
+            add(f"{geo}CnMedMinDb", _num(s["cn0_median_mean"].min(), "{:.1f}"), run)
+            add(f"{geo}CnMedMaxDb", _num(s["cn0_median_mean"].max(), "{:.1f}"), run)
+            add(f"{geo}CnPTenMinDb", _num(s["cn0_p10_mean"].min(), "{:.1f}"), run)
+            add(f"{geo}CnPTenMaxDb", _num(s["cn0_p10_mean"].max(), "{:.1f}"), run)
+            ev_in = run / "summary_event_in.csv"
+            if ev_in.exists():
+                e = pd.read_csv(ev_in)
+                e = e[(e["system_a"] == VICTIM) & (e["diameter_m"] == HEAD_DIAM)].iloc[0]
+                for key, ktag in (("serving", "Serv"), ("aggregate", "Agg")):
+                    for q, qtag in (("p10", "PTen"), ("median", "Med"), ("p90", "PNinety")):
+                        add(f"{geo}In{ktag}{qtag}Db", _num(e[f"in_{key}_{q}_db"], "{:.1f}"), run)
+            # Per-latitude event fraction and visible Gen2 satellites (Fig. 1).
+            pool = run / "summary_service_pool.csv"
+            if pool.exists():
+                pl = pd.read_csv(pool)
+                for la, word in LAT_WORD.items():
+                    r = pl[(pl["system"] == "STARLINK") & (pl["latitude_deg"] == la)]
+                    if len(r):
+                        add(f"Vis{geo}Lat{word}", _num(r["pool_mean_mean"].iloc[0], "{:.1f}"), run)
+                    r = pl[(pl["system"] == VICTIM) & (pl["latitude_deg"] == la)]
+                    if len(r):
+                        add(f"VisOne{geo}Lat{word}", _num(r["pool_mean_mean"].iloc[0], "{:.1f}"),
+                            run)
+            for la, word in LAT_WORD.items():
+                r = s[s["latitude_deg"] == la]
+                if len(r):
+                    add(f"Event{geo}Lat{word}Pct", _pct(r["event_frac_mean"].iloc[0]), run)
+
+    # As-deployed classification and the snapshot (Gen2 headline E5 run).
+    run = headline_run("e5_as_deployed", "gen2")
+    if run is None:
+        return
+    tm = json.loads((run / "tle_meta.json").read_text())
+    gm = tm["starlink_generation"]
+    rule = gm["rule"]
+    cut = [e["launched_on_or_after"] for e in rule if e.get("launched_on_or_after")]
+    if cut:
+        add("GenTwoLaunchCutoff", str(cut[0]), run)
+    sh = pd.read_csv(run / "summary_starlink_generation.csv")
+    shell_word = {"43deg": "FortyThree", "33deg": "ThirtyThree",
+                  "53deg-post-grant": "FiftyThreeGenTwo", "53deg-pre-grant": "FiftyThreeGenOne",
+                  "70deg": "Seventy", "97deg": "NinetySeven"}
+    for i, e in enumerate(rule):
+        word = shell_word.get(str(e.get("shell", "")))
+        if word is None:
+            continue
+        r = sh[sh["rule"] == i + 1]
+        add(f"NSats{word}", str(int(r["n_sats"].iloc[0])) if len(r) else "0", run)
+        if len(r) and "altitude_median_km" in r.columns:
+            add(f"Alt{word}MedKm", _num(r["altitude_median_km"].iloc[0], "{:.0f}"), run)
+            add(f"Alt{word}PTenKm", _num(r["altitude_p10_km"].iloc[0], "{:.0f}"), run)
+            add(f"Alt{word}PNinetyKm", _num(r["altitude_p90_km"].iloc[0], "{:.0f}"), run)
+    add("NStarlinkOperational", str(int(tm["groups"]["STARLINK"]["n_operational"])), run)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -619,6 +806,9 @@ def main(argv: list[str] | None = None) -> int:
         add("MinElevWorstNonePct", _pct(max(r["frac_none_above_mask"] for r in w9)), e9)
         add("BwCheckMhz", _num(j9["bandwidth_check_mhz"], "{:g}"), e9)
         add("BwMaxAbsDiffPct", _pct(max(j9["bandwidth_max_abs_diff"].values()), 3), e9)
+
+    # --- Phase 4: Gen1/Gen2, both handoff rules, constrained handoff ---
+    phase4_macros(add)
 
     # --- write ---
     bad = [n for n, _ in macros if not n.isalpha()]
