@@ -23,9 +23,19 @@ def main(argv: list[str] | None = None) -> int:
         default=REPO_ROOT / "configs" / "experiments" / "e6_eirp_sweep.yaml",
     )
     parser.add_argument("--results-root", type=Path, default=REPO_ROOT / "results")
+    parser.add_argument("--starlink-generation", choices=("gen1", "gen2", "all"), default=None,
+                        help="Starlink shells used as interferer/victim (default: config)")
+    parser.add_argument("--handoff-policies", default=None,
+                        help="comma-separated subset of the config's handoff_policies")
+    parser.add_argument("--n-start-times", type=int, default=None,
+                        help="number of start times (default: config)")
     args = parser.parse_args(argv)
 
-    run_dir = run_e6(args.config, args.results_root)
+    run_dir = run_e6(args.config, args.results_root,
+                     starlink_generation=args.starlink_generation,
+                     handoff_policies=(args.handoff_policies.split(",")
+                                       if args.handoff_policies else None),
+                     n_start_times=args.n_start_times)
     print(f"[e6] run complete: {run_dir}")
     return 0
 

@@ -23,4 +23,25 @@ params:
   # Diversity path-loss: "interferer" (station->interferer range, correct);
   # "victim" reproduces the earlier victim-range approximation for attribution.
   diversity_fspl: interferer
+  # Starlink shells forming the STARLINK system (Phase 4): gen2 = the FCC 22-91
+  # Gen2 shells (the 2020-round system tested against 25.261(d)); gen1 / all are
+  # the Gen1-only and combined sensitivity runs (--starlink-generation).  Gen2
+  # claims rest on the AS-DEPLOYED Gen2-only result (E5/E6); this as-filed run is
+  # the comparison.
+  starlink_generation: gen2
+  # Satellite-diversity (handoff) policies evaluated on the same geometry; see
+  # ngsi.dtt_screen (module docstring) for the definition.  `primary_handoff`
+  # feeds the degradation_div / unavail_incr_div_frac columns; all policies go to
+  # raw_handoff.parquet / summary_handoff.csv.  k and min_interval_s: ASSUMED
+  # constraint values (K = 2, 3 highest-elevation candidates; at most one switch
+  # per 10 s / 60 s).
+  handoff_policies:
+    - {name: full, link_cn: candidate}
+    - {name: full_keep_serving, link_cn: candidate, keep_serving_if_better: true}
+    - {name: legacy, link_cn: serving}
+    - {name: full_k2, link_cn: candidate, k: 2}
+    - {name: full_k3, link_cn: candidate, k: 3}
+    - {name: full_n10, link_cn: candidate, min_interval_s: 10}
+    - {name: full_n60, link_cn: candidate, min_interval_s: 60}
+  primary_handoff: full
   source: ASSUMED

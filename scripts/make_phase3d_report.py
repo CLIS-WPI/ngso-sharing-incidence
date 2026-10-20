@@ -57,6 +57,14 @@ def newest_where(prefix: str, **kv) -> Path | None:
     return None
 
 
+def primary_generation(prefix: str):
+    """``starlink_generation`` of the current config (None before Phase 4)."""
+    import yaml
+
+    cfg = REPO_ROOT / "configs" / "experiments" / f"{prefix}.yaml"
+    return yaml.safe_load(cfg.read_text()).get("params", {}).get("starlink_generation")
+
+
 def fmt_pct(v) -> str:
     return f"{float(v) * 100.0:.2f}"
 
@@ -309,11 +317,16 @@ def e9_section() -> list[str]:
 
 
 def main() -> int:
-    e4 = newest_where("e4_dtt", diversity_fspl="interferer", steering=None)
-    e4_ce = newest_where("e4_dtt", diversity_fspl="interferer", steering="constant_eirp")
-    e5 = newest_where("e5_as_deployed", diversity_fspl="interferer", steering=None)
-    e5_ce = newest_where("e5_as_deployed", diversity_fspl="interferer", steering="constant_eirp")
-    e6 = newest("e6_eirp_sweep")
+    g4, g5 = primary_generation("e4_dtt"), primary_generation("e5_as_deployed")
+    e4 = newest_where("e4_dtt", diversity_fspl="interferer", steering=None,
+                      starlink_generation=g4)
+    e4_ce = newest_where("e4_dtt", diversity_fspl="interferer", steering="constant_eirp",
+                         starlink_generation=g4)
+    e5 = newest_where("e5_as_deployed", diversity_fspl="interferer", steering=None,
+                      starlink_generation=g5)
+    e5_ce = newest_where("e5_as_deployed", diversity_fspl="interferer", steering="constant_eirp",
+                         starlink_generation=g5)
+    e6 = newest_where("e6_eirp_sweep", starlink_generation=primary_generation("e6_eirp_sweep"))
     assert e4 and e5 and e6, "missing runs; execute e4_dtt/e5_as_deployed/e6_eirp_sweep first"
 
     d4 = pd.read_csv(e4 / "summary_dtt.csv")
@@ -321,6 +334,9 @@ def main() -> int:
     d5 = pd.read_csv(e5 / "summary_dtt.csv")
     d5c = pd.read_csv(e5_ce / "summary_dtt.csv") if e5_ce else None
     s6 = pd.read_csv(e6 / "summary_eirp_sweep.csv")
+    if "handoff_policy" in s6.columns:
+        s6 = s6[s6["handoff_policy"] == json.loads((e6 / "status.json").read_text())[
+            "primary_handoff"]]
 
     cols = ["pair", "variant", "event_pct", "event_lat", "unres_pct", "unres_lat",
             "unres_over_event"]

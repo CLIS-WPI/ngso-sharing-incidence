@@ -59,6 +59,35 @@ def newest_where(prefix: str, **status_kv) -> Path | None:
     return runs[-1] if runs else None
 
 
+def primary_generation(prefix: str) -> str | None:
+    """Headline Starlink generation (``starlink_generation`` in the current config).
+
+    Sensitivity runs with another generation share the prefix; pinning the
+    headline macros to the configured one keeps them from becoming the headline
+    (CLAUDE.md).  Pre-Phase-4 configs/runs have no key (None on both sides).
+    """
+    import yaml
+
+    cfg = REPO_ROOT / "configs" / "experiments" / f"{prefix}.yaml"
+    return yaml.safe_load(cfg.read_text()).get("params", {}).get("starlink_generation")
+
+
+def primary_rows(df: pd.DataFrame, run: Path) -> pd.DataFrame:
+    """Rows of the run's primary handoff policy (E6 writes one row set per policy)."""
+    if "handoff_policy" not in df.columns:
+        return df
+    st = json.loads((run / "status.json").read_text())
+    return df[df["handoff_policy"] == st["primary_handoff"]]
+
+
+def _jd_to_date(jd: float) -> str:
+    from datetime import datetime, timedelta, timezone
+
+    # JD 2440587.5 is 1970-01-01T00:00Z.
+    t = datetime(1970, 1, 1, tzinfo=timezone.utc) + timedelta(days=float(jd) - 2440587.5)
+    return t.strftime("%Y-%m-%d")
+
+
 def _num(v, fmt: str = "{:.4g}") -> str:
     return fmt.format(float(v))
 
@@ -118,7 +147,16 @@ def _sign_bands(lat: pd.Series, err: pd.Series, sign: int) -> list[tuple[float, 
     return [(lo, hi) for lo, hi in bands]
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
+    import argparse
+
+    global RESULTS, OUT
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--results-root", type=Path, default=RESULTS,
+                    help="read runs from here (default results/)")
+    ap.add_argument("--out", type=Path, default=OUT, help="write here (default paper/numbers.tex)")
+    args = ap.parse_args(argv)
+    RESULTS, OUT = args.results_root.resolve(), args.out.resolve()
     macros: list[tuple[str, str]] = []
     sources: list[str] = []
     oneweb_eirp: float | None = None
@@ -127,7 +165,7 @@ def main() -> int:
     def add(name: str, value: str, run: Path | None = None) -> None:
         macros.append((name, value))
         if run is not None:
-            sources.append(f"% {name} <- results/{run.name}/")
+            sources.append(f"% {name} <- {RESULTS.name}/{run.name}/")
 
     # --- rule values (single source of truth in the library) ---
     from ngsi.constants import (
@@ -207,13 +245,16 @@ def main() -> int:
     # availability is >= 99% (the domain in which the rule is defined);
     # `avail0_frac_mean` is the mean over phasings/longitudes of the fraction of
     # time the victim link keeps C/N >= 0 dB.
-    e4 = newest_where("e4_dtt", diversity_fspl="interferer", steering=None)
+    e4 = newest_where("e4_dtt", diversity_fspl="interferer", steering=None,
+                      starlink_generation=primary_generation("e4_dtt"))
     if e4 is not None:
         d = pd.read_csv(e4 / "summary_dtt.csv")
         st4 = json.loads((e4 / "status.json").read_text())
         oneweb_eirp = float(st4["beam_eirp_dbw_per_mhz"]["ONEWEB"])
         add("OnewebEirpDbw", _num(oneweb_eirp, "{:g}"), e4)
         add("StationMinElevDeg", _num(st4["min_elevation_deg"], "{:g}"), e4)
+        add("TimeStepS", _num(st4["time_step_s"], "{:g}"), e4)
+        add("DurationH", _num(st4["duration_s"] / 3600.0, "{:g}"), e4)
         add("ImplMarginDb", _num(st4["implementation_margin_db"], "{:g}"), e4)
         # Altitudes from the run's copied config (a file under results/).
         from ngsi.config import load_constellations
@@ -294,6 +335,15 @@ def main() -> int:
             add(f"Qual{tag}Cases", str(int(qual[["diameter_m", "variant", "latitude_deg"]]
                                             .drop_duplicates().shape[0])), e4)
             add(f"Qual{tag}Total", str(int(tot)), e4)
+        # Qualifying station-replications (the 25.261(d) domain): station x
+        # phasing pairs with baseline availability >= 99%, headline aperture,
+        # realistic variant (the baseline does not depend on the variant).
+        _r4 = pd.read_parquet(e4 / "raw_dtt.parquet")
+        for sysn, tag in ((VICTIM, "One"), ("STARLINK", "Star")):
+            q = _r4[(_r4["system_a"] == sysn) & (_r4["variant"] == 0)
+                    & (_r4["diameter_m"] == HEAD_DIAM)]
+            add(f"Qual{tag}StationReps", str(int((q["avail0_frac"] >= 0.99).sum())), e4)
+            add(f"Qual{tag}StationRepsTotal", str(int(len(q))), e4)
         # 25.261(d) metrics: worst qualified station per phasing, then mean/CI
         # across phasings (_rep_worst; the same aggregation as Table I).
         raw4 = pd.read_parquet(e4 / "raw_dtt.parquet")
@@ -314,7 +364,8 @@ def main() -> int:
             add(f"{name}Ci", _pct(ci, nd), e4)
 
     # --- E5: as-deployed CelesTrak snapshot ---
-    e5 = newest_where("e5_as_deployed", diversity_fspl="interferer", steering=None)
+    e5 = newest_where("e5_as_deployed", diversity_fspl="interferer", steering=None,
+                      starlink_generation=primary_generation("e5_as_deployed"))
     if e5 is not None:
         st = json.loads((e5 / "status.json").read_text())
         add("NStarlinkRaw", str(int(st["n_sats_raw"]["STARLINK"])), e5)
@@ -322,6 +373,17 @@ def main() -> int:
         add("NOnewebRaw", str(int(st["n_sats_raw"]["ONEWEB"])), e5)
         add("NOnewebOp", str(int(st["n_sats"]["ONEWEB"])), e5)
         add("NStartTimes", str(int(st["n_start_times"])), e5)
+        add("StartSpacingH", _num(st["start_offset_s"] / 3600.0, "{:g}"), e5)
+        add("SnapshotDate", _jd_to_date(st["common_epoch_jd"]), e5)
+        for sysn, tag in (("STARLINK", "Starlink"), ("ONEWEB", "Oneweb")):
+            lo, hi = st["operational_altitude_km"][sysn]
+            add(f"OpAlt{tag}LoKm", _num(lo, "{:g}"), e5)
+            add(f"OpAlt{tag}HiKm", _num(hi, "{:g}"), e5)
+        _gc = st.get("starlink_generation_counts")
+        if _gc:
+            add("NStarlinkGenOne", str(int(_gc["gen1"])), e5)
+            add("NStarlinkGenTwo", str(int(_gc["gen2"])), e5)
+            add("NStarlinkGenUnclassified", str(int(_gc["unclassified"])), e5)
         ddtt = pd.read_csv(e5 / "summary_dtt.csv")
         bind5 = ddtt[ddtt["system_a"] == VICTIM]
         wp = _peak(bind5[bind5["variant"] == 0], "event_frac_mean")
@@ -351,6 +413,11 @@ def main() -> int:
             add(f"{name}Pct", _pct(m, nd), e5)
             add(f"{name}Ci", _pct(ci, nd), e5)
         add("BaselineAvailOneDepPct", _pct(bind5["avail0_frac_mean"].min(), 0), e5)
+        _f2 = bind5[(bind5["variant"] == 0) & (bind5["diameter_m"] == HEAD_DIAM)]
+        add("FigLimitsMaxCiDegrPct", _pct(_f2[["degradation_nodiv_ci95",
+                                               "degradation_div_ci95"]].max().max()), e5)
+        add("FigLimitsMaxCiUnavPct", _pct(_f2[["unavail_incr_frac_ci95",
+                                               "unavail_incr_div_frac_ci95"]].max().max(), 3), e5)
         add("BindDepStarWorstPct", _pct(_peak(
             ddtt[(ddtt["system_a"] == "STARLINK") & (ddtt["variant"] == 0)],
             "event_frac_mean")["event_frac_mean"]), e5)
@@ -388,9 +455,9 @@ def main() -> int:
     # sweep.  The macros the manuscript already uses are preserved by name and
     # remapped to the primary case / across-case extremes; the per-case macros
     # expose the sensitivity rows.
-    e6 = newest("e6_eirp_sweep")
+    e6 = newest_where("e6_eirp_sweep", starlink_generation=primary_generation("e6_eirp_sweep"))
     if e6 is not None:
-        s = pd.read_csv(e6 / "summary_eirp_sweep.csv")
+        s = primary_rows(pd.read_csv(e6 / "summary_eirp_sweep.csv"), e6)
         _st6 = json.loads((e6 / "status.json").read_text())
         add("SenStartTimes", str(int(_st6["n_start_times"])), e6)
 

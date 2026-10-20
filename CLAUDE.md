@@ -36,9 +36,38 @@ scaffold. Notes below cover what it does not.
 - Reports (`scripts/make_*_report.py` -> `results/*_REPORT.md`) and
   `paper/numbers.tex` are generated; edit the scripts, not the outputs.
 
+## Phase 4 conventions
+
+- `STARLINK` in `configs/constellations.yaml` is the Gen1 system; `STARLINK_GEN2`
+  holds the FCC 22-91 shells. Runs build the `STARLINK` interferer from
+  `starlink_generation` (gen1 | gen2 | all; config key or `--starlink-generation`).
+  As deployed, TLEs are labelled by `starlink_generation_rule` (E5/E6 configs).
+  Headline selection (`make_numbers.py`, figures, reports) only takes runs whose
+  `status.json` generation equals the configured one.
+- Handoff policies (`ngsi.dtt_screen.HandoffPolicy`) are listed per experiment;
+  `primary_handoff` feeds `degradation_div`; every policy goes to
+  `raw_handoff.parquet` / `summary_handoff.csv`. `--handoff-policies a,b` runs a
+  subset of them.
+- `NGSI_COMPUTE_DTYPE=float32` switches the heavy torch geometry to float32
+  (default float64; recorded in `run_meta.json`). Some reference tests are
+  float64-only.
+- On Windows: set `MSYS_NO_PATHCONV=1` before `docker exec -w /workspace ...` in
+  Git Bash, and write files with LF endings.
+
 ## Commands not in AGENTS.md
 
-- `scripts/run_all.sh` does **not** run `e7_analytic.py`, `scripts/diagnose_analytic.py`
-  or `scripts/make_phase3d_report.py`; run those directly in the container when needed.
+- `scripts/run_all.sh` runs only E1-E6, figures, the Gate-1/3a/3b reports and the paper.
+  It does **not** run `experiments/e7_analytic.py`, `scripts/diagnose_analytic.py` (E8),
+  `scripts/diagnose_min_elevation.py` (E9, OneWeb 55 deg mask / bandwidth invariance),
+  `scripts/calibrate_oneweb_eirp.py` or `scripts/make_phase3d_report.py`; run those
+  directly in the container when needed.
 - Rebuild the paper only: `make paper` (runs `make_numbers.py` then `latexmk` via
   `scripts/build_paper.sh`).
+- Every experiment entrypoint accepts `--config` and `--results-root`. Pointing
+  `--results-root` at a scratch directory keeps an exploratory run from becoming the
+  "newest" run that reports and `paper/numbers.tex` pick up.
+- `tests/test_paper_numbers.py` checks that every capitalised macro in
+  `paper/main.tex` is defined in `paper/numbers.tex`. After you add a number to the
+  paper, add it to `scripts/make_numbers.py` and regenerate, or the suite fails.
+- The Makefile uses `$(shell id -u)`, so on this Windows host run `make` from Git Bash
+  (or call `docker compose -f docker/docker-compose.yml ...` directly).

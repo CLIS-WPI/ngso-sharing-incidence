@@ -40,9 +40,9 @@ from .link_budget import noise_power_dbw_per_mhz, terminal_peak_gain_dbi
 from .frames import utc_to_jd
 from .geometry import station_ecef_spherical
 from .io import new_run_dir
-from .rules import BAND_SPLIT_FRACTION
+from .rules import BAND_SPLIT_FRACTION, THROUGHPUT_DEGRADE_MAX, UNAVAILABILITY_INCREASE_MAX
 from .sanity import analytic_density_per_deg, analytic_visible_count, max_relative_deviation
-from .dtt_screen import VARIANT_NAMES, screen_pair_dtt
+from .dtt_screen import LEGACY_POLICY, VARIANT_NAMES, HandoffPolicy, screen_pair_dtt
 from .screening import ScreenConfig, screen_pair, system_visibility
 from .systems import build_as_deployed_system, build_system
 from .tle import celestrak_url, common_epoch_jd, fetch_group, filter_operational, parse_tle
@@ -566,6 +566,97 @@ def _starlink_f_variant(sim, f_value: int):
     return _replace(sim, systems=new_systems)
 
 
+STARLINK_GENERATIONS = ("gen1", "gen2", "all")
+
+
+def select_starlink_generation(sim, generation: str | None):
+    """Copy of ``sim`` whose ``STARLINK`` system holds the chosen Starlink shells.
+
+    ``gen1`` = the ``STARLINK`` entry (2016-round Gen1 shells), ``gen2`` = the
+    ``STARLINK_GEN2`` entry (FCC 22-91 shells), ``all`` = both.  The system keeps
+    the name ``STARLINK`` so bands, EIRP overrides and reports are unchanged.
+    ``None`` returns ``sim`` unchanged (= gen1, the pre-Phase-4 behaviour).
+    """
+    from dataclasses import replace as _replace
+
+    if generation is None:
+        return sim
+    if generation not in STARLINK_GENERATIONS:
+        raise ValueError(f"starlink_generation must be one of {STARLINK_GENERATIONS!r}")
+    gen1 = sim.systems["STARLINK"]
+    gen2 = sim.systems["STARLINK_GEN2"]
+    shells = {"gen1": list(gen1.shells), "gen2": list(gen2.shells),
+              "all": list(gen1.shells) + list(gen2.shells)}[generation]
+    new_systems = dict(sim.systems)
+    new_systems["STARLINK"] = _replace(gen1, shells=shells)
+    return _replace(sim, systems=new_systems)
+
+
+def _starlink_generation(p: dict, override: str | None) -> str | None:
+    g = p.get("starlink_generation") if override is None else override
+    return None if g in (None, "null") else str(g)
+
+
+def _handoff_policies(p: dict, subset: list[str] | None = None
+                      ) -> tuple[tuple[HandoffPolicy, ...], str]:
+    """Handoff policies from the experiment params and the name of the primary one.
+
+    ``subset`` (CLI ``--handoff-policies``) keeps only the named policies of the
+    config's list, in that order; the primary must be among them.
+    """
+    raw = p.get("handoff_policies")
+    pols = tuple(HandoffPolicy.from_dict(d) for d in raw) if raw else (LEGACY_POLICY,)
+    if subset:
+        by = {q.name: q for q in pols}
+        missing = [n for n in subset if n not in by]
+        if missing:
+            raise ValueError(f"handoff policies {missing} not in the config")
+        pols = tuple(by[n] for n in subset)
+    primary = str(p.get("primary_handoff", pols[0].name))
+    if primary not in [q.name for q in pols]:
+        raise ValueError(f"primary_handoff {primary!r} not among the handoff policies")
+    return pols, primary
+
+
+def _handoff_rows(res: dict, base: dict, grid, policies) -> list[dict]:
+    """Per-station rows for every handoff policy (variant x station)."""
+    rows = []
+    r0 = res["r0_mean"]
+    for pol in policies:
+        pr = res["policies"][pol.name]
+        rb = pr["r_base_mean"]
+        for vi in range(3):
+            for gi in range(grid.ecef.shape[0]):
+                rd = float(pr["r_div_mean"][vi][gi])
+                rows.append({
+                    **base, "policy": pol.name, "link_cn": pol.link_cn,
+                    "k": np.nan if pol.k is None else float(pol.k),
+                    "min_interval_s": (np.nan if pol.min_interval_s is None
+                                       else float(pol.min_interval_s)),
+                    "variant": vi, "latitude_deg": float(grid.latitudes[gi]),
+                    "longitude_deg": float(grid.longitudes[gi]),
+                    "avail0_frac": float(res["avail0_frac"][gi]),
+                    "event_frac": float(res["event_frac"][vi, gi]),
+                    "degradation_nodiv": (1.0 - float(res["r_int_mean"][vi][gi]) / float(r0[gi])
+                                          if r0[gi] else np.nan),
+                    "unavail_incr_frac": float(res["unavail_incr_nodiv_frac"][vi][gi]),
+                    "degradation_div": 1.0 - rd / float(r0[gi]) if r0[gi] else np.nan,
+                    "degradation_div_vs_base": 1.0 - rd / float(rb[gi]) if rb[gi] else np.nan,
+                    "base_loss": 1.0 - float(rb[gi]) / float(r0[gi]) if r0[gi] else np.nan,
+                    "unavail_incr_div_frac": float(pr["unavail_incr_div_frac"][vi][gi]),
+                    "unavail0_base_frac": float(pr["unavail0_base_frac"][gi]),
+                    "unres_frac": float(pr["unres_frac"][vi][gi]),
+                    "diverted_frac": float(pr["diverted_frac"][vi][gi]),
+                    "switches_per_hour": float(pr["switches_per_hour"][vi][gi]),
+                })
+    return rows
+
+
+_HANDOFF_VALUES = ("event_frac", "degradation_nodiv", "unavail_incr_frac", "degradation_div",
+                   "degradation_div_vs_base", "base_loss", "unavail_incr_div_frac",
+                   "unavail0_base_frac", "unres_frac", "diverted_frac", "switches_per_hour")
+
+
 def _oneweb_shell_variant(sim, planes: int, sats_per_plane: int):
     """Copy of the simulation with the OneWeb shell re-sized (ASSUMED geometry)."""
     from dataclasses import replace as _replace
@@ -879,6 +970,8 @@ def run_e4(
     duration_s: float | None = None,
     steering: str | None = None,
     diversity_fspl: str | None = None,
+    starlink_generation: str | None = None,
+    handoff_policies: list[str] | None = None,
 ) -> Path:
     """Run E4 (47 CFR 25.261(c)/(d) Delta T/T screening + throughput degradation).
 
@@ -886,13 +979,17 @@ def run_e4(
     experiment uses the regulatory power criterion for every co-frequency
     user-downlink pair and sweeps the ASSUMED terminal aperture.  ``steering``
     overrides the per-beam interferer beam-steering model (``None`` uses each
-    interferer beam's configured value).
+    interferer beam's configured value).  ``starlink_generation`` (gen1 | gen2 |
+    all; default from the config) selects the Starlink shells.
     """
     sim, exp, grid_cfg, grid, sanity_grid = _load_inputs(exp_path, repo_root)
     bands = load_bands(repo_root / "configs" / "bands.yaml")
     lb = load_link_budget(repo_root / "configs" / "link_budget.yaml")
     udl_pairs = co_frequency_pairs(exp.constellations, bands, "user_downlink")
     p = exp.params
+    gen = _starlink_generation(p, starlink_generation)
+    sim = select_starlink_generation(sim, gen)
+    pols, primary = _handoff_policies(p, handoff_policies)
     n_ph = int(n_phasings if n_phasings is not None else p.get("n_phasings", 8))
     dt = float(time_step_s if time_step_s is not None else p.get("time_step_s", 10.0))
     dur = float(duration_s if duration_s is not None else p.get("duration_s", 86400.0))
@@ -929,12 +1026,15 @@ def run_e4(
     cfg = ScreenConfig(min_elevation_deg=min_el, earth_radius_km=radius, epoch_jd=jd,
                        thetas_deg=(2.0,), chunk=chunk, device=device)
     rows = []
+    ho_rows: list[dict] = []
+    pool_rows: list[dict] = []
     for pi in range(n_ph):
         rng = np.random.default_rng(exp.seed + 137 * pi)
         systems = _phase_systems(sim, exp.constellations, rng, radius)
         vis = {n: system_visibility(systems[n], grid.ecef, grid.up, times, cfg,
                                     np.arange(-90.0, 90.0 + 1e-9, 5.0))
                for n in exp.constellations}
+        pool_rows.extend(_pool_rows(vis, grid, pi))
         for a, b in udl_pairs:
             ov = overlap(bands[a], bands[b], "user_downlink")
             freq = float(ov.center_ghz)
@@ -947,14 +1047,19 @@ def run_e4(
                     grid.ecef, grid.up, times, victim_beam, interf_beam, freq, rx_peak, diam,
                     lb.implementation_margin_db, min_el, radius, jd, device=device, chunk=chunk,
                     pattern=lb.pattern, steering=steer, diversity_fspl=div_fspl,
+                    handoff_policies=pols,
                 )
+                ho_rows.extend(_handoff_rows(
+                    res, {"phasing": pi, "system_a": a, "system_b": b,
+                          "diameter_m": float(diam)}, grid, pols))
+                prim = res["policies"][primary]
                 dtt_by_var = (res["dtt_realistic_mean"], res["dtt_colo_mean"],
                               res["dtt_upper_mean"])
                 for vi in range(3):
                     for gi in range(grid.ecef.shape[0]):
                         r0 = res["r0_mean"][gi]
                         r1i = res["r_int_mean"][vi][gi]
-                        r1d = res["r_div_mean"][vi][gi]
+                        r1d = prim["r_div_mean"][vi][gi]
                         rows.append(
                             {"phasing": pi, "system_a": a, "system_b": b,
                              "link_type": "user_downlink", "shared_freq_ghz": freq,
@@ -976,10 +1081,13 @@ def run_e4(
                              "unavail0_frac": float(res["unavail0_frac"][gi]),
                              "unavail_int_frac": float(res["unavail_nodiv_frac"][vi][gi]),
                              "unavail_incr_frac": float(res["unavail_incr_nodiv_frac"][vi][gi]),
-                             "unavail_incr_div_frac": float(res["unavail_incr_div_frac"][vi][gi])}
+                             "unavail_incr_div_frac": float(prim["unavail_incr_div_frac"][vi][gi])}
                         )
     df = pd.DataFrame(rows)
     df.to_parquet(run_dir / "raw_dtt.parquet", index=False)
+    _write_handoff(run_dir, ho_rows)
+    _service_pool_summary(pd.DataFrame(pool_rows)).to_csv(
+        run_dir / "summary_service_pool.csv", index=False)
     keys = ["system_a", "system_b", "link_type", "shared_freq_ghz", "diameter_m", "variant",
             "latitude_deg"]
     summ = summarise(
@@ -1004,6 +1112,10 @@ def run_e4(
                  "dtt_threshold": 0.06, "diameter_sweep_m": lb.diameter_sweep_m,
                  "pattern": lb.pattern, "implementation_margin_db": lb.implementation_margin_db,
                  "steering": steer, "diversity_fspl": div_fspl,
+                 "starlink_generation": gen,
+                 "handoff_policies": [vars(q) for q in pols], "primary_handoff": primary,
+                 "n_sats": {n: int(sum(sh.total_sats for sh in sim.systems[n].shells))
+                            for n in exp.constellations},
                  "beam_steering": {n: sim.systems[n].shells[0].beam.beam_steering
                                    for n in exp.constellations},
                  "beam_eirp_dbw_per_mhz": {
@@ -1013,13 +1125,85 @@ def run_e4(
     return run_dir
 
 
-def _as_deployed_inputs(exp, sim, repo_root: Path, radius: float):
+def _split_starlink_generation(records, radius: float, rule: list[dict],
+                               generation: str | None):
+    """Label Starlink records by generation; keep the selected one."""
+    from .tle import classify_generation
+
+    labels = classify_generation(records, radius, rule)
+    counts = {g: labels.count(g) for g in ("gen1", "gen2", "unclassified")}
+    alt = np.array([r.semi_major_axis_km - radius for r in records])
+    inc = np.array([r.inclination_deg for r in records])
+    lab = np.array(labels)
+    table = []
+    for g in ("gen1", "gen2", "unclassified"):
+        for e in [e for e in rule if e["generation"] == g] + ([None] if g == "unclassified" else []):
+            if e is None:
+                m = lab == g
+            else:
+                m = ((lab == g) & (np.abs(inc - float(e["inclination_deg"]))
+                                   <= float(e["inclination_tol_deg"]))
+                     & (alt >= float(e["altitude_min_km"])) & (alt < float(e["altitude_max_km"])))
+            if m.any():
+                table.append({"generation": g,
+                              "rule_shell": None if e is None else str(e.get("shell", "")),
+                              "n_sats": int(m.sum()),
+                              "inclination_mean_deg": float(inc[m].mean()),
+                              "altitude_mean_km": float(alt[m].mean()),
+                              "altitude_min_km": float(alt[m].min()),
+                              "altitude_max_km": float(alt[m].max())})
+    if generation in (None, "all"):
+        kept = list(records)
+    elif generation in ("gen1", "gen2"):
+        kept = [r for r, g in zip(records, labels) if g == generation]
+    else:
+        raise ValueError(f"starlink_generation must be one of {STARLINK_GENERATIONS!r}")
+    return kept, {"selected": generation, "counts": counts, "n_kept": len(kept),
+                  "shells": table, "rule": rule}
+
+
+def _pool_rows(vis: dict, grid, rep: int) -> list[dict]:
+    """Per-station mean number of visible satellites (above the mask) and service."""
+    rows = []
+    for n, v in vis.items():
+        pm = (v["pool_sum"] / v["n_samples"]).cpu().numpy() if hasattr(
+            v["pool_sum"], "cpu") else np.asarray(v["pool_sum"]) / v["n_samples"]
+        sf = np.asarray(v["served_frac"])
+        for gi in range(grid.ecef.shape[0]):
+            rows.append({"phasing": rep, "system": n, "mode": "pool",
+                         "latitude_deg": float(grid.latitudes[gi]),
+                         "longitude_deg": float(grid.longitudes[gi]),
+                         "pool_mean": float(pm[gi]), "served_frac": float(sf[gi]),
+                         "pool_p10": np.nan})
+    return rows
+
+
+def _write_handoff(run_dir: Path, ho_rows: list[dict]) -> None:
+    """``raw_handoff.parquet`` (per station) and ``summary_handoff.csv`` (mean/CI)."""
+    ho = pd.DataFrame(ho_rows)
+    ho.to_parquet(run_dir / "raw_handoff.parquet", index=False)
+    keys = ["policy", "link_cn", "k", "min_interval_s", "system_a", "system_b", "diameter_m",
+            "variant", "latitude_deg"]
+    ho2 = ho.copy()
+    ho2[["k", "min_interval_s"]] = ho2[["k", "min_interval_s"]].fillna(-1.0)
+    summarise(ho2, _HANDOFF_VALUES, keys).to_csv(run_dir / "summary_handoff.csv", index=False)
+
+
+def _as_deployed_inputs(exp, sim, repo_root: Path, radius: float,
+                        generation: str | None = None):
     """Fetch the configured TLE snapshots, filter to operational, build systems.
 
     Returns ``(systems, tle_meta, filter_rows)``.  The operational band per system
     is read from the experiment config (``operational_altitude_km``), tagged
     ASSUMED; satellites below it (orbit-raising/deorbit) or above it (off-shell)
     are excluded and their counts recorded.
+
+    Every operational Starlink satellite is labelled Gen1 / Gen2 / unclassified by
+    the ordered shell rule ``starlink_generation_rule`` (experiment config; see
+    :func:`ngsi.tle.classify_generation`); the counts and the per-shell table go
+    to ``tle_meta["starlink_generation"]``.  ``generation`` = gen1 | gen2 keeps
+    only that generation; ``all`` or ``None`` keeps every operational satellite
+    (the pre-Phase-4 behaviour).
     """
     from datetime import datetime, timezone
 
@@ -1037,20 +1221,28 @@ def _as_deployed_inputs(exp, sim, repo_root: Path, radius: float):
         recs = parse_tle(fetch_group(grp, cache_dir))
         band = bands_cfg.get(n, [0.0, 1e9])
         kept, low, high = filter_operational(recs, radius, float(band[0]), float(band[1]))
+        n_operational = len(kept)
+        if n == "STARLINK" and p.get("starlink_generation_rule"):
+            kept, gen_meta = _split_starlink_generation(
+                kept, radius, list(p["starlink_generation_rule"]), generation)
+            tle_meta["starlink_generation"] = gen_meta
+        elif n == "STARLINK" and generation not in (None, "all"):
+            raise SystemExit("[e5] starlink_generation needs starlink_generation_rule")
         if not kept:
             raise SystemExit(f"[e5] no operational {n} satellites after filtering")
         kept_by_system[n] = kept
         all_kept.extend(kept)
         tle_meta["groups"][n] = {
             "group": grp, "url": celestrak_url(grp),
-            "n_sats_raw": len(recs), "n_kept": len(kept),
+            "n_sats_raw": len(recs), "n_kept": len(kept), "n_operational": n_operational,
             "n_excluded_low": len(low), "n_excluded_high": len(high),
             "operational_band_km": [float(band[0]), float(band[1])],
             "epoch_jd_min": float(min(r.epoch_jd for r in kept)),
             "epoch_jd_max": float(max(r.epoch_jd for r in kept)),
         }
         filter_rows.append({
-            "system": n, "n_raw": len(recs), "n_operational": len(kept),
+            "system": n, "n_raw": len(recs), "n_operational": n_operational,
+            "n_kept": len(kept),
             "n_excluded_raise_or_deorbit": len(low), "n_excluded_off_shell_high": len(high),
             "operational_min_km": float(band[0]), "operational_max_km": float(band[1]),
         })
@@ -1072,6 +1264,8 @@ def run_e5(
     duration_s: float | None = None,
     steering: str | None = None,
     diversity_fspl: str | None = None,
+    starlink_generation: str | None = None,
+    handoff_policies: list[str] | None = None,
 ) -> Path:
     """Run E5 (Phase 3b: as-deployed CelesTrak TLE scenario).
 
@@ -1079,13 +1273,17 @@ def run_e5(
     every satellite's TLE mean elements are advanced to a common epoch and the
     analytic J2 propagator is run from N independent *start times* (AGENTS.md
     rule 5).  Event-rate (geometric theta) and Delta T/T (power) screens are
-    produced on the same station grid as E1/E4.
+    produced on the same station grid as E1/E4.  ``starlink_generation``
+    (gen1 | gen2 | all; default from the config) keeps only that generation of
+    the operational Starlink satellites (see ``_as_deployed_inputs``).
     """
     sim, exp, grid_cfg, grid, sanity_grid = _load_inputs(exp_path, repo_root)
     bands = load_bands(repo_root / "configs" / "bands.yaml")
     lb = load_link_budget(repo_root / "configs" / "link_budget.yaml")
     udl_pairs = co_frequency_pairs(exp.constellations, bands, "user_downlink")
     p = exp.params
+    gen = _starlink_generation(p, starlink_generation)
+    pols, primary = _handoff_policies(p, handoff_policies)
     n_st = int(n_start_times if n_start_times is not None else p.get("n_start_times", 8))
     dt = float(time_step_s if time_step_s is not None else p.get("time_step_s", 10.0))
     dur = float(duration_s if duration_s is not None else p.get("duration_s", 86400.0))
@@ -1113,13 +1311,16 @@ def run_e5(
         run_dir / "summary_band_overlap.csv", index=False
     )
 
-    systems, tle_meta, filter_rows = _as_deployed_inputs(exp, sim, repo_root, radius)
+    systems, tle_meta, filter_rows = _as_deployed_inputs(exp, sim, repo_root, radius, gen)
     epoch = float(tle_meta["common_epoch_jd"])
     tle_meta["experiment"] = exp.name
     tle_meta["n_start_times"] = n_st
     tle_meta["start_offset_s"] = offset
     _write_json(run_dir, "tle_meta.json", tle_meta)
     pd.DataFrame(filter_rows).to_csv(run_dir / "summary_satellite_filter.csv", index=False)
+    if "starlink_generation" in tle_meta:
+        pd.DataFrame(tle_meta["starlink_generation"]["shells"]).to_csv(
+            run_dir / "summary_starlink_generation.csv", index=False)
 
     shell_rows = []
     for n, model in systems.items():
@@ -1136,10 +1337,13 @@ def run_e5(
                        thetas_deg=thetas, chunk=chunk, device=device)
     event_rows: list[dict] = []
     dtt_rows: list[dict] = []
+    ho_rows: list[dict] = []
+    pool_rows: list[dict] = []
     for k in range(n_st):
         times = k * offset + np.arange(0.0, dur, dt)
         vis = {n: system_visibility(systems[n], grid.ecef, grid.up, times, cfg, lat_bins)
                for n in exp.constellations}
+        pool_rows.extend(_pool_rows(vis, grid, k))
         for a, b in udl_pairs:
             freq = float(overlap(bands[a], bands[b], "user_downlink").center_ghz)
             res = screen_pair(systems[a], systems[b], vis[a]["max_visible"],
@@ -1166,15 +1370,19 @@ def run_e5(
                     grid.ecef, grid.up, times, victim_beam, interf_beam, freq, rx_peak, diam,
                     lb.implementation_margin_db, min_el, radius, epoch, device=device,
                     chunk=chunk, pattern=lb.pattern, steering=steer,
-                    diversity_fspl=div_fspl,
+                    diversity_fspl=div_fspl, handoff_policies=pols,
                 )
+                ho_rows.extend(_handoff_rows(
+                    dres, {"phasing": k, "system_a": a, "system_b": b,
+                           "diameter_m": float(diam)}, grid, pols))
+                prim = dres["policies"][primary]
                 dtt_by_var = (dres["dtt_realistic_mean"], dres["dtt_colo_mean"],
                               dres["dtt_upper_mean"])
                 for vi in range(3):
                     for g in range(grid.ecef.shape[0]):
                         r0 = dres["r0_mean"][g]
                         r1i = dres["r_int_mean"][vi][g]
-                        r1d = dres["r_div_mean"][vi][g]
+                        r1d = prim["r_div_mean"][vi][g]
                         dtt_rows.append(
                             {"phasing": k, "system_a": a, "system_b": b,
                              "shared_freq_ghz": freq, "diameter_m": float(diam),
@@ -1191,7 +1399,7 @@ def run_e5(
                              "degradation_div": 1.0 - float(r1d) / float(r0) if r0 else np.nan,
                              "unavail0_frac": float(dres["unavail0_frac"][g]),
                              "unavail_incr_frac": float(dres["unavail_incr_nodiv_frac"][vi][g]),
-                             "unavail_incr_div_frac": float(dres["unavail_incr_div_frac"][vi][g])}
+                             "unavail_incr_div_frac": float(prim["unavail_incr_div_frac"][vi][g])}
                         )
 
     ev = pd.DataFrame(event_rows)
@@ -1203,6 +1411,9 @@ def run_e5(
 
     dtt = pd.DataFrame(dtt_rows)
     dtt.to_parquet(run_dir / "raw_as_deployed_dtt.parquet", index=False)
+    _write_handoff(run_dir, ho_rows)
+    _service_pool_summary(pd.DataFrame(pool_rows)).to_csv(
+        run_dir / "summary_service_pool.csv", index=False)
     dtt_s = summarise(
         dtt, ("event_frac", "unres_frac", "cn0_mean", "cn0_median", "cn0_p10", "avail0_frac",
               "dtt_mean", "degradation_nodiv", "degradation_div",
@@ -1224,6 +1435,12 @@ def run_e5(
                                               for n in exp.constellations},
                   "dtt_threshold": 0.06, "diameter_sweep_m": lb.diameter_sweep_m,
                   "steering": steer, "diversity_fspl": div_fspl,
+                  "starlink_generation": gen,
+                  "starlink_generation_counts": tle_meta.get(
+                      "starlink_generation", {}).get("counts"),
+                  "n_sats_operational": {n: int(tle_meta["groups"][n]["n_operational"])
+                                         for n in exp.constellations},
+                  "handoff_policies": [vars(q) for q in pols], "primary_handoff": primary,
                   "beam_steering": {n: systems[n].shells[0].beam.beam_steering
                                     for n in exp.constellations},
                   "beam_eirp_dbw_per_mhz": {
@@ -1240,6 +1457,8 @@ def run_e6(
     results_root: Path,
     repo_root: Path = REPO_ROOT,
     n_start_times: int | None = None,
+    starlink_generation: str | None = None,
+    handoff_policies: list[str] | None = None,
 ) -> Path:
     """Run E6 (sensitivity): named EIRP / beam-steering cases, as-deployed snapshot.
 
@@ -1248,7 +1467,9 @@ def run_e6(
     Delta T/T power-screen exceedance (and the qualified 25.261(d) throughput
     degradation) for *both* ordered user-downlink pairs, so we can state which
     conclusions depend on the EIRP values.  Replication is over independent start
-    times (AGENTS.md rule 5).
+    times (AGENTS.md rule 5).  ``starlink_generation`` selects the Starlink
+    generation as in E5.  Rows are produced per handoff policy
+    (``handoff_policy``); the no-diversity columns do not depend on it.
     """
     from dataclasses import replace
 
@@ -1257,6 +1478,8 @@ def run_e6(
     lb = load_link_budget(repo_root / "configs" / "link_budget.yaml")
     udl_pairs = co_frequency_pairs(exp.constellations, bands, "user_downlink")
     p = exp.params
+    gen = _starlink_generation(p, starlink_generation)
+    pols, primary = _handoff_policies(p, handoff_policies)
     cases_raw = p.get("cases")
     if cases_raw:
         cases = [
@@ -1302,7 +1525,7 @@ def run_e6(
         run_dir / "summary_band_overlap.csv", index=False
     )
 
-    systems0, tle_meta, filter_rows = _as_deployed_inputs(exp, sim, repo_root, radius)
+    systems0, tle_meta, filter_rows = _as_deployed_inputs(exp, sim, repo_root, radius, gen)
     epoch = float(tle_meta["common_epoch_jd"])
     tle_meta["experiment"] = exp.name
     tle_meta["cases"] = cases
@@ -1345,23 +1568,25 @@ def run_e6(
                         steering=case["steering"],
                         victim_min_elevation_deg=case["min_el"].get(a),
                         interferer_min_elevation_deg=case["min_el"].get(b),
+                        handoff_policies=pols,
                     )
                     r0 = dres["r0_mean"]
                     avail0 = dres["avail0_frac"]
                     qual = avail0 >= 0.99
                     dtt_by_var = (dres["dtt_realistic_mean"], dres["dtt_colo_mean"],
                                   dres["dtt_upper_mean"])
-                    for vi in range(3):
+                    for pol, vi in [(q, v) for q in pols for v in range(3)]:
+                        pr = dres["policies"][pol.name]
                         ef = dres["event_frac"][vi]
                         un = dres["unres_frac"][vi]
                         dtt = dtt_by_var[vi]
                         degr = np.where(r0 > 0.0, 1.0 - dres["r_int_mean"][vi] / np.where(r0 > 0.0, r0, 1.0), np.nan)
-                        degr_d = np.where(r0 > 0.0, 1.0 - dres["r_div_mean"][vi] / np.where(r0 > 0.0, r0, 1.0), np.nan)
+                        degr_d = np.where(r0 > 0.0, 1.0 - pr["r_div_mean"][vi] / np.where(r0 > 0.0, r0, 1.0), np.nan)
                         una_nd = dres["unavail_incr_nodiv_frac"][vi]
-                        una_d = dres["unavail_incr_div_frac"][vi]
+                        una_d = pr["unavail_incr_div_frac"][vi]
                         dq = degr[qual]
                         rows.append({
-                            "case": case["name"],
+                            "case": case["name"], "handoff_policy": pol.name,
                             "steering": (case["steering"] or "config"),
                             "starlink_eirp_dbw_per_mhz": case["eirp"].get("STARLINK", np.nan),
                             "oneweb_eirp_dbw_per_mhz": case["eirp"].get("ONEWEB", np.nan),
@@ -1389,11 +1614,18 @@ def run_e6(
                                                  if dq.size and np.any(np.isfinite(una_nd[qual])) else np.nan),
                             "unavail_div_max_qual": (float(np.nanmax(una_d[qual]))
                                                      if dq.size and np.any(np.isfinite(una_d[qual])) else np.nan),
+                            # Qualified stations above each 25.261(d) limit.
+                            "n_exceed_degr_nodiv": int((degr[qual] > THROUGHPUT_DEGRADE_MAX).sum()),
+                            "n_exceed_degr_div": int((degr_d[qual] > THROUGHPUT_DEGRADE_MAX).sum()),
+                            "n_exceed_unav_nodiv": int(
+                                (una_nd[qual] > UNAVAILABILITY_INCREASE_MAX).sum()),
+                            "n_exceed_unav_div": int(
+                                (una_d[qual] > UNAVAILABILITY_INCREASE_MAX).sum()),
                         })
 
     df = pd.DataFrame(rows)
     df.to_parquet(run_dir / "raw_eirp_sweep.parquet", index=False)
-    grp = ["case", "steering", "starlink_eirp_dbw_per_mhz", "oneweb_eirp_dbw_per_mhz",
+    grp = ["case", "handoff_policy", "steering", "starlink_eirp_dbw_per_mhz", "oneweb_eirp_dbw_per_mhz",
            "victim", "interferer", "diameter_m", "variant"]
     # Per-start-time worst-station columns (``*_max*``) are averaged over start
     # times so that each value matches its across-replication CI below (the
@@ -1415,6 +1647,18 @@ def run_e6(
         unavail_div_max=("unavail_div_max", "max"),
         unavail_max_qual=("unavail_max_qual", "mean"),
         unavail_div_max_qual=("unavail_div_max_qual", "mean"),
+        # Station-replications (qualified station x start time) and how many of
+        # them exceed each limit; largest single observed value.
+        n_qual_station_reps=("n_qual_stations", "sum"),
+        n_station_reps=("n_qual_stations", lambda s: int(len(s) * grid.ecef.shape[0])),
+        n_exceed_degr_nodiv=("n_exceed_degr_nodiv", "sum"),
+        n_exceed_degr_div=("n_exceed_degr_div", "sum"),
+        n_exceed_unav_nodiv=("n_exceed_unav_nodiv", "sum"),
+        n_exceed_unav_div=("n_exceed_unav_div", "sum"),
+        degr_max_qual_obs=("degr_max_qual", "max"),
+        degr_div_max_qual_obs=("degr_div_max_qual", "max"),
+        unavail_max_qual_obs=("unavail_max_qual", "max"),
+        unavail_div_max_qual_obs=("unavail_div_max_qual", "max"),
     )
 
     def _ci95(s: pd.Series) -> float:
@@ -1439,6 +1683,10 @@ def run_e6(
                  "start_offset_s": offset, "time_step_s": dt, "duration_s": dur,
                  "min_elevation_deg": min_el, "device": device,
                  "common_epoch_jd": epoch, "cases": cases,
+                 "starlink_generation": gen,
+                 "starlink_generation_counts": tle_meta.get(
+                     "starlink_generation", {}).get("counts"),
+                 "handoff_policies": [vars(q) for q in pols], "primary_handoff": primary,
                  "n_sats": {n: int(tle_meta["groups"][n]["n_kept"])
                             for n in exp.constellations},
                  "user_downlink_pairs": [list(q) for q in udl_pairs]})

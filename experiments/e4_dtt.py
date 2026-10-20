@@ -29,11 +29,18 @@ def main(argv: list[str] | None = None) -> int:
                         default=None,
                         help="interferer beam steering: 'config' (default, per-beam), "
                              "'constant_eirp' or 'pfd_constant'")
+    parser.add_argument("--starlink-generation", choices=("gen1", "gen2", "all"), default=None,
+                        help="Starlink shells used as interferer/victim (default: config)")
+    parser.add_argument("--handoff-policies", default=None,
+                        help="comma-separated subset of the config's handoff_policies")
     args = parser.parse_args(argv)
 
     steering = None if args.steering in (None, "config") else args.steering
     run_dir = run_e4(args.config, args.results_root, diversity_fspl=args.diversity_fspl,
-                     steering=steering)
+                     steering=steering,
+                     starlink_generation=args.starlink_generation,
+                     handoff_policies=(args.handoff_policies.split(",")
+                                       if args.handoff_policies else None))
     print(f"[e4] run complete: {run_dir}")
     return 0
 

@@ -117,6 +117,61 @@ constellations:
         source: Pachler et al. 2021 Table II (FCC Group 5; FCC-derived)
         beam: *beam_starlink
 
+  # ------------------------------------------------------- Starlink Gen2 (2020 round)
+  # The STARLINK entry above is the Gen1 system (2016 processing round; the four
+  # as-filed shells 550/53, 540/53.2, 570/70, 560/97.6).  Gen2 is a separate
+  # authorization (FCC 22-91, 2020 Ku/Ka processing round).  Experiments select
+  # which Starlink shells form the "STARLINK" interferer with the experiment
+  # parameter `starlink_generation` (gen1 | gen2 | all); see
+  # ngsi.runner.select_starlink_generation.
+  #
+  # FCC 22-91 (Order and Authorization, released Dec. 1, 2022), para. 1 and
+  # para. 19: grant of "up to 7,500 satellites operating at altitudes of 525,
+  # 530, and 535 km and inclinations of 53, 43, and 33 degrees, respectively";
+  # the remaining ~22,488 Gen2 satellites were deferred.  Para. 7 (table) gives
+  # the filed geometry of these three shells: 28 orbital planes x 120 satellites
+  # per plane = 3,360 each (10,080 total).  The order does NOT state how the
+  # 7,500 are divided among the shells, so the per-shell count is ASSUMED: an
+  # equal split over the filed 28 planes, 7500 / 3 / 28 = 89.3 -> 89 satellites
+  # per plane (2,492 per shell, 7,476 total, <= the 7,500 cap).
+  # Beam: the *beam_starlink values are already the Gen2 Ku values
+  # (FCC-22-91A1 paras. 42-43, 25.208(b) PFD-constant), so Gen1 and Gen2 share one
+  # beam and differ only in geometry here (the Gen1 design PFD is the E6
+  # starlink_gen1_design case).
+  - name: STARLINK_GEN2
+    operator: SpaceX
+    shells:
+      - name: STARLINK-GEN2-525-53
+        altitude_km: 525.0
+        inclination_deg: 53.0
+        planes: 28
+        sats_per_plane: 89
+        phasing_f: 1
+        source: >-
+          FCC 22-91 paras. 1, 19 (525 km, 53 deg, granted); planes 28 per para. 7
+          table; sats_per_plane 89 ASSUMED (equal split of the 7,500 cap)
+        beam: *beam_starlink
+      - name: STARLINK-GEN2-530-43
+        altitude_km: 530.0
+        inclination_deg: 43.0
+        planes: 28
+        sats_per_plane: 89
+        phasing_f: 1
+        source: >-
+          FCC 22-91 paras. 1, 19 (530 km, 43 deg, granted); planes 28 per para. 7
+          table; sats_per_plane 89 ASSUMED (equal split of the 7,500 cap)
+        beam: *beam_starlink
+      - name: STARLINK-GEN2-535-33
+        altitude_km: 535.0
+        inclination_deg: 33.0
+        planes: 28
+        sats_per_plane: 89
+        phasing_f: 1
+        source: >-
+          FCC 22-91 paras. 1, 19 (535 km, 33 deg, granted); planes 28 per para. 7
+          table; sats_per_plane 89 ASSUMED (equal split of the 7,500 cap)
+        beam: *beam_starlink
+
   # -------------------------------------------------------------------- Kuiper
   - name: KUIPER
     operator: Amazon

@@ -231,7 +231,11 @@ def propagate_ecef(
             [c * eci[..., 0] + s * eci[..., 1], -s * eci[..., 0] + c * eci[..., 1], eci[..., 2]],
             dim=-1,
         )
-        return ecef
+        # Phases and trigonometry above stay float64; the heavy per-station
+        # geometry downstream follows the configured compute dtype.
+        from .precision import compute_dtype
+
+        return ecef.to(compute_dtype())
 
     return _ecef_numpy(elements, t, epoch_jd, earth_radius_km)
 

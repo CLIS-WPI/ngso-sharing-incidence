@@ -90,14 +90,15 @@ def station_ecef_spherical(
 
 def unit_look_vectors(sat_ecef, station_ecef):
     """Unit look vectors ``[T, G, S, 3]`` from each station to each satellite."""
-    rel = sat_ecef.unsqueeze(1) - station_ecef.unsqueeze(0).unsqueeze(2)
+    # Follow the satellites' dtype (ngsi.precision) instead of promoting to float64.
+    rel = sat_ecef.unsqueeze(1) - station_ecef.to(sat_ecef.dtype).unsqueeze(0).unsqueeze(2)
     dist = torch.linalg.norm(rel, dim=-1, keepdim=True)
     return rel / torch.clamp(dist, min=1e-12), dist.squeeze(-1)
 
 
 def elevation_deg_batch(unit_look, up_ecef):
     """Elevation (deg) ``[T, G, S]`` of unit look vectors relative to local up ``[G, 3]``."""
-    sin_elev = (unit_look * up_ecef.unsqueeze(0).unsqueeze(2)).sum(-1)
+    sin_elev = (unit_look * up_ecef.to(unit_look.dtype).unsqueeze(0).unsqueeze(2)).sum(-1)
     return torch.rad2deg(torch.asin(torch.clamp(sin_elev, -1.0, 1.0)))
 
 

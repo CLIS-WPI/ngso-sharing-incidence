@@ -51,9 +51,34 @@ def newest_primary(results_root: Path, prefix: str) -> Path | None:
             data = json.loads(status.read_text(encoding="utf-8"))
         except (ValueError, OSError):
             continue
-        if data.get("steering") in (None, "config", "null"):
+        if (data.get("steering") in (None, "config", "null")
+                and data.get("starlink_generation") == primary_generation(prefix)):
             return run_dir
     return newest_run(results_root, prefix)
+
+
+def primary_generation(prefix: str) -> str | None:
+    """Headline Starlink generation: ``starlink_generation`` in the current config.
+
+    Runs made with another generation (the Gen1-only / all-Starlink sensitivity
+    runs) or before Phase 4 (no key) are then never picked as the headline.
+    """
+    import yaml
+
+    cfg = REPO_ROOT / "configs" / "experiments" / f"{prefix}.yaml"
+    if not cfg.exists():
+        return None
+    return yaml.safe_load(cfg.read_text()).get("params", {}).get("starlink_generation")
+
+
+def primary_policy(df: pd.DataFrame, run_dir: Path) -> pd.DataFrame:
+    """Rows of the run's primary handoff policy (E6 has one row set per policy)."""
+    import json
+
+    if "handoff_policy" not in df.columns:
+        return df
+    st = json.loads((run_dir / "status.json").read_text(encoding="utf-8"))
+    return df[df["handoff_policy"] == st["primary_handoff"]]
 
 
 def _read(run_dir: Path, name: str) -> pd.DataFrame:
@@ -577,10 +602,19 @@ def fig_b2_limits(e5: Path) -> Path | None:
     if s.empty:
         return None
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.0, 2.5), sharex=True)
-    ax1.plot(s["latitude_deg"], s["degradation_nodiv_mean"] * 100.0, "-",
+    lat = s["latitude_deg"]
+
+    def _band(ax, col, color):
+        # 95% t-interval across start times (the summary's ``_ci95`` column).
+        m, h = s[col + "_mean"] * 100.0, s[col + "_ci95"] * 100.0
+        ax.fill_between(lat, m - h, m + h, color=color, alpha=0.25, lw=0)
+
+    ax1.plot(lat, s["degradation_nodiv_mean"] * 100.0, "-",
              color="#1f77b4", lw=1.6, label="no diversity")
-    ax1.plot(s["latitude_deg"], s["degradation_div_mean"] * 100.0, "--",
+    ax1.plot(lat, s["degradation_div_mean"] * 100.0, "--",
              color="#2ca02c", lw=1.6, label="with diversity")
+    _band(ax1, "degradation_nodiv", "#1f77b4")
+    _band(ax1, "degradation_div", "#2ca02c")
     ax1.axhline(3.0, color="k", ls=":", lw=1.1)
     ax1.text(1, 3.10, "3% limit", fontsize=6)
     ax1.set_xlabel("latitude [deg]")
@@ -593,6 +627,8 @@ def fig_b2_limits(e5: Path) -> Path | None:
              color="#1f77b4", lw=1.6)
     ax2.plot(s["latitude_deg"], s["unavail_incr_div_frac_mean"] * 100.0, "--",
              color="#2ca02c", lw=1.6)
+    _band(ax2, "unavail_incr_frac", "#1f77b4")
+    _band(ax2, "unavail_incr_div_frac", "#2ca02c")
     ax2.axhline(0.4, color="k", ls=":", lw=1.1)
     ax2.text(1, 0.45, "0.4% limit", fontsize=6)
     ax2.set_xlabel("latitude [deg]")
@@ -610,7 +646,7 @@ def fig_b2_limits(e5: Path) -> Path | None:
 def fig_b3_pfd(e6: Path) -> Path | None:
     """Paper Fig. 3: no-diversity degradation vs Starlink PFD offset."""
     try:
-        d = _read(e6, "eirp_sweep")
+        d = primary_policy(_read(e6, "eirp_sweep"), e6)
     except FileNotFoundError:
         return None
     cases = ("primary", "starlink_pfd_minus3", "starlink_gen1_design")
@@ -663,7 +699,7 @@ def main(argv: list[str] | None = None) -> int:
     e4 = newest_primary(args.results_root, "e4_dtt")
     e5 = newest_primary(args.results_root, "e5_as_deployed")
     e7 = newest_run(args.results_root, "e7_analytic")
-    e6 = newest_run(args.results_root, "e6_eirp_sweep")
+    e6 = newest_primary(args.results_root, "e6_eirp_sweep")
     if e1 is None and e2 is None and e3 is None and e4 is None and e5 is None:
         print(f"[figures] no e1/e2/e3/e4/e5 run directories under {args.results_root}.")
         return 0

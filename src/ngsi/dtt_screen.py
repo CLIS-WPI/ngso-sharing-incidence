@@ -22,6 +22,40 @@ downlink, and each station/time sample:
   aggregate ``Delta T/T <= 0.06`` (diversity); the link actually used after a
   handoff contributes its own (<= 6%) aggregate.
 
+Handoff (satellite diversity) is evaluated under one or more
+:class:`HandoffPolicy` objects; the definition is the same for all of them:
+
+* **Candidate set** - the visible A satellites (elevation >= the victim mask)
+  among the ``k_a`` highest-elevation ones, optionally limited to the ``k``
+  highest-elevation satellites (rank 0, the serving satellite, included).  An
+  alternate (rank >= 1) is admissible only if its own aggregate
+  ``Delta T/T <= 0.06`` (it resolves the event).
+* **Trigger** - the terminal stays on the highest-elevation satellite (the
+  baseline policy) and considers a handoff only while that link is in event.
+* **Selection rule** - ``link_cn="candidate"`` (full link budget): every
+  candidate's C/N is computed from its own slant range,
+  ``C/N_k = EIRP_A + G_rx,peak - FSPL(r_k) - N`` (the terminal re-points, so the
+  victim receive gain is the peak gain toward the new satellite), the
+  interference toward it is the aggregate at the off-axis angles of the
+  re-pointed antenna, and the terminal switches to the admissible
+  (non-triggered) alternate with the highest ``C/(N+I)``.  If no alternate is
+  admissible (unresolvable) it stays on the serving satellite with its degraded
+  SINR.  ``keep_serving_if_better=True`` (sensitivity) also keeps the serving
+  satellite when its degraded ``C/(N+I)`` beats every admissible alternate.
+  ``link_cn="serving"`` (legacy, retained for attribution) takes the admissible
+  alternate with the lowest ``Delta T/T`` and reuses the *serving* satellite's
+  clear-sky C/N for it.
+* **Rate limit** - ``min_interval_s`` makes the choice stateful: the terminal
+  keeps its current satellite until at least ``min_interval_s`` has passed since
+  its last switch, unless that satellite leaves the candidate set (a forced
+  switch).  Every change of satellite counts, including the geometric handover
+  to a new highest-elevation satellite.
+* **Baseline** - degradation is ``1 - R_used / R_0``, with ``R_0`` the
+  interference-free rate of the highest-elevation satellite (the rule-free
+  reference link).  A rate-limited policy also reports its own interference-free
+  baseline (the same rate limit, no interferer), so the part of the loss caused
+  by the rate limit itself can be separated from the interference.
+
 Interferer beam steering follows ``interf_beam.beam_steering`` (or the ``steering``
 override).  Under ``pfd_constant`` the interferer raises EIRP with slant range so
 the ground PFD stays at its value at the minimum-elevation service edge
@@ -40,6 +74,7 @@ unavailability change at C/N = 0 dB.
 from __future__ import annotations
 
 import warnings
+from dataclasses import dataclass
 
 import numpy as np
 import torch
@@ -58,6 +93,85 @@ from .systems import SystemModel
 LIGHT_SPEED_M_S = 299792458.0
 VARIANT_NAMES = ("realistic", "co_located", "upper_bound")
 _STEERING = ("constant_eirp", "pfd_constant")
+_LINK_CN = ("candidate", "serving")
+
+
+@dataclass(frozen=True)
+class HandoffPolicy:
+    """One satellite-diversity (handoff) policy; see the module docstring."""
+
+    name: str
+    link_cn: str = "candidate"
+    k: int | None = None
+    min_interval_s: float | None = None
+    keep_serving_if_better: bool = False
+
+    def __post_init__(self) -> None:
+        if self.link_cn not in _LINK_CN:
+            raise ValueError(f"link_cn must be one of {_LINK_CN!r}")
+        if self.k is not None and int(self.k) < 1:
+            raise ValueError("k must be >= 1")
+        if self.link_cn == "serving" and (self.k is not None or self.min_interval_s is not None
+                                          or self.keep_serving_if_better):
+            raise ValueError("the legacy 'serving' policy takes no k / min_interval_s / "
+                             "keep_serving_if_better")
+
+    @classmethod
+    def from_dict(cls, d: dict) -> "HandoffPolicy":
+        return cls(name=str(d["name"]), link_cn=str(d.get("link_cn", "candidate")),
+                   k=None if d.get("k") is None else int(d["k"]),
+                   min_interval_s=(None if d.get("min_interval_s") is None
+                                   else float(d["min_interval_s"])),
+                   keep_serving_if_better=bool(d.get("keep_serving_if_better", False)))
+
+
+LEGACY_POLICY = HandoffPolicy("legacy", link_cn="serving")
+
+
+def rate_limited_choice(
+    ids: np.ndarray,
+    valid: np.ndarray,
+    desired: np.ndarray,
+    t_s: np.ndarray,
+    min_interval_s: float,
+    state: dict,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Stateful satellite choice under a minimum time between switches.
+
+    ``ids``/``valid`` are ``[T, S, K]`` (satellite id and candidate validity per
+    rank, ``S`` independent terminals), ``desired`` is ``[T, S]`` (the rank the
+    memoryless policy would use), ``t_s`` is ``[T]``.  ``state`` carries
+    ``cur`` (current satellite id, -1 = none) and ``last`` (time of the last
+    switch) across calls.  Returns ``(rank_used [T, S], switched [T, S])``; rank
+    -1 means no candidate.  A terminal keeps its satellite while it is still a
+    valid candidate and fewer than ``min_interval_s`` seconds have passed since
+    its last switch; it is forced to switch when its satellite drops out.
+    """
+    n_t, n_s, _ = ids.shape
+    cur = state.setdefault("cur", np.full(n_s, -1, dtype=np.int64))
+    last = state.setdefault("last", np.full(n_s, -np.inf))
+    rank_used = np.full((n_t, n_s), -1, dtype=np.int64)
+    switched = np.zeros((n_t, n_s), dtype=bool)
+    cols = np.arange(n_s)
+    for t in range(n_t):
+        match = (ids[t] == cur[:, None]) & valid[t]
+        found = match.any(-1)
+        cur_rank = np.where(found, match.argmax(-1), -1)
+        d = desired[t]
+        has_d = d >= 0
+        d_id = np.where(has_d, ids[t][cols, np.clip(d, 0, None)], -1)
+        want = has_d & (d_id != cur)
+        allowed = (t_s[t] - last) >= min_interval_s
+        switch = want & (~found | allowed)
+        r = np.where(switch, d, np.where(found, cur_rank, -1))
+        new_cur = np.where(r >= 0, ids[t][cols, np.clip(r, 0, None)], -1)
+        sw = switch & (cur >= 0)
+        switched[t] = sw
+        last = np.where(switch, t_s[t], last)
+        cur = new_cur
+        rank_used[t] = r
+    state["cur"], state["last"] = cur, last
+    return rank_used, switched
 
 
 def _fspl_db(dist_km: torch.Tensor, freq_ghz: float) -> torch.Tensor:
@@ -85,7 +199,82 @@ def _shell_altitudes(interferer: SystemModel, device: str) -> torch.Tensor:
         [interferer.shells[int(si)].altitude_km for si in np.asarray(interferer.shell_index)],
         dtype=np.float64,
     )
-    return torch.as_tensor(alts, dtype=torch.float64, device=device)
+    from .precision import compute_dtype
+
+    return torch.as_tensor(alts, dtype=compute_dtype(), device=device)
+
+
+def _evaluate_policies(policies, acc, states, tc, dt_s, k_a, eye_a, cn0_k, cn0, has_a,
+                       vis_ka, ia, dtts, cand_dtt, has_b_var, bw_hz, margin_db) -> None:
+    """Accumulate each handoff policy's rate / availability over one time chunk.
+
+    ``cn0_k`` [Tc,G,Ka] is the clear-sky C/N of every ranked victim satellite
+    (own slant range, peak receive gain); ``cand_dtt[vi]`` the aggregate
+    Delta T/T toward each of them with the antenna re-pointed.
+    """
+    rank = eye_a.reshape(1, 1, -1)
+    served = has_a
+    ldtt, sinr_k, event = {}, {}, {}
+    for vi in range(3):
+        d = torch.where(has_b_var[vi].unsqueeze(-1), cand_dtt[vi], torch.zeros_like(cand_dtt[vi]))
+        d = torch.cat([dtts[vi].unsqueeze(-1), d[..., 1:]], dim=-1)  # exact serving aggregate
+        ldtt[vi] = d
+        sinr_k[vi] = _cni_from_dtt(cn0_k, d)
+        event[vi] = has_a & has_b_var[vi] & (dtts[vi] > DTT_THRESHOLD)
+    tc_np = np.asarray(tc, dtype=np.float64)
+    for p in policies:
+        a = acc[p.name]
+        k = k_a if p.k is None else min(int(p.k), k_a)
+        in_k = vis_ka & (rank < k)
+        for vi in range(3):
+            resolv = in_k & (rank >= 1) & (ldtt[vi] <= DTT_THRESHOLD)
+            any_res = resolv.any(-1)
+            unres = event[vi] & ~any_res
+            if p.link_cn == "serving":
+                big = torch.full_like(ldtt[vi], float("inf"))
+                best = torch.where(resolv, ldtt[vi], big).min(-1).values
+                use_alt = event[vi] & any_res
+                cni = _cni_from_dtt(cn0, torch.where(use_alt, best, dtts[vi]))
+                diverted = use_alt
+            else:
+                # Event-triggered: during an event switch to the best admissible
+                # alternate (optionally also keeping the serving satellite when it
+                # is better); unresolvable events stay on the serving satellite.
+                allowed = resolv | (rank == 0) if p.keep_serving_if_better else resolv
+                best_rank = sinr_k[vi].masked_fill(~allowed, float("-inf")).argmax(-1)
+                switch = event[vi] & (any_res if not p.keep_serving_if_better else True)
+                desired = torch.where(switch, best_rank, torch.zeros_like(best_rank))
+                if p.min_interval_s is None:
+                    cni = torch.gather(sinr_k[vi], -1, desired.unsqueeze(-1)).squeeze(-1)
+                    diverted = served & (desired > 0)
+                else:
+                    desired_np = torch.where(served, desired, torch.full_like(desired, -1)).cpu().numpy()
+                    r_used, sw = rate_limited_choice(
+                        ia.cpu().numpy(), in_k.cpu().numpy(), desired_np, tc_np,
+                        float(p.min_interval_s), states[p.name][vi])
+                    r_t = torch.as_tensor(np.clip(r_used, 0, None), device=cn0.device)
+                    cni = torch.gather(sinr_k[vi], -1, r_t.unsqueeze(-1)).squeeze(-1)
+                    cni = torch.where(torch.as_tensor(r_used >= 0, device=cn0.device), cni,
+                                      torch.full_like(cni, float("-inf")))
+                    diverted = served & (r_t > 0)
+                    a["sw"][vi] += sw.sum(0)
+            rate = torch.where(served, _shannon_rate(cni, bw_hz, margin_db), torch.zeros_like(cni))
+            a["r"][vi] += rate.sum(0).cpu().numpy()
+            a["unav"][vi] += ((cn0 >= 0.0) & (cni < 0.0) & served).sum(0).cpu().numpy()
+            a["unres"][vi] += unres.sum(0).cpu().numpy()
+            a["div"][vi] += diverted.sum(0).cpu().numpy()
+        if p.min_interval_s is not None:
+            # Interference-free baseline under the same rate limit: the terminal
+            # wants the highest-elevation satellite and switches as allowed.
+            desired0 = torch.where(served, torch.zeros_like(ia[..., 0]),
+                                   torch.full_like(ia[..., 0], -1)).cpu().numpy()
+            r0_used, _ = rate_limited_choice(ia.cpu().numpy(), in_k.cpu().numpy(), desired0,
+                                             tc_np, float(p.min_interval_s), states[p.name][3])
+            r0_t = torch.as_tensor(np.clip(r0_used, 0, None), device=cn0.device)
+            c0 = torch.gather(cn0_k, -1, r0_t.unsqueeze(-1)).squeeze(-1)
+            rate0 = torch.where(served, _shannon_rate(c0, bw_hz, margin_db), torch.zeros_like(c0))
+            a["r_base"] += rate0.sum(0).cpu().numpy()
+            a["unav0_base"] += ((c0 < 0.0) & served).sum(0).cpu().numpy()
 
 
 def screen_pair_dtt(
@@ -112,6 +301,7 @@ def screen_pair_dtt(
     diversity_fspl: str = "interferer",
     victim_min_elevation_deg: float | None = None,
     interferer_min_elevation_deg: float | None = None,
+    handoff_policies: tuple[HandoffPolicy, ...] = (LEGACY_POLICY,),
 ) -> dict:
     """Screen one ordered pair under the Delta T/T criterion.
 
@@ -128,6 +318,11 @@ def screen_pair_dtt(
     range and is retained only for attribution of that fix.
     ``victim_min_elevation_deg`` / ``interferer_min_elevation_deg`` override
     ``min_elevation_deg`` for that system's visibility (default: the common value).
+
+    ``handoff_policies`` lists the diversity policies to evaluate on the same
+    geometry; their results are under ``"policies"`` keyed by name.  The
+    top-level ``r_div_mean`` / ``unavail_incr_div_frac`` keep the legacy
+    definition (``LEGACY_POLICY``) for backward compatibility.
     """
     min_el_a = min_elevation_deg if victim_min_elevation_deg is None else float(victim_min_elevation_deg)
     min_el_b = (min_elevation_deg if interferer_min_elevation_deg is None
@@ -172,6 +367,17 @@ def screen_pair_dtt(
     cn0_sum = torch.zeros(g, dtype=torch.float64, device=device)
     dtt_sum = {vi: torch.zeros(g, dtype=torch.float64, device=device) for vi in range(3)}
     cn0_blocks: list[np.ndarray] = []
+    names = [p.name for p in handoff_policies]
+    if len(set(names)) != len(names):
+        raise ValueError(f"duplicate handoff policy names: {names}")
+    dt_s = float(times[1] - times[0]) if t_total > 1 else 0.0
+    pol_acc = {
+        p.name: {key: {vi: np.zeros(g) for vi in range(3)}
+                 for key in ("r", "unav", "unres", "div", "sw")}
+        | {"r_base": np.zeros(g), "unav0_base": np.zeros(g)}
+        for p in handoff_policies
+    }
+    pol_state = {p.name: [dict() for _ in range(4)] for p in handoff_policies}
 
     def _in_db(off_axis, fspl_db, eirp_density):
         g_rx = pattern_gain_batch(off_axis, rx_peak_gain_dbi, rx_diameter_m, freq_ghz, pattern)
@@ -235,7 +441,7 @@ def screen_pair_dtt(
         # --- upper bound: every visible B satellite at peak EIRP, actual range ---
         sep_w = angular_separation_batch(serving_a.unsqueeze(2), ub_k)  # [Tc,G,Kb]
         dtt_upper = (
-            _dbw_to_linear(_in_db(sep_w, fspl_all_b, eirp_max)) * vis_kb.to(torch.float64)
+            _dbw_to_linear(_in_db(sep_w, fspl_all_b, eirp_max)) * vis_kb.to(pb.dtype)
         ).sum(-1)
 
         # --- realistic: main beam + S.1528 sidelobe of every OTHER visible B sat ---
@@ -253,7 +459,7 @@ def screen_pair_dtt(
         other_mask = vis_kb & (eye_b.reshape(1, 1, -1) != 0)
         dtt_side = (
             _dbw_to_linear(_in_db(sep_w, fspl_all_b, eirp_other))
-            * other_mask.to(torch.float64)
+            * other_mask.to(pb.dtype)
         ).sum(-1)
         dtt_realistic = dtt_colo + dtt_side
 
@@ -280,12 +486,12 @@ def screen_pair_dtt(
         sep_wa = angular_separation_batch(ua_k.unsqueeze(3), ub_k.unsqueeze(2))  # [Tc,G,Ka,Kb]
         side_lin = _dbw_to_linear(_in_db(sep_wa, fspl_div_all, eirp_other.unsqueeze(2)))
         peak_lin = _dbw_to_linear(_in_db(sep_wa, fspl_div_all, eirp_max))
-        vis_kb_f = vis_kb.unsqueeze(2).to(torch.float64)
+        vis_kb_f = vis_kb.unsqueeze(2).to(pb.dtype)
         # Upper bound uses *all* visible B satellites at peak EIRP (no sidelobe
         # reduction), matching dtt_upper; the realistic variant adds the S.1528
         # sidelobe only of the non-serving B satellites.
         dtt_ua = (peak_lin * vis_kb_f).sum(-1)  # [Tc,G,Ka]
-        dtt_ra = dtt_ca + (side_lin * other_mask.unsqueeze(2).to(torch.float64)).sum(-1)
+        dtt_ra = dtt_ca + (side_lin * other_mask.unsqueeze(2).to(pb.dtype)).sum(-1)
 
         cand_dtt = {0: dtt_ra, 1: dtt_ca, 2: dtt_ua}
         for vi in range(3):
@@ -308,6 +514,13 @@ def screen_pair_dtt(
             unavail_incr_div[vi] += ((cn0 >= 0.0) & (cni_div < 0.0) & served).sum(0).to(torch.float64)
             dtt_sum[vi] += (dtts[vi] * served).sum(0)
 
+        _evaluate_policies(
+            handoff_policies, pol_acc, pol_state, times[s:e], dt_s, k_a, eye_a,
+            victim_beam.eirp_density_dbw_per_mhz + rx_peak_gain_dbi - _fspl_db(da_k, freq_ghz)
+            - noise_v,
+            cn0, has_a, vis_ka, ia, dtts, cand_dtt, has_b_var, bw_hz, margin_db,
+        )
+
         served = has_a
         served_count += served.sum(0).to(torch.float64)
         r0 = _shannon_rate(cn0, bw_hz, margin_db)
@@ -319,7 +532,8 @@ def screen_pair_dtt(
         )
 
     n = float(t_total)
-    cn0_all = np.concatenate(cn0_blocks, axis=0) if cn0_blocks else np.empty((0, g))
+    served_np = served_count.clamp(min=1.0).cpu().numpy()
+    cn0_all =np.concatenate(cn0_blocks, axis=0) if cn0_blocks else np.empty((0, g))
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", category=RuntimeWarning)
         cn0_median = np.nanmedian(cn0_all, axis=0) if t_total else np.full(g, np.nan)
@@ -344,4 +558,21 @@ def screen_pair_dtt(
         "unavail_incr_div_frac": {vi: (unavail_incr_div[vi] / n).cpu().numpy() for vi in range(3)},
         "unavail0_frac": (unavail0 / n).cpu().numpy(),
         "n_samples": t_total,
+        "policies": {
+            p.name: {
+                "r_div_mean": {vi: a["r"][vi] / served_np for vi in range(3)},
+                "unavail_incr_div_frac": {vi: a["unav"][vi] / n for vi in range(3)},
+                "unres_frac": {vi: a["unres"][vi] / n for vi in range(3)},
+                "diverted_frac": {vi: a["div"][vi] / n for vi in range(3)},
+                "switches_per_hour": {
+                    vi: (a["sw"][vi] / (n * dt_s / 3600.0) if p.min_interval_s is not None
+                         and dt_s > 0 else np.full(g, np.nan)) for vi in range(3)},
+                "r_base_mean": (a["r_base"] / served_np if p.min_interval_s is not None
+                                else (r0_sum / served_count.clamp(min=1.0)).cpu().numpy()),
+                "unavail0_base_frac": (a["unav0_base"] / n if p.min_interval_s is not None
+                                       else (unavail0 / n).cpu().numpy()),
+            }
+            for p in handoff_policies
+            for a in (pol_acc[p.name],)
+        },
     }

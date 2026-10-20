@@ -1,6 +1,6 @@
 """Vectorised in-line event screening and satellite-diversity resolution.
 
-The heavy work happens on the GPU with torch in float64.  Time is processed in
+The heavy work happens on the GPU with torch in float64 (or float32, see ngsi.precision).  Time is processed in
 chunks so peak memory stays bounded; within a chunk every reduction is a tensor
 op (``topk``, ``min``, ``sum``) -- there are **no Python loops over satellites or
 time steps** (only over the handful of shells, thetas and interferer variants).

@@ -295,6 +295,33 @@ def filter_operational(
     return kept, low, high
 
 
+def classify_generation(
+    records: list[TleRecord],
+    earth_radius_km: float,
+    rule: list[dict],
+) -> list[str]:
+    """Label each record with the generation of the first matching shell rule.
+
+    ``rule`` is an ordered list of ``{generation, inclination_deg,
+    inclination_tol_deg, altitude_min_km, altitude_max_km}`` entries (from the
+    experiment config); a record matches when its inclination is within the
+    tolerance and its circular altitude is in ``[altitude_min_km,
+    altitude_max_km)``.  Records that match no entry are ``"unclassified"``.
+    """
+    labels: list[str] = []
+    for r in records:
+        alt = r.semi_major_axis_km - earth_radius_km
+        lab = "unclassified"
+        for e in rule:
+            if (abs(r.inclination_deg - float(e["inclination_deg"]))
+                    <= float(e["inclination_tol_deg"])
+                    and float(e["altitude_min_km"]) <= alt < float(e["altitude_max_km"])):
+                lab = str(e["generation"])
+                break
+        labels.append(lab)
+    return labels
+
+
 def _count_planes(raan_deg: NDArray[np.float64], tol_deg: float = 5.0) -> int:
     """Number of distinct RAAN planes (greedy binning on the RAAN circle)."""
     anchors: list[float] = []

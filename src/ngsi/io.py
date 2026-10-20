@@ -39,6 +39,32 @@ def git_hash(repo_root: str | Path = ".") -> str:
         return "unknown"
 
 
+def _compute_dtype_name() -> str:
+    from .precision import compute_dtype_name
+
+    return compute_dtype_name()
+
+
+def git_dirty(repo_root: str | Path = ".") -> dict:
+    """Uncommitted tracked changes at run time: file list and a hash of ``git diff HEAD``.
+
+    The commit hash alone does not identify the code that ran when the tree is
+    dirty; the diff hash does (``git diff HEAD | sha256sum``).
+    """
+    import hashlib
+
+    try:
+        st = subprocess.run(["git", "status", "--porcelain", "--untracked-files=no"],
+                            cwd=repo_root, capture_output=True, text=True, check=True)
+        diff = subprocess.run(["git", "diff", "HEAD"], cwd=repo_root, capture_output=True,
+                              check=True)
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return {"dirty": None}
+    files = [ln[3:] for ln in st.stdout.splitlines() if ln.strip()]
+    return {"dirty": bool(files), "modified_files": files,
+            "diff_sha256": hashlib.sha256(diff.stdout).hexdigest() if files else None}
+
+
 def new_run_dir(
     results_root: str | Path,
     experiment: str,
@@ -57,6 +83,8 @@ def new_run_dir(
         "seed": seed,
         "timestamp_utc": ts,
         "git_hash": git_hash(repo_root),
+        "git_worktree": git_dirty(repo_root),
+        "compute_dtype": _compute_dtype_name(),
         "python": platform.python_version(),
         "platform": platform.platform(),
         "argv": sys.argv,
