@@ -451,6 +451,53 @@ def section_claims(old: dict, new: dict, texts: dict) -> list[str]:
     return L
 
 
+def section_basis() -> list[str]:
+    """CI basis and the propagation limitation, from the e12 / e13 runs."""
+    L = ["## 6. Basis of the as-deployed intervals and recorded limitations", ""]
+    e12, e13 = newest("e12_propagation_check"), newest("e13_daily_replications")
+    if e13 is not None:
+        d = pd.read_csv(e13 / "summary_daily_stats.csv")
+        n_dep = int((d.ci_basis == "daily range").sum())
+        n_var = int((d.ci_basis != "constant").sum())
+        basis = ("the t-interval is kept" if n_dep == 0 else
+                 "the daily range (min-max) is the interval for the series flagged "
+                 "'daily range' in Sec. 3")
+        L += [f"- **CI basis.** {n_var - n_dep} of the {n_var} non-constant daily series pass "
+              "the lag-1 and trend screen and " f"{n_dep} fail it, so {basis}.  The "
+              "interval is a 95% t-interval over consecutive days and describes "
+              "day-to-day (temporal) variability of one TLE snapshot propagated forward, "
+              "conditional on that snapshot and on the propagation model; it is not a "
+              "sampling interval over constellation states or snapshots.  With 8 (Gen2) or "
+              "4 (Gen1-only, all-Starlink) days the screen has little power, so the "
+              "independence it supports is weak.  The re-run removes the window overlap; it "
+              "is not a complete fix of CI validity.", ""]
+    if e12 is not None:
+        se = pd.read_csv(e12 / "summary_sample_errors.csv")
+        sg = pd.read_csv(e12 / "summary_daily_geometry.csv")
+        st = se[se.system == "STARLINK"].set_index("day")
+        ow = se[se.system == "ONEWEB"].set_index("day")
+        j = sg[sg.propagator == "j2"].set_index("day")
+        q = sg[sg.propagator == "sgp4"].set_index("day")
+        dmax = int(st.index.max())
+        off = (j.vis_starlink_mean / q.vis_starlink_mean - 1.0)
+        L += ["- **Propagation.** Against SGP4 on the same TLEs, the J2 secular model's "
+              f"median Starlink position error grows from {st.pos_err_median_km.iloc[0]:.1f} km "
+              f"(day {int(st.index[0])}) to {st.pos_err_median_km.loc[dmax]:.1f} km (day "
+              f"{dmax}), a median look-angle error of {st.look_err_median_deg.loc[dmax]:.1f} deg; "
+              f"OneWeb stays near {ow.pos_err_median_km.median():.1f} km.  Individual "
+              "Starlink positions in the later days are therefore not a forecast of the real "
+              "constellation (SGP4 itself omits manoeuvres): those days act as further "
+              "phasings of the observed shells.  The statistics the results use are stable: "
+              f"mean visible Gen2 satellites {j.vis_starlink_mean.min():.2f}-"
+              f"{j.vis_starlink_mean.max():.2f} (J2) and {q.vis_starlink_mean.min():.2f}-"
+              f"{q.vis_starlink_mean.max():.2f} (SGP4) over the days, J2 above SGP4 by "
+              f"{100 * off.min():.1f}-{100 * off.max():.1f}%, and the geometric in-line proxy "
+              f"{100 * j.inline_frac.min():.2f}-{100 * j.inline_frac.max():.2f}% (J2) vs "
+              f"{100 * q.inline_frac.min():.2f}-{100 * q.inline_frac.max():.2f}% (SGP4); trend "
+              "tests in Sec. 2.", ""]
+    return L
+
+
 def main() -> int:
     old, oldsrc = read_macros(OLD_TEX)
     new, newsrc = read_macros(NEW_TEX)
@@ -480,6 +527,7 @@ def main() -> int:
     v, _changed = section_verdicts(old, new, oldsrc, newsrc, texts)
     L += v
     L += section_claims(old, new, texts)
+    L += section_basis()
     OUT.write_text("\n".join(L) + "\n", encoding="utf-8", newline="\n")
     print(f"wrote {OUT}")
     return 0
