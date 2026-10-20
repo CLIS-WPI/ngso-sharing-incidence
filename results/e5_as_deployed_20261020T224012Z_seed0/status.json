@@ -1,0 +1,126 @@
+{
+  "experiment": "e5_as_deployed",
+  "status": "ok",
+  "n_start_times": 8,
+  "start_offset_s": 86400.0,
+  "time_step_s": 10.0,
+  "duration_s": 86400.0,
+  "thetas_deg": [
+    1.0,
+    2.0,
+    5.0
+  ],
+  "min_elevation_deg": 25.0,
+  "device": "cuda",
+  "common_epoch_jd": 2461334.05165193,
+  "n_sats": {
+    "STARLINK": 5959,
+    "ONEWEB": 648
+  },
+  "n_sats_raw": {
+    "STARLINK": 10649,
+    "ONEWEB": 651
+  },
+  "operational_altitude_km": {
+    "STARLINK": [
+      450.0,
+      600.0
+    ],
+    "ONEWEB": [
+      1100.0,
+      1300.0
+    ]
+  },
+  "dtt_threshold": 0.06,
+  "diameter_sweep_m": [
+    0.45,
+    0.6,
+    0.75
+  ],
+  "steering": null,
+  "diversity_fspl": "interferer",
+  "starlink_generation": "gen2",
+  "starlink_generation_counts": {
+    "gen1": 3773,
+    "gen2": 5959,
+    "unclassified": 0
+  },
+  "n_sats_operational": {
+    "STARLINK": 9732,
+    "ONEWEB": 648
+  },
+  "handoff_policies": [
+    {
+      "name": "full",
+      "link_cn": "candidate",
+      "k": null,
+      "min_interval_s": null,
+      "keep_serving_if_better": false
+    },
+    {
+      "name": "full_keep_serving",
+      "link_cn": "candidate",
+      "k": null,
+      "min_interval_s": null,
+      "keep_serving_if_better": true
+    },
+    {
+      "name": "legacy",
+      "link_cn": "serving",
+      "k": null,
+      "min_interval_s": null,
+      "keep_serving_if_better": false
+    },
+    {
+      "name": "full_k2",
+      "link_cn": "candidate",
+      "k": 2,
+      "min_interval_s": null,
+      "keep_serving_if_better": false
+    },
+    {
+      "name": "full_k3",
+      "link_cn": "candidate",
+      "k": 3,
+      "min_interval_s": null,
+      "keep_serving_if_better": false
+    },
+    {
+      "name": "full_n10",
+      "link_cn": "candidate",
+      "k": null,
+      "min_interval_s": 10.0,
+      "keep_serving_if_better": false
+    },
+    {
+      "name": "full_n60",
+      "link_cn": "candidate",
+      "k": null,
+      "min_interval_s": 60.0,
+      "keep_serving_if_better": false
+    }
+  ],
+  "primary_handoff": "full",
+  "beam_steering": {
+    "STARLINK": "pfd_constant",
+    "ONEWEB": "constant_eirp"
+  },
+  "beam_eirp_dbw_per_mhz": {
+    "STARLINK": 16.0018,
+    "ONEWEB": 10.6
+  },
+  "tle_groups": {
+    "STARLINK": "starlink",
+    "ONEWEB": "oneweb"
+  },
+  "user_downlink_pairs": [
+    [
+      "STARLINK",
+      "ONEWEB"
+    ],
+    [
+      "ONEWEB",
+      "STARLINK"
+    ]
+  ]
+}

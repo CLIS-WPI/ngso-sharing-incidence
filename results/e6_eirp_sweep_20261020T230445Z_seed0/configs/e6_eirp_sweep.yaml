@@ -1,0 +1,140 @@
+# Experiment 6 - sensitivity of the Delta T/T results to the EIRP assumptions.
+#
+# Each case overrides one or more systems' Ku user-downlink EIRP density (dBW/MHz)
+# and selects the interferer beam-steering model.  The as-deployed CelesTrak
+# snapshot is held fixed; replication is over independent simulation start times
+# (constellation fixed).  Cases:
+#
+#   primary              Starlink EIRP ceiling +16.0018 dBW/MHz, which places the
+#                        PFD-constant operation exactly at the 25.208(b) limit
+#                        (-116 dBW/m^2/MHz for 25-90 deg); OneWeb +10.6
+#                        (Del Portillo 2019, Table 3); steering: config ->
+#                        Starlink PFD-constant (primary), OneWeb constant-EIRP
+#                        (ASSUMED).  Cross-check: the unit-corrected top of the
+#                        filed range (15.68 dBW/MHz) gives -116.32, 0.3 dB below
+#                        the limit.
+#   starlink_low_end     Starlink at the low end of the filed 4-kHz range
+#                        (-11.9 dBW/4kHz = +12.1 dBW/MHz).
+#   delportillo_common   both systems from Del Portillo 2019 (Starlink +12.7).
+#   oneweb_cn_calibrated OneWeb at the earlier C/N-target calibration (+0.2),
+#                        retained only as a sensitivity row (not a design rule).
+#   starlink_constant_eirp the primary EIRPs with Starlink forced to
+#                        constant-EIRP steering (the constant-EIRP sensitivity).
+#   starlink_pfd_minus3  PFD-constant Starlink with its PFD 3 dB below the
+#                        25.208(b) anchor (EIRP_max 16.0018 - 3 = 13.0018).
+#   starlink_gen1_design Starlink Gen1 filed design point: constant PFD
+#                        -146 dB(W/m^2/4kHz) = -122.02 dB(W/m^2/MHz), SpaceX
+#                        SAT-LOA-20161115-00118 Technical Attachment Table A.7-1;
+#                        6.02 dB below the 25.208(b) limit, so EIRP_max =
+#                        16.0018 - 6.0206 = 9.9812 dBW/MHz (same 25 deg anchor).
+#   noise_assumed        the earlier ASSUMED terminal noise temperatures
+#                        (OneWeb 200 K, Starlink 150 K) instead of the
+#                        del Portillo primary values; sensitivity row.
+#   oneweb_min_elev_55   OneWeb minimum service elevation 55 deg (del Portillo
+#                        et al., Sec. 2.2) instead of the ASSUMED common 25 deg;
+#                        applies to OneWeb's own visibility in both directions.
+name: e6_eirp_sweep
+description: >
+  Sensitivity of both ordered co-frequency user-downlink Delta T/T exceedance
+  fractions and the qualified 25.261(d) throughput degradation to the EIRP
+  assumptions: the FCC unit-corrected Starlink value, the low end of the filed
+  range, a single common (Del Portillo) source for both systems, the retired
+  C/N-calibrated OneWeb value, and PFD-constant (primary) vs constant-EIRP
+  Starlink beam steering.
+constellations: [STARLINK, ONEWEB]
+stations: stations.yaml
+seed: 0
+params:
+  n_start_times: 8          # independent start times (Phase 4: as many as E5)
+  start_offset_s: 86400     # 24 h ASSUMED, as in E5 (non-overlapping consecutive days)
+  time_step_s: 10
+  duration_s: 86400
+  chunk: 64
+  thetas_deg: [5.0]
+  tle_cache_dir: data/raw/tle
+  tle_groups:
+    STARLINK: starlink
+    ONEWEB: oneweb
+  operational_altitude_km:
+    STARLINK: [450, 600]
+    ONEWEB: [1100, 1300]
+  cases:
+    - name: primary
+      eirp_dbw_per_mhz: {STARLINK: 16.0018, ONEWEB: 10.6}
+      steering: config
+    - name: starlink_low_end
+      eirp_dbw_per_mhz: {STARLINK: 12.1, ONEWEB: 10.6}
+      steering: config
+    - name: delportillo_common
+      eirp_dbw_per_mhz: {STARLINK: 12.7, ONEWEB: 10.6}
+      steering: config
+    - name: oneweb_cn_calibrated
+      eirp_dbw_per_mhz: {STARLINK: 16.0018, ONEWEB: 0.2}
+      steering: config
+    - name: starlink_constant_eirp
+      eirp_dbw_per_mhz: {STARLINK: 16.0018, ONEWEB: 10.6}
+      steering: constant_eirp
+    # PFD sensitivity: lower the *PFD-constant* Starlink PFD by 3 dB and 6 dB
+    # relative to the 25.208(b)-anchored value (the -6 dB point is the sourced
+    # Gen1 design PFD, starlink_gen1_design).  Under PFD-constant steering the
+    # PFD is EIRP_max - spreading(r_max), so reducing EIRP_max by 3/6 dB lowers the
+    # modelled Starlink PFD by exactly 3/6 dB (anchor unchanged).
+    - name: starlink_pfd_minus3
+      eirp_dbw_per_mhz: {STARLINK: 13.0018, ONEWEB: 10.6}
+      steering: config
+    - name: starlink_gen1_design
+      eirp_dbw_per_mhz: {STARLINK: 9.9812, ONEWEB: 10.6}
+      steering: config
+    - name: noise_assumed
+      eirp_dbw_per_mhz: {STARLINK: 16.0018, ONEWEB: 10.6}
+      noise_temp_k: {STARLINK: 150.0, ONEWEB: 200.0}
+      steering: config
+    - name: oneweb_min_elev_55
+      eirp_dbw_per_mhz: {STARLINK: 16.0018, ONEWEB: 10.6}
+      min_elevation_deg: {ONEWEB: 55.0}
+      steering: config
+  # Starlink generation of the STARLINK system (Phase 4): gen2 (primary) keeps the
+  # operational satellites classified Gen2 by starlink_generation_rule below; gen1
+  # / all are the Gen1-only and all-Starlink sensitivity runs
+  # (--starlink-generation).
+  starlink_generation: gen2
+  starlink_generation_rule: [
+    # Ordered; first match wins (ngsi.tle.classify_generation).  Generation is
+    # the authorization a satellite operates under, read from its shell.
+    # Altitudes no longer identify shells: the snapshot has the 43 deg shell at
+    # ~490 km and the 53 deg shells at ~465-475 km, not at the filed 525-550 km,
+    # so the altitude bounds only span the operational window.
+    {generation: gen2, shell: 43deg, inclination_deg: 43.0, inclination_tol_deg: 1.0,
+     altitude_min_km: 0, altitude_max_km: 100000,
+     source: "FCC 22-91 paras. 1, 19: Gen2 granted at 43 deg (no Gen1 shell at 43 deg)"},
+    {generation: gen2, shell: 33deg, inclination_deg: 33.0, inclination_tol_deg: 1.0,
+     altitude_min_km: 0, altitude_max_km: 100000,
+     source: "FCC 22-91 paras. 1, 19: Gen2 granted at 33 deg"},
+    # 53 deg is shared by Gen1 (550/53.0, 540/53.2) and Gen2 (525/53) and the
+    # snapshot puts them in one band (53.1-53.2 deg, ~465-475 km), so the tie-break
+    # is the launch: on or after the first launch into the Gen2-only 43 deg shell
+    # in this snapshot (international designator 2022-177, after the FCC 22-91
+    # grant released 2022-12-01) -> Gen2.  ASSUMED: replacement launches into the
+    # Gen1 53 deg shells after that date, if any, are counted as Gen2.
+    {generation: gen2, shell: 53deg-post-grant, inclination_deg: 53.1, inclination_tol_deg: 0.6,
+     altitude_min_km: 0, altitude_max_km: 100000, launched_on_or_after: "2022-177",
+     source: "ASSUMED launch-date tie-break (see comment); shell FCC 22-91 para. 1"},
+    {generation: gen1, shell: 53deg-pre-grant, inclination_deg: 53.1, inclination_tol_deg: 0.6,
+     altitude_min_km: 0, altitude_max_km: 100000, launched_before: "2022-177",
+     source: "Gen1 shells 550/53.0 and 540/53.2 (Pachler et al. 2021 Table II)"},
+    # FCC 22-91 grants Gen2 no shell at 70 or 97.6 deg, so these are Gen1 by shell
+    # even when launched after 2022 (later authorizations are not modelled).
+    {generation: gen1, shell: 70deg, inclination_deg: 70.0, inclination_tol_deg: 1.0,
+     altitude_min_km: 0, altitude_max_km: 100000,
+     source: "Gen1 shell 570/70 (Pachler et al. 2021 Table II); no Gen2 grant at 70 deg"},
+    {generation: gen1, shell: 97deg, inclination_deg: 97.4, inclination_tol_deg: 1.0,
+     altitude_min_km: 0, altitude_max_km: 100000,
+     source: "Gen1 shells 560/97.6 (Pachler et al. 2021 Table II); no Gen2 grant near 97 deg"},
+  ]
+  # Handoff policy (ngsi.dtt_screen): the primary rule only; the legacy and
+  # keep-serving variants are evaluated for the primary case in E5.  E6 rows
+  # carry handoff_policy.
+  handoff_policies:
+    - {name: full, link_cn: candidate}
+  primary_handoff: full
+  source: ASSUMED

@@ -1,0 +1,17 @@
+{
+  "experiment": "e12_propagation_check",
+  "seed": 0,
+  "timestamp_utc": "20261020T224422Z",
+  "git_hash": "0724e9602ca9970e224cefe343c29d610f247794",
+  "git_worktree": {
+    "dirty": false,
+    "modified_files": [],
+    "diff_sha256": null
+  },
+  "compute_dtype": "float64",
+  "python": "3.11.10",
+  "platform": "Linux-6.18.40.1-microsoft-standard-WSL2-x86_64-with-glibc2.35",
+  "argv": [
+    "scripts/check_propagation.py"
+  ]
+}

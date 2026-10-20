@@ -1,0 +1,9 @@
+system,shell,n_sats,altitude_km,inclination_deg,planes,sats_per_plane,source
+STARLINK,tle-00,1658,471.1734943944385,53.1588187575392,2,829,"CelesTrak TLE snapshot, 3773 satellites (STARLINK group)"
+STARLINK,tle-01,75,530.0510481823824,53.16549866666667,25,3,"CelesTrak TLE snapshot, 3773 satellites (STARLINK group)"
+STARLINK,tle-02,2,555.6341282309772,97.28495000000001,2,1,"CelesTrak TLE snapshot, 3773 satellites (STARLINK group)"
+STARLINK,tle-03,345,568.497853153404,69.9993336231884,23,15,"CelesTrak TLE snapshot, 3773 satellites (STARLINK group)"
+STARLINK,tle-04,356,481.99314145852856,69.99990337078651,20,18,"CelesTrak TLE snapshot, 3773 satellites (STARLINK group)"
+STARLINK,tle-05,1336,472.72266591011413,97.28666100299401,13,103,"CelesTrak TLE snapshot, 3773 satellites (STARLINK group)"
+STARLINK,tle-06,1,529.5035830093675,97.2815,1,1,"CelesTrak TLE snapshot, 3773 satellites (STARLINK group)"
+ONEWEB,tle-00,648,1207.2978674294543,87.90388549382716,14,46,"CelesTrak TLE snapshot, 648 satellites (ONEWEB group)"

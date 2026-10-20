@@ -1,0 +1,24 @@
+{
+  "experiment": "e12_propagation_check",
+  "status": "ok",
+  "config": "configs/experiments/e5_as_deployed.yaml",
+  "starlink_generation": "gen2",
+  "common_epoch_jd": 2461334.05165193,
+  "n_sats": {
+    "STARLINK": 5959,
+    "ONEWEB": 648
+  },
+  "days": [
+    0,
+    1,
+    4,
+    8
+  ],
+  "n_days": 8,
+  "window_s": 3600.0,
+  "step_s": 30.0,
+  "daily_step_s": 60.0,
+  "min_elevation_deg": 25.0,
+  "theta_deg": 2.0,
+  "start_offset_s": 86400.0
+}

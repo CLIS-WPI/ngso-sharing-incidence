@@ -1,0 +1,23 @@
+{
+  "experiment": "e5_as_deployed",
+  "seed": 0,
+  "timestamp_utc": "20261020T225639Z",
+  "git_hash": "487f283f30c68e7b2149ab9461f13a8b907b5b03",
+  "git_worktree": {
+    "dirty": false,
+    "modified_files": [],
+    "diff_sha256": null
+  },
+  "compute_dtype": "float32",
+  "python": "3.11.10",
+  "platform": "Linux-6.18.40.1-microsoft-standard-WSL2-x86_64-with-glibc2.35",
+  "argv": [
+    "experiments/e5_as_deployed.py",
+    "--starlink-generation",
+    "gen1",
+    "--handoff-policies",
+    "full,full_keep_serving,legacy",
+    "--n-start-times",
+    "4"
+  ]
+}

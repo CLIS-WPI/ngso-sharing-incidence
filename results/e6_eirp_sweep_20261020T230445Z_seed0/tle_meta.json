@@ -1,0 +1,269 @@
+{
+  "fetched_utc": "2026-10-20T23:04:49.029782+00:00",
+  "cache_dir": "/workspace/data/raw/tle",
+  "groups": {
+    "STARLINK": {
+      "group": "starlink",
+      "url": "https://celestrak.org/NORAD/elements/gp.php?GROUP=starlink&FORMAT=tle",
+      "n_sats_raw": 10649,
+      "n_kept": 5959,
+      "n_operational": 9732,
+      "n_excluded_low": 917,
+      "n_excluded_high": 0,
+      "operational_band_km": [
+        450.0,
+        600.0
+      ],
+      "epoch_jd_min": 2461331.62498322,
+      "epoch_jd_max": 2461334.05165193
+    },
+    "ONEWEB": {
+      "group": "oneweb",
+      "url": "https://celestrak.org/NORAD/elements/gp.php?GROUP=oneweb&FORMAT=tle",
+      "n_sats_raw": 651,
+      "n_kept": 648,
+      "n_operational": 648,
+      "n_excluded_low": 3,
+      "n_excluded_high": 0,
+      "operational_band_km": [
+        1100.0,
+        1300.0
+      ],
+      "epoch_jd_min": 2461332.65111261,
+      "epoch_jd_max": 2461334.04166584
+    }
+  },
+  "starlink_generation": {
+    "selected": "gen2",
+    "counts": {
+      "gen1": 3773,
+      "gen2": 5959,
+      "unclassified": 0
+    },
+    "n_kept": 5959,
+    "shells": [
+      {
+        "rule": 1,
+        "generation": "gen2",
+        "rule_shell": "43deg",
+        "n_sats": 3253,
+        "inclination_mean_deg": 43.00146523209346,
+        "altitude_mean_km": 490.15531634282615,
+        "altitude_min_km": 452.9381984925276,
+        "altitude_max_km": 540.7482388340359,
+        "altitude_p10_km": 490.1390358875862,
+        "altitude_median_km": 490.18825497388025,
+        "altitude_p90_km": 490.2172100092912
+      },
+      {
+        "rule": 3,
+        "generation": "gen2",
+        "rule_shell": "53deg-post-grant",
+        "n_sats": 2706,
+        "inclination_mean_deg": 53.15798477457502,
+        "altitude_mean_km": 470.71351128649457,
+        "altitude_min_km": 453.89275108353013,
+        "altitude_max_km": 478.03554451190575,
+        "altitude_p10_km": 469.7928918135567,
+        "altitude_median_km": 469.8436300155536,
+        "altitude_p90_km": 477.80095676977
+      },
+      {
+        "rule": 4,
+        "generation": "gen1",
+        "rule_shell": "53deg-pre-grant",
+        "n_sats": 1733,
+        "inclination_mean_deg": 53.15910784766301,
+        "altitude_mean_km": 473.721570871124,
+        "altitude_min_km": 450.7175703265775,
+        "altitude_max_km": 546.9611332862478,
+        "altitude_p10_km": 466.8432592793455,
+        "altitude_median_km": 469.8799224804343,
+        "altitude_p90_km": 477.88439156372095
+      },
+      {
+        "rule": 5,
+        "generation": "gen1",
+        "rule_shell": "70deg",
+        "n_sats": 701,
+        "inclination_mean_deg": 69.99962296718974,
+        "altitude_mean_km": 524.5667870144944,
+        "altitude_min_km": 456.96202704313146,
+        "altitude_max_km": 581.7095194501944,
+        "altitude_p10_km": 481.6525572240571,
+        "altitude_median_km": 507.53503868513144,
+        "altitude_p90_km": 579.192343586571
+      },
+      {
+        "rule": 6,
+        "generation": "gen1",
+        "rule_shell": "97deg",
+        "n_sats": 1339,
+        "inclination_mean_deg": 97.28665459297984,
+        "altitude_mean_km": 472.8889122444987,
+        "altitude_min_km": 459.1864745736457,
+        "altitude_max_km": 570.1126857610197,
+        "altitude_p10_km": 472.6138910314641,
+        "altitude_median_km": 472.66100471028767,
+        "altitude_p90_km": 472.7120507996653
+      }
+    ],
+    "rule": [
+      {
+        "generation": "gen2",
+        "shell": "43deg",
+        "inclination_deg": 43.0,
+        "inclination_tol_deg": 1.0,
+        "altitude_min_km": 0,
+        "altitude_max_km": 100000,
+        "source": "FCC 22-91 paras. 1, 19: Gen2 granted at 43 deg (no Gen1 shell at 43 deg)"
+      },
+      {
+        "generation": "gen2",
+        "shell": "33deg",
+        "inclination_deg": 33.0,
+        "inclination_tol_deg": 1.0,
+        "altitude_min_km": 0,
+        "altitude_max_km": 100000,
+        "source": "FCC 22-91 paras. 1, 19: Gen2 granted at 33 deg"
+      },
+      {
+        "generation": "gen2",
+        "shell": "53deg-post-grant",
+        "inclination_deg": 53.1,
+        "inclination_tol_deg": 0.6,
+        "altitude_min_km": 0,
+        "altitude_max_km": 100000,
+        "launched_on_or_after": "2022-177",
+        "source": "ASSUMED launch-date tie-break (see comment); shell FCC 22-91 para. 1"
+      },
+      {
+        "generation": "gen1",
+        "shell": "53deg-pre-grant",
+        "inclination_deg": 53.1,
+        "inclination_tol_deg": 0.6,
+        "altitude_min_km": 0,
+        "altitude_max_km": 100000,
+        "launched_before": "2022-177",
+        "source": "Gen1 shells 550/53.0 and 540/53.2 (Pachler et al. 2021 Table II)"
+      },
+      {
+        "generation": "gen1",
+        "shell": "70deg",
+        "inclination_deg": 70.0,
+        "inclination_tol_deg": 1.0,
+        "altitude_min_km": 0,
+        "altitude_max_km": 100000,
+        "source": "Gen1 shell 570/70 (Pachler et al. 2021 Table II); no Gen2 grant at 70 deg"
+      },
+      {
+        "generation": "gen1",
+        "shell": "97deg",
+        "inclination_deg": 97.4,
+        "inclination_tol_deg": 1.0,
+        "altitude_min_km": 0,
+        "altitude_max_km": 100000,
+        "source": "Gen1 shells 560/97.6 (Pachler et al. 2021 Table II); no Gen2 grant near 97 deg"
+      }
+    ]
+  },
+  "common_epoch_jd": 2461334.05165193,
+  "experiment": "e6_eirp_sweep",
+  "cases": [
+    {
+      "name": "primary",
+      "eirp": {
+        "STARLINK": 16.0018,
+        "ONEWEB": 10.6
+      },
+      "steering": null,
+      "noise": {},
+      "min_el": {}
+    },
+    {
+      "name": "starlink_low_end",
+      "eirp": {
+        "STARLINK": 12.1,
+        "ONEWEB": 10.6
+      },
+      "steering": null,
+      "noise": {},
+      "min_el": {}
+    },
+    {
+      "name": "delportillo_common",
+      "eirp": {
+        "STARLINK": 12.7,
+        "ONEWEB": 10.6
+      },
+      "steering": null,
+      "noise": {},
+      "min_el": {}
+    },
+    {
+      "name": "oneweb_cn_calibrated",
+      "eirp": {
+        "STARLINK": 16.0018,
+        "ONEWEB": 0.2
+      },
+      "steering": null,
+      "noise": {},
+      "min_el": {}
+    },
+    {
+      "name": "starlink_constant_eirp",
+      "eirp": {
+        "STARLINK": 16.0018,
+        "ONEWEB": 10.6
+      },
+      "steering": "constant_eirp",
+      "noise": {},
+      "min_el": {}
+    },
+    {
+      "name": "starlink_pfd_minus3",
+      "eirp": {
+        "STARLINK": 13.0018,
+        "ONEWEB": 10.6
+      },
+      "steering": null,
+      "noise": {},
+      "min_el": {}
+    },
+    {
+      "name": "starlink_gen1_design",
+      "eirp": {
+        "STARLINK": 9.9812,
+        "ONEWEB": 10.6
+      },
+      "steering": null,
+      "noise": {},
+      "min_el": {}
+    },
+    {
+      "name": "noise_assumed",
+      "eirp": {
+        "STARLINK": 16.0018,
+        "ONEWEB": 10.6
+      },
+      "steering": null,
+      "noise": {
+        "STARLINK": 150.0,
+        "ONEWEB": 200.0
+      },
+      "min_el": {}
+    },
+    {
+      "name": "oneweb_min_elev_55",
+      "eirp": {
+        "STARLINK": 16.0018,
+        "ONEWEB": 10.6
+      },
+      "steering": null,
+      "noise": {},
+      "min_el": {
+        "ONEWEB": 55.0
+      }
+    }
+  ]
+}

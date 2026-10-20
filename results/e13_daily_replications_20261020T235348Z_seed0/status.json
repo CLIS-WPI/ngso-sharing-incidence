@@ -1,0 +1,23 @@
+{
+  "experiment": "e13_daily_replications",
+  "status": "ok",
+  "runs": {
+    "e5 gen2": "e5_as_deployed_20261020T224012Z_seed0",
+    "e5 gen2 full": "e5_as_deployed_20261020T224012Z_seed0",
+    "e5 gen2 full_keep_serving": "e5_as_deployed_20261020T224012Z_seed0",
+    "e5 gen2 legacy": "e5_as_deployed_20261020T224012Z_seed0",
+    "e5 gen2 full_k2": "e5_as_deployed_20261020T224012Z_seed0",
+    "e5 gen2 full_k3": "e5_as_deployed_20261020T224012Z_seed0",
+    "e5 gen2 full_n10": "e5_as_deployed_20261020T224012Z_seed0",
+    "e5 gen2 full_n60": "e5_as_deployed_20261020T224012Z_seed0",
+    "e5 gen1": "e5_as_deployed_20261020T225639Z_seed0",
+    "e5 gen1 full": "e5_as_deployed_20261020T225639Z_seed0",
+    "e5 gen1 full_keep_serving": "e5_as_deployed_20261020T225639Z_seed0",
+    "e5 gen1 legacy": "e5_as_deployed_20261020T225639Z_seed0",
+    "e5 all": "e5_as_deployed_20261020T230012Z_seed0",
+    "e5 all full": "e5_as_deployed_20261020T230012Z_seed0",
+    "e5 all full_keep_serving": "e5_as_deployed_20261020T230012Z_seed0",
+    "e5 all legacy": "e5_as_deployed_20261020T230012Z_seed0",
+    "e6": "e6_eirp_sweep_20261020T230445Z_seed0"
+  }
+}
