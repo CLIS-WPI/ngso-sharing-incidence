@@ -46,7 +46,7 @@ constellations:
           beamwidth_deg: 1.1
           eirp_density_dbw_per_mhz: 16.0018
           freq_ghz: 12.0
-          bandwidth_mhz: 240.0
+          bandwidth_mhz: 250.0
           system_noise_temp_k: 362.9
           beam_steering: pfd_constant
           pfd_anchor_elevation_deg: 25.0
@@ -69,10 +69,11 @@ constellations:
             beamwidth_deg: DERIVED from the 44 dBi peak via HPBW ~ 70*lambda/D
             (aperture efficiency 0.6, ASSUMED); no filing states the satellite
             beamwidth. freq_ghz: centre of the Ku-band user downlink 10.7-12.7
-            GHz. bandwidth_mhz: ASSUMED (emission designator 240MD7W, not re-verified
-            against a filing); every reported metric is invariant to it (I/N and
-            C/N are per-MHz densities; degradation is a rate ratio), checked at
-            250 MHz (del Portillo Table 3) in the E9 diagnosis. system_noise_temp_k: 362.9 K, SpaceX user-downlink
+            GHz. bandwidth_mhz: 250 MHz, del Portillo et al. 2019 (Acta Astronautica
+            159, Table 3) Starlink user-downlink channel bandwidth; every reported
+            metric is invariant to it (I/N and C/N are per-MHz densities;
+            degradation is a rate ratio), checked against the earlier ASSUMED
+            240 MHz in the Phase 4 bandwidth re-run. system_noise_temp_k: 362.9 K, SpaceX user-downlink
             system temperature, del Portillo et al. (Table 6); the earlier ASSUMED
             150 K is the E6 noise_assumed sensitivity row.
             beam_steering: PFD-CONSTANT is the primary Starlink Ku model. SpaceX
@@ -183,7 +184,7 @@ constellations:
           beamwidth_deg: 3.0
           eirp_density_dbw_per_mhz: 10.6
           freq_ghz: 12.0
-          bandwidth_mhz: 125.0
+          bandwidth_mhz: 250.0
           system_noise_temp_k: 350.1
           beam_steering: constant_eirp
           source: >-
@@ -201,9 +202,11 @@ constellations:
             reference for both systems. The earlier C/N-target value (+0.2
             dBW/MHz, scripts/calibrate_oneweb_eirp.py) is retained only as a
             sensitivity row, not as a design rule. freq_ghz: centre of the
-            Ku-band user downlink 10.7-12.7 GHz. bandwidth_mhz: ASSUMED
-            (emission designator 125MG7W, not re-verified against a filing);
-            results are invariant to it, checked at 250 MHz (del Portillo Table 3)
-            in the E9 diagnosis. system_noise_temp_k: 350.1 K,
+            Ku-band user downlink 10.7-12.7 GHz. bandwidth_mhz: 250 MHz,
+            del Portillo et al. 2019 (Table 3) OneWeb user-downlink channel
+            bandwidth (the same 250 MHz that converts the 34.6 dBW per-beam EIRP
+            to +10.6 dBW/MHz above); results are invariant to it, checked against
+            the earlier ASSUMED 125 MHz in the Phase 4 bandwidth re-run.
+            system_noise_temp_k: 350.1 K,
             OneWeb user-downlink system temperature, del Portillo et al. (Table 6);
             the earlier ASSUMED 200 K is the E6 noise_assumed sensitivity row.

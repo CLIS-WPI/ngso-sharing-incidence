@@ -122,6 +122,7 @@ def main() -> int:
     macros: list[tuple[str, str]] = []
     sources: list[str] = []
     oneweb_eirp: float | None = None
+    screen_theta: float | None = None
 
     def add(name: str, value: str, run: Path | None = None) -> None:
         macros.append((name, value))
@@ -155,7 +156,16 @@ def main() -> int:
         udl = ov[(ov["link_type"] == "user_downlink") & (ov["overlaps"] == True)]  # noqa: E712
         add("SharedFreqGhz", _num(udl["center_ghz"].iloc[0], "{:.1f}"), e1)
         add("EventNPhasings", str(int(ev["n_phasings"].max())), e1)
-        th2 = ev[ev["theta_deg"] == 2.0]
+        import yaml as _y1
+        _e1cfg = e1 / "configs" / "e1_event_rate.yaml"
+        if "screen_theta_deg" not in _y1.safe_load(_e1cfg.read_text())["params"]:
+            _e1cfg = REPO_ROOT / "configs" / "experiments" / "e1_event_rate.yaml"
+        _p1 = _y1.safe_load(_e1cfg.read_text())["params"]
+        screen_theta = float(_p1["screen_theta_deg"])
+        if screen_theta not in [float(t) for t in ev["theta_deg"].unique()]:
+            raise SystemExit(f"screen_theta_deg {screen_theta} not in the E1 run's thetas")
+        add("ThetaScreenDeg", _num(screen_theta, "{:g}"), e1)
+        th2 = ev[ev["theta_deg"] == screen_theta]
         colo = th2[th2["variant"] == 1]
         worst = th2[th2["variant"] == 0]
         cp = _peak(colo, "event_frac_mean")
@@ -173,7 +183,7 @@ def main() -> int:
         ua = u[(u["system_a"] == VICTIM) & (u["variant"] == 1)]
         add("UnresGeomWithDivPct", _pct(ua["unres_frac_mean"].max(), 3), e2)
         me = pd.read_csv(e2 / "summary_min_elevation.csv")
-        mea = me[(me["system_a"] == VICTIM) & (me["variant"] == 1) & (me["theta_deg"] == 2.0)]
+        mea = me[(me["system_a"] == VICTIM) & (me["variant"] == 1) & (me["theta_deg"] == screen_theta)]
         peaks = mea.groupby("min_elevation_deg")["event_frac_mean"].max()
         add("MinElevLowDeg", _num(mea["min_elevation_deg"].min(), "{:.0f}"), e2)
         add("MinElevHighDeg", _num(mea["min_elevation_deg"].max(), "{:.0f}"), e2)
@@ -355,9 +365,9 @@ def main() -> int:
         add("BindMaxApertureDepPct", _pct(max(peak_by_ap)), e5)
         # as-deployed vs as-filed binding ratio (worst case, headline aperture).
         ev5 = pd.read_csv(e5 / "summary_event_rate.csv")
-        w5 = ev5[(ev5["system_a"] == VICTIM) & (ev5["variant"] == 1) & (ev5["theta_deg"] == 2.0)]
+        w5 = ev5[(ev5["system_a"] == VICTIM) & (ev5["variant"] == 1) & (ev5["theta_deg"] == screen_theta)]
         if e1 is not None:
-            w1 = ev[(ev["system_a"] == VICTIM) & (ev["variant"] == 1) & (ev["theta_deg"] == 2.0)]
+            w1 = ev[(ev["system_a"] == VICTIM) & (ev["variant"] == 1) & (ev["theta_deg"] == screen_theta)]
             add("GeomRatioEquator", _num(
                 w5[w5["latitude_deg"] == 0.0]["event_frac_mean"].iloc[0]
                 / w1[w1["latitude_deg"] == 0.0]["event_frac_mean"].iloc[0], "{:.2f}"), e5)

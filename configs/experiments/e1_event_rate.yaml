@@ -11,6 +11,9 @@ params:
   # Detection half-angle(s) at the antenna (degrees). Circle at 1 and 2 deg, plus
   # a 5 deg reference. Placeholder pending a beamwidth-derived value.
   thetas_deg: [1.0, 2.0, 5.0]
+  # The separation threshold the paper quotes for the geometric screen
+  # (\ThetaScreenDeg); must be one of thetas_deg.
+  screen_theta_deg: 2.0
   # 47 CFR 25.261(d) short-term Delta T/T (kept in sync with ngsi.constants).
   dtt_threshold: 0.06
   n_phasings: 8            # independent constellation phasings (unit of replication)

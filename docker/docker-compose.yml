@@ -18,6 +18,12 @@ services:
     environment:
       NVIDIA_VISIBLE_DEVICES: "0"
       NVIDIA_DRIVER_CAPABILITIES: "compute,utility"
+      # The bind-mounted repo is owned by the host user (e.g. on Windows), so git
+      # would refuse it as "dubious ownership" and run_meta.json would record
+      # git_hash "unknown".
+      GIT_CONFIG_COUNT: "1"
+      GIT_CONFIG_KEY_0: safe.directory
+      GIT_CONFIG_VALUE_0: /workspace
     shm_size: 8gb
     deploy:
       resources:

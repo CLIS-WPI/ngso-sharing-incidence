@@ -14,6 +14,8 @@ the questions posed before any paper text is rewritten:
 (e) The E6 EIRP / steering sensitivity cases.
 (f) The 47 CFR 25.208(b) limit text, scope, and PFD margins.
 (g) The analytic co-located model and its diagnosis against the simulation.
+(h) The E9 diagnosis of the OneWeb 55 deg minimum-elevation case and the
+    channel-bandwidth invariance check.
 
 Run:  python scripts/make_phase3d_report.py
 """
@@ -228,6 +230,82 @@ def analytic_diagnosis():
         return None, None
     js = json.loads((run / "diagnosis.json").read_text())
     return run, js
+
+
+def e9_section() -> list[str]:
+    """(h) E9: OneWeb 55 deg mask diagnosis and the bandwidth-invariance check."""
+    L = ["## (h) E9 - OneWeb 55 deg minimum-elevation diagnosis and bandwidth check", ""]
+    run = newest("e9_min_elevation_diagnosis")
+    if run is None:
+        return L + ["(no e9 diagnosis run found)", ""]
+    js = json.loads((run / "diagnosis.json").read_text())
+    lt = pd.read_csv(run / "summary_min_elevation_latitude.csv")
+    L.append(f"Run: `results/{run.name}/` ({js['geometry']}; case `{js['case']}`, "
+             f"mask {js['mask_deg']:g} deg, {js['n_start_times']} start times, "
+             f"{js['n_stations']} stations).  Written by `scripts/diagnose_min_elevation.py`.")
+    L.append("")
+    L.append("**Per latitude, OneWeb satellites at or above the mask and the qualifying "
+             "stations (baseline availability >= 99%) under the 55 deg mask:**")
+    L.append("")
+    rows = [{"latitude_deg": f"{r.latitude_deg:g}",
+             "n_above_mask_mean": f"{r.n_above_mask_mean:.2f}",
+             "n_above_mask_p10": f"{r.n_above_mask_p10:g}",
+             "frac_none_above_mask_pct": fmt_pct(r.frac_none_above_mask),
+             "avail0_min_m55_pct": fmt_pct(r.avail0_min_m55),
+             "n_qual_m55": str(int(r.n_qual_m55)), "n_cells": str(int(r.n_cells))}
+            for r in lt.itertuples()]
+    L.append(md_table(rows, list(rows[0].keys())))
+    L.append("")
+    ql = js["qualifying_latitudes_m55"]
+    L.append(f"Qualifying latitudes under the 55 deg mask: {', '.join(f'{x:g}' for x in ql)} "
+             f"deg ({js['n_qual_stations_m55_per_start']} qualifying stations per start "
+             f"time); the largest fraction of time with no OneWeb satellite above the mask "
+             f"at a qualifying station is "
+             f"{fmt_pct(js['qualifying_frac_none_above_mask_max'])}%.  Below "
+             f"{min(ql):g} deg no station qualifies: the victim is unserved too often for the "
+             "rule's 99% baseline-availability gate.")
+    L.append("")
+    L.append("**Worst qualified station per start time (no diversity, 25 vs 55 deg mask):**")
+    L.append("")
+    w = [{"start": str(a["start"]), "latitude_deg": f"{a['latitude_deg']:g}",
+          "longitude_deg": f"{a['longitude_deg']:g}",
+          "degr_nodiv_m25_pct": fmt_pct(a["degr_nodiv_m25"]),
+          "degr_nodiv_m55_pct": fmt_pct(b["degr_nodiv_m55"]),
+          "frac_none_above_mask_pct": fmt_pct(b["frac_none_above_mask"])}
+         for a, b in zip(js["worst_degr_nodiv_m25"], js["worst_degr_nodiv_m55"])]
+    L.append(md_table(w, list(w[0].keys())))
+    L.append("")
+    u = [{"start": str(a["start"]), "latitude_deg": f"{a['latitude_deg']:g}",
+          "longitude_deg": f"{a['longitude_deg']:g}",
+          "unavail_div_m55_pct": fmt_pct(a["unavail_div_m55"]),
+          "frac_none_above_mask_pct": fmt_pct(a["frac_none_above_mask"])}
+         for a in js["worst_unavail_div_m55"]]
+    L.append("**Worst qualified availability change with diversity, 55 deg mask:**")
+    L.append("")
+    L.append(md_table(u, list(u[0].keys())))
+    L.append("")
+    diffs = ", ".join(f"{k} {v:.3g}" for k, v in js["bandwidth_max_abs_diff"].items())
+    L.append(f"**Bandwidth invariance (E9):** replacing the victim channel bandwidth with "
+             f"{js['bandwidth_check_mhz']:g} MHz changes the 25 deg metrics by at most: "
+             f"{diffs} (absolute, fraction units).")
+    bw = newest("e10_bandwidth_invariance")
+    if bw is not None:
+        jb = json.loads((bw / "bandwidth_invariance.json").read_text())
+        L.append("")
+        L.append(f"**Bandwidth invariance (Phase 4 re-run, `results/{bw.name}/`):** "
+                 f"{'PASS' if jb['passed'] else 'FAIL'} at tolerance {jb['tolerance']:g}.")
+        L.append("")
+        L.append("| new run | reference run | bandwidth new (MHz) | bandwidth ref (MHz) | "
+                 "file | max abs diff |")
+        L.append("|---|---|---|---|---|---|")
+        for pr in jb["pairs"]:
+            bn = ", ".join(f"{k} {v:g}" for k, v in pr["bandwidth_new_mhz"].items())
+            br = ", ".join(f"{k} {v:g}" for k, v in pr["bandwidth_ref_mhz"].items())
+            for name, f in pr["files"].items():
+                md = f"{f['max_abs_diff']:.3g}" if f.get("comparable") else "not comparable"
+                L.append(f"| `{pr['new']}` | `{pr['ref']}` | {bn} | {br} | {name} | {md} |")
+    L.append("")
+    return L
 
 
 def main() -> int:
@@ -487,6 +565,7 @@ def main() -> int:
         L.append("(no e8 diagnosis run found)")
     L.append("")
 
+    L.extend(e9_section())
     OUT.write_text("\n".join(L) + "\n", encoding="utf-8")
     print(f"[phase3d] wrote {OUT} ({len(L)} lines)")
     return 0

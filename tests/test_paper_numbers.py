@@ -27,6 +27,8 @@ def test_every_number_macro_used_is_defined():
     latex_builtins = {
         "LaTeX", "IEEEPARstart", "IEEEtran", "IEEEkeywords", "IEEEpeerreviewmaketitle",
         "DocumentMetadata", "TeX", "S", "T", "Delta", "Pr",
+        "IEEEauthorblockA", "IEEEauthorblockN", "IEEEauthorrefmark",
+        "IEEEoverridecommandlockouts",
     }
     missing = used - defined - latex_builtins
     assert not missing, f"main.tex uses undefined macros: {sorted(missing)}"
