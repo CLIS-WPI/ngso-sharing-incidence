@@ -1,0 +1,17 @@
+{
+  "experiment": "e14_interruption_cost",
+  "seed": 0,
+  "timestamp_utc": "20261021T171128Z",
+  "git_hash": "1dae526d2619a7ef28d5ee8c003f15eb300af560",
+  "git_worktree": {
+    "dirty": false,
+    "modified_files": [],
+    "diff_sha256": null
+  },
+  "compute_dtype": "float64",
+  "python": "3.11.10",
+  "platform": "Linux-6.18.40.1-microsoft-standard-WSL2-x86_64-with-glibc2.35",
+  "argv": [
+    "scripts/interruption_cost.py"
+  ]
+}

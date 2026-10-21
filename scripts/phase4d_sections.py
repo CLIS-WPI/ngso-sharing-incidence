@@ -292,7 +292,67 @@ def section_sentences(lines: list[str], a: dict, b: dict, c: dict, d: dict) -> l
          "meets throughput", r"both handoff policies we compare|only the rate-maximizing policy|"
          r"still loses more than the limit"),
     ]
+    find = _findings(a, b, c, d)
     L += ["### 9.2 Sentences", "",
-          p4b.md_table([{"depends on": t, "sentence": s_, "main.tex lines": lines_of(pat)}
+          p4b.md_table([{"depends on": t, "sentence": s_, "main.tex lines": lines_of(pat),
+                         "finding (from A-D)": find.get(s_[:14], "")}
                         for t, s_, pat in sent]), ""]
     return L
+
+
+def _findings(a: dict, b: dict, c: dict, d: dict) -> dict:
+    """One-line finding per sentence group, keyed by the sentence label's first 14 chars."""
+    def v(key, rule, i):
+        x = a.get((key, rule))
+        return x[i]["v"] if x else "n/a"
+
+    mt = b.get("max_tau")
+    tau = {}
+    if mt is not None:
+        for _, r in mt.iterrows():
+            tau[r.policy] = (r.max_tau_degradation_s, r.max_tau_availability_s)
+
+    def t(pol, i):
+        x = tau.get(pol, (np.nan, np.nan))[i]
+        return "not met at 0" if x < 0 else f"{x:.2f} s"
+
+    def same(res, ref):
+        if not res:
+            return "not run"
+        other = [k for k in res if k != ref][0]
+        ch = [lab for lab in res[ref] for i in (0, 1) if res[ref][lab][i]["v"] != res[other][lab][i]["v"]]
+        return "no verdict changes" if not ch else "verdicts change for " + ", ".join(sorted(set(ch)))
+
+    av = (f"availability met by both rules only for tau <= {t('full', 1)} (event-avoiding) / "
+          f"{t('full_keep_serving', 1)} (rate-maximizing) per excess switch")
+    rm = (f"rate-maximizing throughput: unconstrained {v('unconstrained', 'rate-maximizing', 0)}, "
+          f"K=2 {v('K = 2', 'rate-maximizing', 0)}, N=30 s {v('dwell N = 30 s', 'rate-maximizing', 0)}, "
+          f"N=60 s {v('dwell N = 60 s', 'rate-maximizing', 0)}, 55 deg {v('55 deg mask', 'rate-maximizing', 0)}; "
+          f"met for tau <= {t('full_keep_serving', 0)}")
+    dw = (f"availability under dwell: N=30 s {v('dwell N = 30 s', 'event-avoiding', 1)} / "
+          f"{v('dwell N = 30 s', 'rate-maximizing', 1)}, N=60 s {v('dwell N = 60 s', 'event-avoiding', 1)} / "
+          f"{v('dwell N = 60 s', 'rate-maximizing', 1)} (event-avoiding / rate-maximizing); 55 deg mask "
+          f"{v('55 deg mask', 'event-avoiding', 1)} / {v('55 deg mask', 'rate-maximizing', 1)}")
+    cs = "C (2 s step): " + same(c, "10 s")
+    ds = "D (43 deg only): " + same(d, "43 + 53 deg (headline)")
+    return {
+        "Abstract: both": f"{av}; {rm}; {dw}; {cs}",
+        "Contributions:": f"{rm}; {dw}",
+        "Rate-maximizin": "definition only; A shows rate-maximizing also loses the throughput limit "
+                        "under dwell >= 30 s and the 55 deg mask",
+        "Gen2 classific": ds,
+        "Results: avail": f"{av}; {rm}; {cs}",
+        "'does not hing": ds,
+        "K = 2 'still w": (f"K=2 availability: event-avoiding {v('K = 2', 'event-avoiding', 1)}, "
+                         f"rate-maximizing {v('K = 2', 'rate-maximizing', 1)}; met for tau <= "
+                         f"{t('full_k2', 1)} / {t('full_keep_serving_k2', 1)}"),
+        "Dwell 60 s 'br": (f"{dw}; the sweep answers 'tested only these two settings' (see Sec. 2 "
+                         "for the smallest N exceeding each limit)"),
+        "55 deg mask: e": (f"55 deg: event-avoiding {v('55 deg mask', 'event-avoiding', 0)} / "
+                         f"{v('55 deg mask', 'event-avoiding', 1)}, rate-maximizing "
+                         f"{v('55 deg mask', 'rate-maximizing', 0)} / {v('55 deg mask', 'rate-maximizing', 1)} "
+                         "(degradation / availability)"),
+        "Limitation (h)": f"{av}; {cs}",
+        "Limitation (g)": ds,
+        "Conclusion: bo": f"{av}; {rm}; {ds}",
+    }

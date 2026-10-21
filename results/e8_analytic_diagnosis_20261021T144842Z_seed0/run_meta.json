@@ -1,0 +1,19 @@
+{
+  "experiment": "e8_analytic_diagnosis",
+  "seed": 0,
+  "timestamp_utc": "20261021T144842Z",
+  "git_hash": "46391542dbac0c84c083efb3372689643d8f7527",
+  "git_worktree": {
+    "dirty": true,
+    "modified_files": [
+      "scripts/make_numbers.py"
+    ],
+    "diff_sha256": "182106352d948562e3a94ad5295990e0f18152bd66fa3db7ad646210f186fa44"
+  },
+  "compute_dtype": "float32",
+  "python": "3.11.10",
+  "platform": "Linux-6.18.40.1-microsoft-standard-WSL2-x86_64-with-glibc2.35",
+  "argv": [
+    "scripts/diagnose_analytic.py"
+  ]
+}

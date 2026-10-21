@@ -1,0 +1,57 @@
+{
+  "schema_version": "ai-research-writing/citation-requests-v1",
+  "entries": [
+    {
+      "key": "kim2025",
+      "identifier": "doi:10.1109/TWC.2024.3511660",
+      "claim_support": [
+        {
+          "claim": "main.tex l.126-127: later work designed entrant-side satellite selection for in-band coexistence in Ka band",
+          "relation": "background",
+          "status": "unverified",
+          "evidence": "Metadata only; sentence-level support not checked against the full text.",
+          "source": "paper/refs.bib"
+        }
+      ]
+    },
+    {
+      "key": "kim2026selection",
+      "identifier": "doi:10.1109/TWC.2025.3645992",
+      "claim_support": [
+        {
+          "claim": "main.tex l.127 and l.578: entrant-side satellite selection for in-band coexistence (contrast with victim-side handoff)",
+          "relation": "contrast",
+          "status": "unverified",
+          "evidence": "Metadata only; sentence-level support not checked against the full text.",
+          "source": "paper/refs.bib"
+        }
+      ]
+    },
+    {
+      "key": "kim2026selection-arxiv",
+      "identifier": "arxiv:2503.15262",
+      "claim_support": [
+        {
+          "claim": "Same work as kim2026selection (refs.bib note arXiv:2503.15262); identity cross-check only",
+          "relation": "metadata-only",
+          "status": "unverified",
+          "evidence": "Checks that the arXiv record matches the DOI record.",
+          "source": "paper/refs.bib"
+        }
+      ]
+    },
+    {
+      "key": "braun2019",
+      "identifier": "doi:10.1109/DySPAN.2019.8935875",
+      "claim_support": [
+        {
+          "claim": "main.tex l.125-126: later work assessed NGSO-NGSO interference in practice",
+          "relation": "background",
+          "status": "unverified",
+          "evidence": "Metadata only; sentence-level support not checked against the full text.",
+          "source": "paper/refs.bib"
+        }
+      ]
+    }
+  ]
+}

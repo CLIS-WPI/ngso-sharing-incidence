@@ -295,7 +295,7 @@ def section_verdicts(old: dict, new: dict, oldsrc: dict, newsrc: dict,
                                    if (b + "Over") in old or (b + "Over") in new else ""),
              "paper lines": where(texts, [b + "Pct", b + "Ci", b + "Over"])}
         rows.append(r)
-        if vo != vn:
+        if vo != vn and vo is not None and vn is not None:
             changed.append(b)
     L = ["## 4. Verdicts, overlapping vs non-overlapping windows", "",
          f"Limit {DLIM:g}% (degradation), {ULIM:g}% (availability change); 'exceeds' / "

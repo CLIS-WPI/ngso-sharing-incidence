@@ -1,0 +1,105 @@
+{
+  "schema_version": "ai-research-writing/citation-lock-v1",
+  "request_sha256": "c2e2aa3358793a93e569bed9946d8ab44bcf9d93c7207b6cbd9423e732975f32",
+  "records": [
+    {
+      "key": "kim2025",
+      "identifier": "doi:10.1109/TWC.2024.3511660",
+      "status": "metadata-only",
+      "provider": "crossref",
+      "request_url": "https://api.crossref.org/works/10.1109%2FTWC.2024.3511660",
+      "checked_at": "2026-10-21T15:37:02.994009+00:00",
+      "metadata": {
+        "title": "Feasibility Analysis of In-Band Coexistence in Dense LEO Satellite Communication Systems",
+        "authors": [
+          "Eunsun Kim",
+          "Ian P. Roberts",
+          "Jeffrey G. Andrews"
+        ],
+        "year": 2025,
+        "doi": "10.1109/twc.2024.3511660",
+        "type": "journal-article"
+      },
+      "metadata_sha256": "49d2904f1c13268e8646aa0e514f9b037fd02fbf9d3a8bd6ce54314305863994",
+      "claim_support_sha256": "7ee12f33ba80d506b4ee05f2562d9f0c6ede310769325f8bf5d1e632fb7b6dbc",
+      "cross_check": null,
+      "cross_check_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+      "error": "One or more sentence-level claim-support records are non-terminal"
+    },
+    {
+      "key": "kim2026selection",
+      "identifier": "doi:10.1109/TWC.2025.3645992",
+      "status": "metadata-only",
+      "provider": "crossref",
+      "request_url": "https://api.crossref.org/works/10.1109%2FTWC.2025.3645992",
+      "checked_at": "2026-10-21T15:37:03.127029+00:00",
+      "metadata": {
+        "title": "Satellite Selection for In-Band Coexistence of Dense LEO Networks",
+        "authors": [
+          "Eunsun Kim",
+          "Ian P. Roberts",
+          "Taekyun Lee",
+          "Jeffrey G. Andrews"
+        ],
+        "year": 2026,
+        "doi": "10.1109/twc.2025.3645992",
+        "type": "journal-article"
+      },
+      "metadata_sha256": "16486d1796767e96ee61cf91219778b8cace5ac32b52d91d91fdf939a46beef2",
+      "claim_support_sha256": "b2063d3ff6dc12c61d53cc605ea838e0bd3d5322592121ba9f431e013710a2a0",
+      "cross_check": null,
+      "cross_check_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+      "error": "One or more sentence-level claim-support records are non-terminal"
+    },
+    {
+      "key": "kim2026selection-arxiv",
+      "identifier": "arxiv:2503.15262",
+      "status": "metadata-only",
+      "provider": "arxiv",
+      "request_url": "https://export.arxiv.org/api/query?id_list=2503.15262",
+      "checked_at": "2026-10-21T15:37:03.508869+00:00",
+      "metadata": {
+        "title": "Satellite Selection for In-Band Coexistence of Dense LEO Networks",
+        "authors": [
+          "Eunsun Kim",
+          "Ian P. Roberts",
+          "Taekyun Lee",
+          "Jeffrey G. Andrews"
+        ],
+        "year": 2025,
+        "arxiv_id": "2503.15262",
+        "type": "preprint"
+      },
+      "metadata_sha256": "79e84cfc09bb7d07671916c873253136ca98fa798700a4ebf81ac2f623e0cc2f",
+      "claim_support_sha256": "93daa8d0d39682c3524bdb85d95915f0ec62592277bfda6b6191dacdcad8ce11",
+      "cross_check": null,
+      "cross_check_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+      "error": "One or more sentence-level claim-support records are non-terminal"
+    },
+    {
+      "key": "braun2019",
+      "identifier": "doi:10.1109/DySPAN.2019.8935875",
+      "status": "metadata-only",
+      "provider": "crossref",
+      "request_url": "https://api.crossref.org/works/10.1109%2FDySPAN.2019.8935875",
+      "checked_at": "2026-10-21T15:37:03.657853+00:00",
+      "metadata": {
+        "title": "Should We Worry About Interference in Emerging Dense NGSO Satellite Constellations?",
+        "authors": [
+          "Christophe Braun",
+          "Andra M. Voicu",
+          "Ljiljana Simic",
+          "Petri Mahonen"
+        ],
+        "year": 2019,
+        "doi": "10.1109/dyspan.2019.8935875",
+        "type": "proceedings-article"
+      },
+      "metadata_sha256": "8132bda3fd247382eff5d6cb0f8cc610528e297c97700fa23ea432fa65d65d0c",
+      "claim_support_sha256": "1fe8b192685b52bcbaaac1063def5e46d31b06f563531ec4cd3e829062b59aa9",
+      "cross_check": null,
+      "cross_check_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+      "error": "One or more sentence-level claim-support records are non-terminal"
+    }
+  ]
+}

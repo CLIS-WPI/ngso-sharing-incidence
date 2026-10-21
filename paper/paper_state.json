@@ -1,0 +1,27 @@
+{
+  "mode": "submission",
+  "stage": "pre-submission audit",
+  "venue": "IEEE WCNC 2027",
+  "main_tex": "main.tex",
+  "bibliography": "refs.bib",
+  "required_artifacts": [
+    "numbers.tex",
+    "claim_evidence_map.md",
+    "citation_requests.json",
+    "citation_lock.json"
+  ],
+  "blockers": [],
+  "build": {
+    "command": "latexmk -g -pdf -interaction=nonstopmode -halt-on-error main.tex",
+    "pdf": "main.pdf",
+    "log": "build-attestation.log",
+    "log_sha256": "b3e1b472f1c9f4f3f17aa8e5a5dd8efe95b6394f85abf854a764b9e2349bf5fc",
+    "exit_code": 0,
+    "tool_version": "Latexmk, John Collins, 20 November 2021. Version 4.76",
+    "attestation": "executed",
+    "ran_at": "2026-10-21T17:16:02.466783+00:00",
+    "status": "passed",
+    "input_sha256": "7046c9607221eb7956a4f8aa2b557e241877da9bd55fdf27421f82a4af0943cb",
+    "pdf_sha256": "3c42e4a4b1bd3b9198d1c20efa7bf02bc62a7517dc496489e3d6e02b4b74ea5f"
+  }
+}

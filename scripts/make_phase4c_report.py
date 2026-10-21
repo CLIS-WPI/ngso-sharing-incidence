@@ -73,8 +73,13 @@ def section_runs() -> list[str]:
                      "start times": st.get("n_start_times", ""),
                      "git": meta.get("git_hash", "")[:7],
                      "dirty": (meta.get("git_worktree") or {}).get("dirty", ""),
+                     "modified files": ", ".join((meta.get("git_worktree") or {})
+                                                 .get("modified_files") or []) or "-",
                      "dtype": meta.get("compute_dtype", "")})
-    return ["## 1. New runs", "", p4b.md_table(rows), ""]
+    return ["## 1. New runs", "", p4b.md_table(rows), "",
+            "A modified file listed for a run was not imported by that run's code path "
+            "(`scripts/make_numbers.py` is read only when macros are written).  Sensitivity "
+            "runs (C, D) are under `results/sensitivity/` (Secs. 7-8).", ""]
 
 
 def section_dwell() -> tuple[list[str], dict]:
