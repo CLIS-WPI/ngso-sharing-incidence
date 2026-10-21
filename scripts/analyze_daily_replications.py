@@ -125,13 +125,18 @@ def main() -> int:
         r6 = pd.read_parquet(e6 / "raw_eirp_sweep.parquet")
         r6 = r6[(r6["victim"] == mn.VICTIM) & (r6["variant"] == 0)
                 & (r6["diameter_m"] == mn.HEAD_DIAM)]
-        for case, g in r6.groupby("case"):
+        if "handoff_policy" not in r6.columns:
+            r6 = r6.assign(handoff_policy="full")
+        for (case, pol), g in r6.groupby(["case", "handoff_policy"]):
             g = g.set_index("phasing")
+            lab_p = POLICIES.get(pol, pol)
             b = {"experiment": "e6", "generation": "gen2", "run": e6.name, "case": case}
-            for col, lab in (("degr_max_qual", "degradation, no handoff"),
-                             ("degr_div_max_qual", "degradation, event-avoiding"),
-                             ("unavail_max_qual", "availability change, no handoff"),
-                             ("unavail_div_max_qual", "availability change, event-avoiding")):
+            cols = [("degr_div_max_qual", f"degradation, {lab_p}"),
+                    ("unavail_div_max_qual", f"availability change, {lab_p}")]
+            if pol == "full":  # the no-handoff values are shared by every policy row
+                cols = [("degr_max_qual", "degradation, no handoff"),
+                        ("unavail_max_qual", "availability change, no handoff")] + cols
+            for col, lab in cols:
                 series.append(({**b, "metric": lab}, g[col]))
 
     run_dir = new_run_dir(args.out_root or args.results_root, "e13_daily_replications", 0, repo_root=REPO)

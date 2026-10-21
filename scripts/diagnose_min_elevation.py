@@ -149,6 +149,9 @@ def main() -> int:
         "geometry": "as-deployed CelesTrak snapshot (E6 TLEs)",
         "case": CASE, "mask_deg": mask, "n_start_times": n_st,
         "start_offset_s": offset, "starlink_generation": gen,
+        "common_epoch_jd": epoch,
+        "tle_epoch_jd_range": {n: [tle_meta["groups"][n]["epoch_jd_min"],
+                                   tle_meta["groups"][n]["epoch_jd_max"]] for n in (VICTIM, INTERF)},
         "n_sats": {n: int(len(np.asarray(systems0[n].elements.semi_major_axis_km)))
                    for n in (VICTIM, INTERF)},
         "n_stations": int(len(grid.latitudes)),

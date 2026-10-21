@@ -155,7 +155,7 @@ GEN_TAG = {"gen2": "GenTwo", "gen1": "GenOne", "all": "GenAll"}
 GEO_TAG = {"e4_dtt": "Fil", "e5_as_deployed": "Dep"}
 RULE_TAG = {"full": "EvAv", "full_keep_serving": "RateMax", "legacy": "Legacy"}
 CONSTRAINED_TAG = {"full_k2": "KTwo", "full_k3": "KThree", "full_n10": "NTen",
-                   "full_n60": "NSixty"}
+                   "full_n60": "NSixty", "full_keep_serving_k2": "RateMaxKTwo"}
 LAT_WORD = {0: "Zero", 5: "Five", 10: "Ten", 15: "Fifteen", 20: "Twenty",
             25: "TwentyFive", 30: "Thirty", 35: "ThirtyFive", 40: "Forty",
             45: "FortyFive", 50: "Fifty", 55: "FiftyFive", 60: "Sixty", 65: "SixtyFive"}
@@ -845,6 +845,7 @@ def main(argv: list[str] | None = None) -> int:
 
     # --- Phase 4: Gen1/Gen2, both handoff rules, constrained handoff ---
     phase4_macros(add)
+    phase4d_macros(add)
 
     # --- write ---
     bad = [n for n, _ in macros if not n.isalpha()]
@@ -864,6 +865,142 @@ def main(argv: list[str] | None = None) -> int:
     OUT.write_text("\n".join(header + body) + "\n", encoding="utf-8")
     print(f"[numbers] wrote {OUT} ({len(macros)} macros)")
     return 0
+
+
+# ---------------------------------------------------------------- Phase 4d macros
+E6_CASE_TAG = {"primary": "Prim", "starlink_low_end": "Low", "delportillo_common": "DpCommon",
+               "oneweb_cn_calibrated": "CnCal", "starlink_constant_eirp": "ConstEirp",
+               "starlink_pfd_minus3": "PfdMinusThree", "starlink_gen1_design": "GenOne",
+               "noise_assumed": "NoiseAssumed", "oneweb_min_elev_55": "MinElevFiftyFive"}
+INT_TAG = {"full": "EvAv", "full_keep_serving": "RateMax", "full_k2": "EvAvKTwo",
+           "full_keep_serving_k2": "RateMaxKTwo", "full_n30": "EvAvNThirty",
+           "full_keep_serving_n30": "RateMaxNThirty", "full_n60": "EvAvNSixty",
+           "full_keep_serving_n60": "RateMaxNSixty"}
+TAU_WORD = {0.1: "PointOne", 0.5: "PointFive", 1.0: "One"}
+
+
+def _sens_runs() -> list[Path]:
+    root = RESULTS / "sensitivity"
+    if not root.exists():
+        return []
+    return sorted(p for p in root.glob("e5_as_deployed_*")
+                  if p.is_dir() and (p / "status.json").exists())
+
+
+def phase4d_macros(add) -> None:
+    """Rate-maximizing in the E6 cases, interruption cost, time-step and Gen2-split checks."""
+    import numpy as np
+
+    from ngsi.constants import THROUGHPUT_DEGRADE_MAX as DLIM
+    from ngsi.constants import UNAVAILABILITY_INCREASE_MAX as ULIM
+
+    def metric(tag: str, df: pd.DataFrame, run: Path, cols: tuple[str, str]) -> None:
+        for name, col, lim, nd in (("Degr", cols[0], DLIM, 2), ("Unav", cols[1], ULIM, 3)):
+            m, ci = _rep_worst(df, col, VICTIM, 0)
+            n_over, _, mx = _over(df, col, lim)
+            add(f"{tag}{name}Pct", _pct(m, nd), run)
+            add(f"{tag}{name}Ci", _pct(ci, nd), run)
+            add(f"{tag}{name}Over", str(n_over), run)
+            add(f"{tag}{name}Max", _pct(mx, nd), run)
+
+    # A. Both rules for every E6 case (one run, one baseline per case).
+    e6 = newest_where("e6_eirp_sweep", starlink_generation=primary_generation("e6_eirp_sweep"))
+    if e6 is not None:
+        s6 = pd.read_csv(e6 / "summary_eirp_sweep.csv")
+        if "handoff_policy" in s6.columns:
+            for case, tag in E6_CASE_TAG.items():
+                base = s6[(s6["case"] == case) & (s6["victim"] == VICTIM) & (s6["variant"] == 0)
+                          & (s6["diameter_m"] == HEAD_DIAM)]
+                for pol, ptag in (("full_keep_serving", "RateMax"), ("full", "")):
+                    g = base[base["handoff_policy"] == pol]
+                    if g.empty:
+                        continue
+                    r = g.iloc[0]
+                    if ptag:
+                        add(f"Tab{tag}RateMaxDegrDivPct", _pct(r["degr_div_max_qual"]), e6)
+                        add(f"Tab{tag}RateMaxDegrDivCi", _pct(r["degr_div_max_qual_ci95"]), e6)
+                        add(f"Tab{tag}RateMaxUnavDivPct", _pct(r["unavail_div_max_qual"], 3), e6)
+                        add(f"Tab{tag}RateMaxUnavDivCi",
+                            _pct(r["unavail_div_max_qual_ci95"], 3), e6)
+                    else:
+                        add(f"Tab{tag}QualStationReps", str(int(r["n_qual_station_reps"])), e6)
+                    add(f"Tab{tag}{ptag}DegrDivMax", _pct(r["degr_div_max_qual_obs"]), e6)
+                    add(f"Tab{tag}{ptag}DegrDivOver", str(int(r["n_exceed_degr_div"])), e6)
+                    add(f"Tab{tag}{ptag}UnavDivMax", _pct(r["unavail_div_max_qual_obs"], 3), e6)
+                    add(f"Tab{tag}{ptag}UnavDivOver", str(int(r["n_exceed_unav_div"])), e6)
+
+    # B. Interruption cost per excess switch (scripts/interruption_cost.py).
+    e14 = newest("e14_interruption_cost")
+    if e14 is not None:
+        si = pd.read_csv(e14 / "summary_interruption.csv")
+        mt = pd.read_csv(e14 / "summary_max_tau.csv").set_index("policy")
+        st14 = json.loads((e14 / "status.json").read_text())
+        add("IntTauMaxS", _num(st14["tau_max_s"], "{:g}"), e14)
+        for pol, tag in INT_TAG.items():
+            g = si[si["policy"] == pol]
+            if g.empty:
+                continue
+            add(f"Int{tag}SwitchesPerHour",
+                _num(g["switches_per_hour_mean"].iloc[0], "{:.1f}"), e14)
+            add(f"Int{tag}BaseSwitchesPerHour",
+                _num(g["base_switches_per_hour_mean"].iloc[0], "{:.1f}"), e14)
+            add(f"Int{tag}ExcessSwitchesPerHour",
+                _num(g["excess_switches_per_hour_mean"].iloc[0], "{:.1f}"), e14)
+            for tau, word in TAU_WORD.items():
+                r = g[np.isclose(g["tau_s"], tau)]
+                if r.empty:
+                    continue
+                r = r.iloc[0]
+                add(f"Int{tag}Tau{word}DegrPct", _pct(r["degradation_mean"]), e14)
+                add(f"Int{tag}Tau{word}DegrCi", _pct(r["degradation_ci95"]), e14)
+                add(f"Int{tag}Tau{word}UnavPct", _pct(r["availability_mean"], 3), e14)
+                add(f"Int{tag}Tau{word}UnavCi", _pct(r["availability_ci95"], 3), e14)
+            for key, name in (("degradation", "Degr"), ("availability", "Unav")):
+                v = float(mt.loc[pol, f"max_tau_{key}_s"])
+                txt = ("none" if v < 0 else f"more than {st14['tau_max_s']:g}"
+                       if not np.isfinite(v) else _num(v, "{:.2f}"))
+                add(f"Int{tag}MaxTau{name}S", txt, e14)
+
+    # C. Time-step check (finer step vs 10 s on the same days).
+    head = headline_run("e5_as_deployed", "gen2")
+    sens = _sens_runs()
+    ts = [r for r in sens
+          if float(json.loads((r / "status.json").read_text()).get("time_step_s", 10.0)) < 10.0]
+    if ts and head is not None:
+        r2 = ts[-1]
+        st2 = json.loads((r2 / "status.json").read_text())
+        n_days = int(st2["n_start_times"])
+        add("TsCheckDays", str(n_days), r2)
+        add("TsCheckStepS", _num(st2["time_step_s"], "{:g}"), r2)
+        for word, run in (("Two", r2), ("Ten", head)):
+            raw = pd.read_parquet(run / "raw_as_deployed_dtt.parquet")
+            ho = pd.read_parquet(run / "raw_handoff.parquet")
+            raw = raw[raw["phasing"] < n_days]
+            ho = ho[ho["phasing"] < n_days]
+            metric(f"Ts{word}NoHo", raw, run, ("degradation_nodiv", "unavail_incr_frac"))
+            for pol, rtag in (("full", "EvAv"), ("full_keep_serving", "RateMax")):
+                h = ho[ho["policy"] == pol]
+                metric(f"Ts{word}{rtag}", h, run, ("degradation_div", "unavail_incr_div_frac"))
+                q = _head(h)
+                q = q[q["avail0_frac"] >= QUAL]
+                if "switches_all_per_hour" in q.columns:
+                    add(f"Ts{word}{rtag}SwitchesPerHour",
+                        _num(q["switches_all_per_hour"].mean(), "{:.1f}"), run)
+                    add(f"Ts{word}{rtag}BaseSwitchesPerHour",
+                        _num(q["base_switches_per_hour"].mean(), "{:.1f}"), run)
+
+    # D. Gen2 = 43 deg shell only (configs/experiments/sensitivity/e5_gen2_43only.yaml).
+    d43 = [r for r in sens if (r / "configs" / "e5_gen2_43only.yaml").exists()]
+    if d43:
+        r43 = d43[-1]
+        st = json.loads((r43 / "status.json").read_text())
+        add("FortyThreeOnlyNSats", str(int(st["n_sats"]["STARLINK"])), r43)
+        raw = pd.read_parquet(r43 / "raw_as_deployed_dtt.parquet")
+        metric("FortyThreeOnlyNoHo", raw, r43, ("degradation_nodiv", "unavail_incr_frac"))
+        ho = pd.read_parquet(r43 / "raw_handoff.parquet")
+        for pol, rtag in (("full", "EvAv"), ("full_keep_serving", "RateMax")):
+            metric(f"FortyThreeOnly{rtag}", ho[ho["policy"] == pol], r43,
+                   ("degradation_div", "unavail_incr_div_frac"))
 
 
 if __name__ == "__main__":
