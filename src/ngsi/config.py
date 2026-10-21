@@ -39,6 +39,11 @@ class Beam:
     source: str
     beam_steering: str = "constant_eirp"
     pfd_anchor_elevation_deg: float | None = None
+    # PFD-constant steering: altitude at which eirp_density_dbw_per_mhz is the EIRP at
+    # the anchor-elevation slant range, i.e. PFD0 = EIRP_max - 10 log10(4 pi r_ref^2)
+    # with r_ref = slant_range(pfd_reference_altitude_km, pfd_anchor_elevation_deg).
+    # PFD0 is then the same for every shell (the surface PFD is held constant).
+    pfd_reference_altitude_km: float | None = None
 
     _REQUIRED = (
         "peak_gain_dbi",
@@ -69,6 +74,11 @@ class Beam:
             raise ConfigError(
                 "beam beam_steering 'pfd_constant' requires 'pfd_anchor_elevation_deg'"
             )
+        ref_alt = d.get("pfd_reference_altitude_km")
+        if steering == "pfd_constant" and ref_alt is None:
+            raise ConfigError(
+                "beam beam_steering 'pfd_constant' requires 'pfd_reference_altitude_km'"
+            )
         return cls(
             peak_gain_dbi=float(d["peak_gain_dbi"]),
             beamwidth_deg=float(d["beamwidth_deg"]),
@@ -79,6 +89,7 @@ class Beam:
             source=str(d["source"]),
             beam_steering=steering,
             pfd_anchor_elevation_deg=float(anchor) if anchor is not None else None,
+            pfd_reference_altitude_km=float(ref_alt) if ref_alt is not None else None,
         )
 
 

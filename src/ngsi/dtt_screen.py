@@ -377,6 +377,9 @@ def screen_pair_dtt(
     anchor_elev = interf_beam.pfd_anchor_elevation_deg
     if pfd and anchor_elev is None:
         raise ValueError("pfd_constant steering requires interf_beam.pfd_anchor_elevation_deg")
+    ref_alt = interf_beam.pfd_reference_altitude_km
+    if pfd and ref_alt is None:
+        raise ValueError("pfd_constant steering requires interf_beam.pfd_reference_altitude_km")
 
     g = station_ecef.shape[0]
     t_total = len(times)
@@ -390,9 +393,12 @@ def screen_pair_dtt(
     interf_peak = float(interf_beam.peak_gain_dbi)
     interf_bw = float(interf_beam.beamwidth_deg)
 
+    # PFD-constant: one r_ref for every satellite, so the surface PFD is
+    # PFD0 = EIRP_max - 10 log10(4 pi r_ref^2) whatever the satellite's altitude.
     alt_all = _shell_altitudes(interferer, device)  # [Nb]
     r_max_all = (
-        slant_range_km_batch(alt_all, float(anchor_elev), earth_radius_km) if pfd else None
+        slant_range_km_batch(torch.full_like(alt_all, float(ref_alt)), float(anchor_elev),
+                             earth_radius_km) if pfd else None
     )
 
     event_count = torch.zeros(3, g, dtype=torch.float64, device=device)
@@ -470,7 +476,7 @@ def screen_pair_dtt(
         if pfd:
             # Effective path loss: the interferer cannot exceed its EIRP ceiling, so
             # the received interference stops falling once the slant range is below
-            # r_max.  r_max from the *serving* satellite's shell.
+            # r_ref (the reference-altitude anchor range, the same for every shell).
             r_max_k = torch.gather(
                 r_max_all.reshape(1, 1, -1).expand(tc.shape[0], g, -1), 2, ib
             )

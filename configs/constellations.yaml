@@ -50,6 +50,7 @@ constellations:
           system_noise_temp_k: 362.9
           beam_steering: pfd_constant
           pfd_anchor_elevation_deg: 25.0
+          pfd_reference_altitude_km: 550.0
           source: >-
             PRIMARY: Starlink modelled EXACTLY AT the 47 CFR 25.208(b) PFD limit
             for 25-90 deg, -116 dBW/m^2/MHz. peak_gain_dbi: SpaceX Gen2 Ku-band
@@ -84,6 +85,12 @@ constellations:
             -116 dBW/m^2 per 1 MHz, for 25-90 deg). pfd_anchor_elevation_deg:
             25 deg, the Starlink Ku minimum service elevation below 62 deg N
             latitude (FCC-22-91A1 para. 42/45; 5 deg at/above 62 deg N).
+            pfd_reference_altitude_km: 550 km, the altitude at which the 16.0018
+            dBW/MHz ceiling gives PFD0 = -116.000 at the 25 deg edge; PFD0 is held
+            at that value for EVERY shell (Gen1, Gen2 525-535 km, and the observed
+            as-deployed shells), the constant surface PFD of FCC-22-91A1 para. 42.
+            Before Phase 4e each shell used its own altitude, which put the Gen2
+            shells 0.2-1.2 dB above -116.
       - name: STARLINK-s2-540-53
         altitude_km: 540.0
         inclination_deg: 53.2

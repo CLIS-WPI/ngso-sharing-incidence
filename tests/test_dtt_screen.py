@@ -30,7 +30,8 @@ NOISE = noise_power_dbw_per_mhz(150.0)
 VICTIM_BEAM = Beam(35.0, 1.1, -8.3, 12.0, 240.0, 150.0, "ASSUMED")
 INTERF_BEAM = Beam(30.0, 3.0, -20.0, 12.0, 125.0, 200.0, "ASSUMED")
 INTERF_BEAM_PFD = Beam(30.0, 3.0, -20.0, 12.0, 125.0, 200.0, "ASSUMED",
-                       beam_steering="pfd_constant", pfd_anchor_elevation_deg=25.0)
+                       beam_steering="pfd_constant", pfd_anchor_elevation_deg=25.0,
+                       pfd_reference_altitude_km=550.0)
 ZERO = np.zeros(3)
 
 
@@ -244,3 +245,39 @@ def test_per_system_min_elevation() -> None:
 
     base, same = _run(), _run(victim_min_elevation_deg=25.0, interferer_min_elevation_deg=25.0)
     np.testing.assert_array_equal(base["event_frac"], same["event_frac"])
+
+
+def test_pfd_constant_uses_reference_altitude_not_shell() -> None:
+    """The PFD0 of a PFD-constant beam does not depend on the interferer's altitude.
+
+    Victim and interferer share a 500 km shell (co-located serving satellites), the
+    beam's reference altitude is 550 km: the EIRP clamp is FSPL(r_ref) with r_ref the
+    25 deg slant range from 550 km, not from the 500 km shell.
+    """
+    a = Constellation("A", "opA", [_shell("a1", 500.0, 53.0, 3, 4, 1, VICTIM_BEAM)])
+    b = Constellation("B", "opB", [_shell("b1", 500.0, 53.0, 3, 4, 1, INTERF_BEAM_PFD)])
+    a, b = build_system(a, earth_radius_km=R_EARTH), build_system(b, earth_radius_km=R_EARTH)
+    times = np.array([0.0])
+    # Station at a satellite's sub-satellite point, so the serving range (~500 km) is
+    # below both anchor ranges and the EIRP clamp is active.
+    p0 = np.asarray(propagate_ecef(a.elements, times, EPOCH_JD, R_EARTH, "cpu"))[0][0]
+    stations = (p0 / np.linalg.norm(p0) * R_EARTH)[None, :]
+    up = stations / np.linalg.norm(stations, axis=-1, keepdims=True)
+    peak = terminal_peak_gain_dbi(DIAMETER, FREQ, EFF)
+    res = screen_pair_dtt(
+        a, b, a.n_sats, b.n_sats, torch.as_tensor(stations), torch.as_tensor(up), times,
+        VICTIM_BEAM, INTERF_BEAM_PFD, FREQ, peak, DIAMETER, MARGIN,
+        min_elevation_deg=-90.0, earth_radius_km=R_EARTH, epoch_jd=EPOCH_JD,
+        device="cpu", chunk=32)
+    pa = np.asarray(propagate_ecef(a.elements, times, EPOCH_JD, R_EARTH, "cpu"))[0]
+    rel = pa - stations[0]
+    rng = np.linalg.norm(rel, axis=-1)
+    k = int(np.argmax((rel / rng[:, None]) @ up[0]))
+    g0 = float(s1428_gain(0.0, peak, DIAMETER, FREQ))
+    eirp = INTERF_BEAM_PFD.eirp_density_dbw_per_mhz
+    r_ref = slant_range_km(550.0, 25.0, R_EARTH)
+    r_own = slant_range_km(500.0, 25.0, R_EARTH)
+    exp = 10.0 ** ((eirp + g0 - max(_fspl(rng[k]), _fspl(r_ref)) - NOISE) / 10.0)
+    old = 10.0 ** ((eirp + g0 - max(_fspl(rng[k]), _fspl(r_own)) - NOISE) / 10.0)
+    assert res["dtt_colo_mean"][0] == pytest.approx(exp, rel=1e-9)
+    assert exp < old  # the per-shell anchor overstated the PFD of a lower shell

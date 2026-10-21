@@ -120,6 +120,20 @@ def pfd_constant_dbw_per_m2_per_mhz(
     return float(eirp_density_dbw_per_mhz) - float(10.0 * np.log10(4.0 * np.pi * r_m**2))
 
 
+def beam_pfd0_dbw_per_m2_per_mhz(beam, earth_radius_km: float = EARTH_RADIUS_KM) -> float:
+    """PFD0 (dBW/m^2/MHz) of a PFD-constant beam, the same for every shell.
+
+    ``EIRP_max - 10 log10(4 pi r_ref^2)`` with ``r_ref`` the slant range at
+    ``beam.pfd_anchor_elevation_deg`` from ``beam.pfd_reference_altitude_km``.
+    """
+    if beam.pfd_anchor_elevation_deg is None or beam.pfd_reference_altitude_km is None:
+        raise ValueError("PFD-constant beam needs pfd_anchor_elevation_deg and "
+                         "pfd_reference_altitude_km")
+    return pfd_constant_dbw_per_m2_per_mhz(
+        beam.eirp_density_dbw_per_mhz, beam.pfd_reference_altitude_km,
+        beam.pfd_anchor_elevation_deg, earth_radius_km)
+
+
 def equivalent_angle_deg(
     rx_peak_gain_dbi: float,
     diameter_m: float,

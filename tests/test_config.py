@@ -92,6 +92,10 @@ def test_pfd_constant_requires_anchor():
     }
     with pytest.raises(ValueError):
         Beam.from_dict({**base, "beam_steering": "pfd_constant"})
+    with pytest.raises(ValueError):
+        Beam.from_dict({**base, "beam_steering": "pfd_constant",
+                        "pfd_anchor_elevation_deg": 25.0})
     ok = Beam.from_dict({**base, "beam_steering": "pfd_constant",
-                         "pfd_anchor_elevation_deg": 25.0})
+                         "pfd_anchor_elevation_deg": 25.0, "pfd_reference_altitude_km": 550.0})
     assert ok.beam_steering == "pfd_constant"
+    assert ok.pfd_reference_altitude_km == 550.0

@@ -34,6 +34,7 @@ from .analytic import (
     ShellSpec,
     equivalent_angle_deg,
     event_fraction_vs_latitude,
+    beam_pfd0_dbw_per_m2_per_mhz,
     pfd_constant_dbw_per_m2_per_mhz,
 )
 from .link_budget import noise_power_dbw_per_mhz, terminal_peak_gain_dbi
@@ -1830,9 +1831,7 @@ def run_e7(
         freq = float(ov.center_ghz)
         pfd_constant = (fb.beam_steering == "pfd_constant"
                         and fb.pfd_anchor_elevation_deg is not None)
-        pfd = (pfd_constant_dbw_per_m2_per_mhz(
-                   fb.eirp_density_dbw_per_mhz, sb.shells[0].altitude_km,
-                   float(fb.pfd_anchor_elevation_deg), radius)
+        pfd = (beam_pfd0_dbw_per_m2_per_mhz(fb, radius)
                if pfd_constant else float("nan"))
         for diam in lb.diameter_sweep_m:
             rx_peak = terminal_peak_gain_dbi(diam, freq, lb.aperture_efficiency)

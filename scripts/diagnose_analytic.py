@@ -90,7 +90,7 @@ def main() -> int:
     THETA = theta_star_for_starlink(
         0.45, freq, 0.0, noise_temp,
         starlink_eirp_dbw_per_mhz=float(sl.beam.eirp_density_dbw_per_mhz),
-        starlink_altitude_km=float(sl.altitude_km),
+        starlink_altitude_km=float(sl.beam.pfd_reference_altitude_km),
         anchor_elevation_deg=float(sl.beam.pfd_anchor_elevation_deg))
     device = device_str()
     radius = sim.earth.radius_km

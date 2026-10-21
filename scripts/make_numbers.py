@@ -490,7 +490,8 @@ def main(argv: list[str] | None = None) -> int:
         from ngsi.bands import load_bands, overlap
         _sh = _cons["STARLINK"].shells[0]
         _pfd = lambda e: pfd_constant_dbw_per_m2_per_mhz(  # noqa: E731
-            e, _sh.altitude_km, _sh.beam.pfd_anchor_elevation_deg)
+            e, _sh.beam.pfd_reference_altitude_km or _sh.altitude_km,
+            _sh.beam.pfd_anchor_elevation_deg)
         _filed = STARLINK_FILED_TOP_DBW_PER_4KHZ + 10.0 * math.log10(1e6 / 4e3)
         add("PfdLimitDbw", _num(PFD_LIMIT_25208B, "{:g}"))
         add("PfdScopeLoGhz", _num(PFD_SCOPE_GHZ[0], "{:g}"))
@@ -701,8 +702,9 @@ def main(argv: list[str] | None = None) -> int:
         from ngsi.analytic import pfd_constant_dbw_per_m2_per_mhz as _pfdc
         from ngsi.config import load_constellations as _lc
         _sh6 = _lc(e6 / "configs" / "constellations.yaml")["STARLINK"].shells[0]
-        add("GenOnePfdDbw", _num(_pfdc(_p6, _sh6.altitude_km,
-                                        _sh6.beam.pfd_anchor_elevation_deg), "{:.2f}"), e6)
+        _ref6 = _sh6.beam.pfd_reference_altitude_km or _sh6.altitude_km
+        add("GenOnePfdDbw", _num(_pfdc(_p6, _ref6, _sh6.beam.pfd_anchor_elevation_deg),
+                                 "{:.2f}"), e6)
         add("GenOneEirpDbw", _num(_p6, "{:g}"), e6)
         import yaml as _yaml
         _c6 = {c["name"]: c for c in _yaml.safe_load(
