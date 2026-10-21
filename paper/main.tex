@@ -79,7 +79,7 @@ switching, these policies yield mean worst-station throughput degradations
 of \DepGenTwoNoHoDegrPct\%, \DepGenTwoEvAvDegrPct\%, and
 \DepGenTwoRateMaxDegrPct\%, respectively, against a
 \DegradeLimitPct\% limit. Event-avoiding handoff narrowly exceeds the limit
-because avoiding every in-line event can select a weaker desired link;
+(it meets it as filed) because avoiding every in-line event can select a weaker desired link;
 rate-maximizing handoff meets it by retaining the interfered link when
 that link offers the higher rate. Both handoff policies meet the
 availability limit under these assumptions, but fail it with a 60~s
@@ -201,8 +201,9 @@ E_g(t;s) = \mathbb{1}\{\Delta T/T = I_g(t;s)/N > \delta\},
 \end{equation}
 with $\delta$ the regulatory threshold. Three interferer sets bracket the unknown
 beam plans of system $B$: \emph{realistic}, where $B$'s serving satellite for the
-site radiates its main beam ($g_j = 1$) and every other visible $B$ satellite
-contributes through its sidelobe, with its boresight approximated by nadir;
+site (its highest-elevation visible satellite) radiates its main beam ($g_j = 1$)
+and every other visible $B$ satellite contributes through its sidelobe, with
+$\phi_{g,j}$ measured from nadir;
 \emph{co-located}, where only $B$'s serving satellite is counted; and an
 \emph{upper bound}, where every visible $B$ satellite radiates at peak toward $g$.
 
@@ -224,7 +225,8 @@ $\gamma_g(t;s) = c_g(t;s)/(1+I_g(t;s)/N)$ the SINR,
 \emph{event-avoiding} handoff always leaves $s_0$ for the admissible alternate
 with the highest $\gamma$, whereas \emph{rate-maximizing} handoff picks the higher $\gamma$ among
 the admissible alternates and the degraded link $s_0$, i.e., it maximizes the rate
-over this restricted set only. If no alternate
+over this restricted set only (both policies share the admissible set; admitting
+alternates in event could, with unrestricted switching, only lower its degradation). If no alternate
 is admissible, the event is \emph{unresolvable} and the victim stays on $s_0$.
 Two constraints restrict switching: only the $K$ highest-elevation satellites
 are candidates, and the victim keeps a satellite for a minimum dwell time of $N_{\text{s}}$
@@ -232,7 +234,8 @@ seconds after a switch. A handoff interruption of $\tau$ seconds is added after
 simulation: with $E$ the excess of the policy's switches per hour over the
 baseline's, the interrupted time fraction is $f = E\tau/3600$, and
 $\Delta U_{g,\tau} = \Delta U_g + f$ and $D_{g,\tau} = 1-(1-D_g)(1-f)$, per station
-and day, using the policy's time-averaged rate; overlap with existing outages is
+and day, using the policy's time-averaged rate as the rate lost during an
+interruption; overlap with existing outages is
 not removed, so $\Delta U_{g,\tau}$ is an upper bound.
 
 \emph{Protection metrics.} Let $s(t)$ be the satellite actually used. With the
@@ -336,14 +339,14 @@ Filed altitude (km) & 525--535 & \OnewebAltKm & \cite{fcc2291} / \textsc{a}\\
 Planes$\times$sats, $F$ & 28$\times$89 (each), 1 & 18$\times$36, 1 & \textsc{a}\\
 Surface PFD (dBW/m$^2$/MHz) & $\PrimaryPfdDbw$\ / $\GenOnePfdDbw$ & -- &
   \cite{cfr25208,fcc2291} / \cite{spacex2016}\\
-EIRP density (dBW/MHz) & -- & \OneEirpDbw & \cite[Table~3]{delportillo2019}\\
+EIRP density (dBW/MHz) & PFD-controlled & \OneEirpDbw & \cite[Table~3]{delportillo2019}\\
 Peak gain (dBi) & \StarPeakGainDbi & \OnePeakGainDbi & \cite{fcc2291} / \textsc{a}\\
 3-dB beamwidth (deg) & \StarBeamwidthDeg & \OneBeamwidthDeg & derived / \textsc{a}\\
 Noise temp.\ (K) & \StarNoiseK & \OneNoiseK & \cite[Table~6]{delportillo2019}\\
 Bandwidth (MHz) & \StarBwMhz & \OneBwMhz & \cite[Table~3]{delportillo2019}\\
 Min.\ elevation (deg) & \StationMinElevDeg & \StationMinElevDeg\ (\OnewebMinElevSensDeg) &
   \cite{fcc2291}; \textsc{a} (\cite[Sec.~2.2]{delportillo2019})\\
-Terminal aperture (m) & \multicolumn{2}{c}{\EirpHeadDiam--\AperMaxM, eff.\ \AperEff} & \textsc{a}\\
+Victim aperture (m) & \multicolumn{2}{c}{\EirpHeadDiam--\AperMaxM, eff.\ \AperEff} & \textsc{a}\\
 Impl.\ margin (dB) & \multicolumn{2}{c}{\ImplMarginDb} & \textsc{a}\\
 \bottomrule
 \end{tabular}
@@ -554,8 +557,9 @@ role in in-line coordination~\cite[Sec.~5.1]{delportillo2019}.
 \caption{Sensitivity of the \S\,25.261(d) results, realistic variant, OneWeb
 victim, Starlink Gen2, as deployed, \EirpHeadDiam~m terminal, \SenStartTimes\
 non-overlapping days; EA/RM: event-avoiding/rate-maximizing handoff. Event:
-worst-station fraction of time with $\Delta T/T>\DttThresholdPct\%$. Entries:
-mean\,$\pm$\,\CiPct\% CI, in \%.}
+worst-station fraction of time with $\Delta T/T>\DttThresholdPct\%$. Noise
+\NoiseAssumedOneK/\NoiseAssumedStarK~K: generic OneWeb/Starlink system temperatures
+instead of~\cite{delportillo2019}. Entries: mean\,$\pm$\,\CiPct\% CI, in \%.}
 \label{tab:cases}
 \centering
 \footnotesize
@@ -617,7 +621,9 @@ from~\cite{delportillo2019}; its constant EIRP from fixed beams and the
 \StationMinElevDeg$^\circ$ mask are assumptions. (g) The equal split of the Gen2
 grant and the launch-designator classification at 53$^\circ$ are assumptions. (h) Handoff is modeled at the \TimeStepS~s step; interruption is added afterwards
 per extra switch, and a \TsCheckStepS~s step yields more switches per hour
-(\TsTwoEvAvSwitchesPerHour\ versus \TsTenEvAvSwitchesPerHour\ for event-avoiding),
+on the same days (\TsTwoEvAvSwitchesPerHour\ versus \TsTenEvAvSwitchesPerHour\ for
+event-avoiding, \TsTwoRateMaxSwitchesPerHour\ versus \TsTenRateMaxSwitchesPerHour\ for
+rate-maximizing),
 so the tolerable interruption is likely smaller than stated. (i) Without drag, $J_2$ propagation drifts from SGP4
 for individual Starlink satellites after the first days, mostly along track, so
 later days act as further phasings of the observed shells rather than forecasts;
@@ -631,7 +637,7 @@ the modeled assumptions.
 The FCC's NGSO sharing rule promises an incumbent that an entrant will cost it at
 most \DegradeLimitPct\% of throughput and \UnavailLimitPct\% of availability. For
 OneWeb and Starlink Gen2 in the Ku user downlink, the rule's trigger fires up to
-\BindDepWorstPct$\pm$\BindDepWorstCi\% of the time for a OneWeb user, mostly on
+\BindDepWorstPct$\pm$\BindDepWorstCi\% of the time for a OneWeb user (peak latitude mean), mostly on
 the protected system. In a compatibility analysis without handoff, Starlink at its filed
 maximum exceeds both limits; only its lower Gen1 design power meets them. As deployed, with a 25$^\circ$ mask and unrestricted, lossless switching, a victim
 that dodges every in-line event narrowly exceeds the throughput limit, whereas
