@@ -131,10 +131,11 @@ params:
      altitude_min_km: 0, altitude_max_km: 100000,
      source: "Gen1 shells 560/97.6 (Pachler et al. 2021 Table II); no Gen2 grant near 97 deg"},
   ]
-  # Handoff policy (ngsi.dtt_screen): the primary rule only; the legacy and
-  # keep-serving variants are evaluated for the primary case in E5.  E6 rows
-  # carry handoff_policy.
+  # Handoff policies (ngsi.dtt_screen): the primary (event-avoiding) rule and the
+  # rate-maximizing rule for every case (Phase 4d); the legacy and constrained
+  # variants are evaluated for the primary case in E5.  E6 rows carry handoff_policy.
   handoff_policies:
     - {name: full, link_cn: candidate}
+    - {name: full_keep_serving, link_cn: candidate, keep_serving_if_better: true}
   primary_handoff: full
   source: ASSUMED

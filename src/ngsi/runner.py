@@ -659,13 +659,16 @@ def _handoff_rows(res: dict, base: dict, grid, policies) -> list[dict]:
                     "unres_frac": float(pr["unres_frac"][vi][gi]),
                     "diverted_frac": float(pr["diverted_frac"][vi][gi]),
                     "switches_per_hour": float(pr["switches_per_hour"][vi][gi]),
+                    "switches_all_per_hour": float(pr["switches_all_per_hour"][vi][gi]),
+                    "base_switches_per_hour": float(pr["base_switches_per_hour"][gi]),
                 })
     return rows
 
 
 _HANDOFF_VALUES = ("event_frac", "degradation_nodiv", "unavail_incr_frac", "degradation_div",
                    "degradation_div_vs_base", "base_loss", "unavail_incr_div_frac",
-                   "unavail0_base_frac", "unres_frac", "diverted_frac", "switches_per_hour")
+                   "unavail0_base_frac", "unres_frac", "diverted_frac", "switches_per_hour",
+                   "switches_all_per_hour", "base_switches_per_hour")
 
 
 def _oneweb_shell_variant(sim, planes: int, sats_per_plane: int):

@@ -81,6 +81,18 @@ def test_rate_limit_tracks_satellite_identity_not_rank() -> None:
     assert not sw.any()
 
 
+def test_count_switches_hand_checked() -> None:
+    from ngsi.dtt_screen import count_switches
+
+    # Terminal 0: 5 5 7 7 -> 1 switch; terminal 1: 3 -1 4 4 -> gap, no switch counted.
+    st: dict = {}
+    n = count_switches(np.array([[5, 3], [5, -1], [7, 4], [7, 4]]), st)
+    assert n.tolist() == [1.0, 0.0]
+    # State carries across calls: previous step was 7 (t0) and 4 (t1).
+    n2 = count_switches(np.array([[5, 9]]), st)
+    assert n2.tolist() == [1.0, 1.0]
+
+
 def test_policy_validation() -> None:
     with pytest.raises(ValueError):
         HandoffPolicy("x", link_cn="nope")
@@ -202,3 +214,17 @@ def test_hist_quantile_hand_check() -> None:
     assert hist_quantile(counts, 0.5, edges) == 2.0
     assert hist_quantile(counts, 0.1, edges) == 1.0
     assert np.isnan(hist_quantile(np.zeros(5), 0.5, edges))
+
+
+def test_switch_counts_consistent(screened) -> None:
+    # The generic switch count of a rate-limited policy equals its own count; the
+    # memoryless N = step policy switches exactly as the unconstrained rule; K = 1
+    # follows the highest-elevation satellite, i.e. the baseline's switches.
+    pols = screened["policies"]
+    for vi in range(3):
+        np.testing.assert_allclose(pols["n600"]["switches_all_per_hour"][vi],
+                                   pols["n600"]["switches_per_hour"][vi], rtol=1e-12)
+        np.testing.assert_allclose(pols["n_dt"]["switches_all_per_hour"][vi],
+                                   pols["full"]["switches_all_per_hour"][vi], rtol=1e-12)
+        np.testing.assert_allclose(pols["k1"]["switches_all_per_hour"][vi],
+                                   pols["k1"]["base_switches_per_hour"], rtol=1e-12)

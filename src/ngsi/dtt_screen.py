@@ -186,6 +186,23 @@ def rate_limited_choice(
     return rank_used, switched
 
 
+def count_switches(ids_used: np.ndarray, state: dict, key: str = "prev_id") -> np.ndarray:
+    """Satellite changes per terminal over ``ids_used`` ``[T, S]`` (-1 = not served).
+
+    A switch is a step whose satellite differs from the previous step's while both
+    steps are served; ``state[key]`` carries the last step's ids across calls.
+    """
+    ids_used = np.asarray(ids_used, dtype=np.int64)
+    prev = state.get(key)
+    if prev is None:
+        prev = np.full(ids_used.shape[1], -1, dtype=np.int64)
+    seq = np.concatenate([prev[None, :], ids_used], axis=0)
+    a, b = seq[:-1], seq[1:]
+    n = ((a >= 0) & (b >= 0) & (a != b)).sum(0)
+    state[key] = ids_used[-1].copy() if len(ids_used) else prev
+    return n.astype(np.float64)
+
+
 def _fspl_db(dist_km: torch.Tensor, freq_ghz: float) -> torch.Tensor:
     lam = LIGHT_SPEED_M_S / (freq_ghz * 1e9)
     return 20.0 * torch.log10(4.0 * np.pi * (dist_km * 1e3) / lam)
@@ -244,10 +261,11 @@ def _evaluate_policies(policies, acc, states, tc, dt_s, k_a, eye_a, cn0_k, cn0, 
             unres = event[vi] & ~any_res
             if p.link_cn == "serving":
                 big = torch.full_like(ldtt[vi], float("inf"))
-                best = torch.where(resolv, ldtt[vi], big).min(-1).values
+                best_v, best_i = torch.where(resolv, ldtt[vi], big).min(-1)
                 use_alt = event[vi] & any_res
-                cni = _cni_from_dtt(cn0, torch.where(use_alt, best, dtts[vi]))
+                cni = _cni_from_dtt(cn0, torch.where(use_alt, best_v, dtts[vi]))
                 diverted = use_alt
+                used_rank = torch.where(use_alt, best_i, torch.zeros_like(best_i))
             else:
                 # Event-triggered: during an event switch to the best admissible
                 # alternate (optionally also keeping the serving satellite when it
@@ -259,6 +277,7 @@ def _evaluate_policies(policies, acc, states, tc, dt_s, k_a, eye_a, cn0_k, cn0, 
                 if p.min_interval_s is None:
                     cni = torch.gather(sinr_k[vi], -1, desired.unsqueeze(-1)).squeeze(-1)
                     diverted = served & (desired > 0)
+                    used_rank = desired
                 else:
                     desired_np = torch.where(served, desired, torch.full_like(desired, -1)).cpu().numpy()
                     r_used, sw = rate_limited_choice(
@@ -270,11 +289,21 @@ def _evaluate_policies(policies, acc, states, tc, dt_s, k_a, eye_a, cn0_k, cn0, 
                                       torch.full_like(cni, float("-inf")))
                     diverted = served & (r_t > 0)
                     a["sw"][vi] += sw.sum(0)
+                    used_rank = torch.where(torch.as_tensor(r_used >= 0, device=cn0.device),
+                                            r_t, torch.full_like(r_t, -1))
+            # Satellite actually used (-1 = none) -> switch count, every policy.
+            ur = used_rank.clamp(min=0).unsqueeze(-1)
+            uid = torch.gather(ia, -1, ur).squeeze(-1)
+            uid = torch.where(served & (used_rank >= 0), uid, torch.full_like(uid, -1))
+            a["sw_all"][vi] += count_switches(uid.cpu().numpy(), states[p.name][vi], "prev_id")
             rate = torch.where(served, _shannon_rate(cni, bw_hz, margin_db), torch.zeros_like(cni))
             a["r"][vi] += rate.sum(0).cpu().numpy()
             a["unav"][vi] += ((cn0 >= 0.0) & (cni < 0.0) & served).sum(0).cpu().numpy()
             a["unres"][vi] += unres.sum(0).cpu().numpy()
             a["div"][vi] += diverted.sum(0).cpu().numpy()
+        # Switches of the unconstrained interference-free baseline (highest elevation).
+        bid = torch.where(served, ia[..., 0], torch.full_like(ia[..., 0], -1))
+        a["sw_base0"] += count_switches(bid.cpu().numpy(), states[p.name][3], "prev_base")
         if p.min_interval_s is not None:
             # Interference-free baseline under the same rate limit: the terminal
             # wants the highest-elevation satellite and switches as allowed.
@@ -388,8 +417,8 @@ def screen_pair_dtt(
     dt_s = float(times[1] - times[0]) if t_total > 1 else 0.0
     pol_acc = {
         p.name: {key: {vi: np.zeros(g) for vi in range(3)}
-                 for key in ("r", "unav", "unres", "div", "sw")}
-        | {"r_base": np.zeros(g), "unav0_base": np.zeros(g)}
+                 for key in ("r", "unav", "unres", "div", "sw", "sw_all")}
+        | {"r_base": np.zeros(g), "unav0_base": np.zeros(g), "sw_base0": np.zeros(g)}
         for p in handoff_policies
     }
     pol_state = {p.name: [dict() for _ in range(4)] for p in handoff_policies}
@@ -592,6 +621,11 @@ def screen_pair_dtt(
                 "switches_per_hour": {
                     vi: (a["sw"][vi] / (n * dt_s / 3600.0) if p.min_interval_s is not None
                          and dt_s > 0 else np.full(g, np.nan)) for vi in range(3)},
+                "switches_all_per_hour": {
+                    vi: (a["sw_all"][vi] / (n * dt_s / 3600.0) if dt_s > 0
+                         else np.full(g, np.nan)) for vi in range(3)},
+                "base_switches_per_hour": (a["sw_base0"] / (n * dt_s / 3600.0) if dt_s > 0
+                                           else np.full(g, np.nan)),
                 "r_base_mean": (a["r_base"] / served_np if p.min_interval_s is not None
                                 else (r0_sum / served_count.clamp(min=1.0)).cpu().numpy()),
                 "unavail0_base_frac": (a["unav0_base"] / n if p.min_interval_s is not None

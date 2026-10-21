@@ -592,29 +592,38 @@ def fig_b1_events(e4: Path, e5: Path) -> Path | None:
 
 
 def fig_b2_limits(e5: Path) -> Path | None:
-    """Paper Fig. 2: degradation and availability change, without vs with diversity."""
+    """Paper Fig. 2: degradation and availability change vs latitude, no handoff and
+    the event-avoiding and rate-maximizing handoff rules, 95% bands across days."""
     try:
         d = _read(e5, "dtt")
+        h = _read(e5, "handoff")
     except FileNotFoundError:
         return None
-    s = d[(d["system_a"] == VICTIM) & (d["variant"] == 0) &
-          (d["diameter_m"] == HEAD_DIAM)].sort_values("latitude_deg")
+
+    def _sel(df):
+        return df[(df["system_a"] == VICTIM) & (df["variant"] == 0) &
+                  (df["diameter_m"] == HEAD_DIAM)].sort_values("latitude_deg")
+
+    s = _sel(d)
     if s.empty:
         return None
+    curves = [  # (frame, degradation column, availability column, label, style, color)
+        (s, "degradation_nodiv", "unavail_incr_frac", "No handoff", "-", "#1f77b4"),
+    ]
+    for pol, label, ls, color in (("full", "Event-avoiding", "--", "#2ca02c"),
+                                  ("full_keep_serving", "Rate-maximizing", "-.", "#d62728")):
+        hp = _sel(h[h["policy"] == pol])
+        if not hp.empty:
+            curves.append((hp, "degradation_div", "unavail_incr_div_frac", label, ls, color))
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.0, 2.5), sharex=True)
-    lat = s["latitude_deg"]
 
-    def _band(ax, col, color):
-        # 95% t-interval across start times (the summary's ``_ci95`` column).
-        m, h = s[col + "_mean"] * 100.0, s[col + "_ci95"] * 100.0
-        ax.fill_between(lat, m - h, m + h, color=color, alpha=0.25, lw=0)
-
-    ax1.plot(lat, s["degradation_nodiv_mean"] * 100.0, "-",
-             color="#1f77b4", lw=1.6, label="no diversity")
-    ax1.plot(lat, s["degradation_div_mean"] * 100.0, "--",
-             color="#2ca02c", lw=1.6, label="with diversity")
-    _band(ax1, "degradation_nodiv", "#1f77b4")
-    _band(ax1, "degradation_div", "#2ca02c")
+    for df, cd, cu, label, ls, color in curves:
+        lat = df["latitude_deg"]
+        for ax, col in ((ax1, cd), (ax2, cu)):
+            # 95% t-interval across start times (the summary's ``_ci95`` column).
+            m, hw = df[col + "_mean"] * 100.0, df[col + "_ci95"] * 100.0
+            ax.plot(lat, m, ls, color=color, lw=1.6, label=label)
+            ax.fill_between(lat, m - hw, m + hw, color=color, alpha=0.25, lw=0)
     ax1.axhline(3.0, color="k", ls=":", lw=1.1)
     ax1.text(1, 3.10, "3% limit", fontsize=6)
     ax1.set_xlabel("latitude [deg]")
@@ -623,17 +632,11 @@ def fig_b2_limits(e5: Path) -> Path | None:
     ax1.set_ylim(bottom=0)
     ax1.grid(alpha=0.3)
     ax1.legend(fontsize=6, loc="upper left")
-    ax2.plot(s["latitude_deg"], s["unavail_incr_frac_mean"] * 100.0, "-",
-             color="#1f77b4", lw=1.6)
-    ax2.plot(s["latitude_deg"], s["unavail_incr_div_frac_mean"] * 100.0, "--",
-             color="#2ca02c", lw=1.6)
-    _band(ax2, "unavail_incr_frac", "#1f77b4")
-    _band(ax2, "unavail_incr_div_frac", "#2ca02c")
     ax2.axhline(0.4, color="k", ls=":", lw=1.1)
     ax2.text(1, 0.45, "0.4% limit", fontsize=6)
     ax2.set_xlabel("latitude [deg]")
     ax2.set_ylabel("availability change [%]")
-    ax2.set_ylim(bottom=0)
+    ax2.set_ylim(bottom=-0.05)
     ax2.grid(alpha=0.3)
     fig.tight_layout()
     out = PAPER_FIG_DIR / "B2_limits.png"

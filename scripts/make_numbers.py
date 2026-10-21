@@ -160,6 +160,7 @@ LAT_WORD = {0: "Zero", 5: "Five", 10: "Ten", 15: "Fifteen", 20: "Twenty",
             25: "TwentyFive", 30: "Thirty", 35: "ThirtyFive", 40: "Forty",
             45: "FortyFive", 50: "Fifty", 55: "FiftyFive", 60: "Sixty", 65: "SixtyFive"}
 QUAL = 0.99
+DWELL_WORD = {10: "Ten", 20: "Twenty", 30: "Thirty", 40: "Forty", 60: "Sixty"}
 
 
 def _status(run: Path) -> dict:
@@ -274,6 +275,34 @@ def phase4_macros(add) -> None:
                 m, ci = _rep_worst(ho, "degradation_div_vs_base", VICTIM, 0)
                 add(f"{tag}DegrVsBasePct", _pct(m), pr)
                 add(f"{tag}DegrVsBaseCi", _pct(ci), pr)
+
+        # Dwell-time sweep (Gen2), both rules: metrics per N and the smallest N at
+        # which each limit is exceeded (whole 95% interval above it).
+        for rtag, base_pol in (("EvAv", "full"), ("RateMax", "full_keep_serving")):
+            first = {"Degr": None, "Unav": None}
+            any_n = False
+            for n_s, word in DWELL_WORD.items():
+                pol = f"{base_pol}_n{n_s}"
+                pr = run_with_policy(prefix, "gen2", pol)
+                if pr is None:
+                    continue
+                any_n = True
+                ho = pd.read_parquet(pr / "raw_handoff.parquet")
+                ho = ho[ho["policy"] == pol]
+                tag = f"{geo}Dwell{rtag}N{word}"
+                metric(tag, ho, pr, ("degradation_div", "unavail_incr_div_frac"))
+                q = _head(ho)
+                q = q[q["avail0_frac"] >= QUAL]
+                add(f"{tag}SwitchesPerHour", _num(q["switches_per_hour"].mean(), "{:.1f}"), pr)
+                for name, col, lim in (("Degr", "degradation_div", DLIM),
+                                       ("Unav", "unavail_incr_div_frac", ULIM)):
+                    m, ci = _rep_worst(ho, col, VICTIM, 0)
+                    if first[name] is None and m - ci > lim:
+                        first[name] = (n_s, pr)
+            if any_n:
+                for name, v in first.items():
+                    add(f"{geo}Dwell{rtag}{name}FirstExceedS",
+                        str(v[0]) if v else "none", v[1] if v else pr)
 
         # Clear-sky C/N of the OneWeb victim and the event I/N (Gen2 headline run).
         run = headline_run(prefix, "gen2")
@@ -390,16 +419,23 @@ def main(argv: list[str] | None = None) -> int:
         if screen_theta not in [float(t) for t in ev["theta_deg"].unique()]:
             raise SystemExit(f"screen_theta_deg {screen_theta} not in the E1 run's thetas")
         add("ThetaScreenDeg", _num(screen_theta, "{:g}"), e1)
-        th2 = ev[ev["theta_deg"] == screen_theta]
+        # Phase 4c: the geometric screen is read from the as-deployed Gen2 E5 run
+        # (same daily start times as the paper's Delta T/T results); E1 (Gen1
+        # Walker phasings) only if no such run exists.
+        th_run = headline_run("e5_as_deployed", "gen2") or e1
+        evs = (pd.read_csv(th_run / "summary_event_rate.csv") if th_run is not e1 else ev)
+        if screen_theta not in [float(t) for t in evs["theta_deg"].unique()]:
+            raise SystemExit(f"screen_theta_deg {screen_theta} not in {th_run.name}")
+        th2 = evs[evs["theta_deg"] == screen_theta]
         colo = th2[th2["variant"] == 1]
         worst = th2[th2["variant"] == 0]
         cp = _peak(colo, "event_frac_mean")
         wp = _peak(worst, "event_frac_mean")
-        add("ThetaColoPeakPct", _pct(cp["event_frac_mean"]), e1)
-        add("ThetaColoPeakLat", _num(cp["latitude_deg"], "{:.0f}"), e1)
+        add("ThetaColoPeakPct", _pct(cp["event_frac_mean"]), th_run)
+        add("ThetaColoPeakLat", _num(cp["latitude_deg"], "{:.0f}"), th_run)
         eq = colo[colo["latitude_deg"] == 0.0]
-        add("ThetaColoEquatorPct", _pct(eq["event_frac_mean"].iloc[0]), e1)
-        add("ThetaWorstPeakPct", _pct(wp["event_frac_mean"]), e1)
+        add("ThetaColoEquatorPct", _pct(eq["event_frac_mean"].iloc[0]), th_run)
+        add("ThetaWorstPeakPct", _pct(wp["event_frac_mean"]), th_run)
 
     # --- E2: satellite diversity (geometric) and min-elevation sensitivity ---
     e2 = newest("e2_diversity")

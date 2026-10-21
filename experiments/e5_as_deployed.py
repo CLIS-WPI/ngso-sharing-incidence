@@ -35,6 +35,8 @@ def main(argv: list[str] | None = None) -> int:
                         help="comma-separated subset of the config's handoff_policies")
     parser.add_argument("--n-start-times", type=int, default=None,
                         help="number of start times (default: config)")
+    parser.add_argument("--time-step-s", type=float, default=None,
+                        help="propagation / screening step in s (default: config)")
     args = parser.parse_args(argv)
 
     steering = None if args.steering in (None, "config") else args.steering
@@ -43,7 +45,7 @@ def main(argv: list[str] | None = None) -> int:
                      starlink_generation=args.starlink_generation,
                      handoff_policies=(args.handoff_policies.split(",")
                                        if args.handoff_policies else None),
-                     n_start_times=args.n_start_times)
+                     n_start_times=args.n_start_times, time_step_s=args.time_step_s)
     print(f"[e5] run complete: {run_dir}")
     return 0
 
