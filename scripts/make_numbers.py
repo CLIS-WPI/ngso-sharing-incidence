@@ -813,6 +813,23 @@ def main(argv: list[str] | None = None) -> int:
             ohigh = [b for b in over if b[0] > uhi]
             add("AnalyticUnderLatLo", _num(ulo, "{:.0f}"), e7)
             add("AnalyticUnderLatHi", _num(uhi, "{:.0f}"), e7)
+            # Inside vs beyond the Starlink inclination band of the E7 run's shells:
+            # the last grid latitude at or below the largest shell inclination.
+            from ngsi.config import load_constellations as _lc7
+            _gen7 = json.loads((e7 / "status.json").read_text()).get("starlink_generation")
+            _c7 = _lc7(e7 / "configs" / "constellations.yaml")
+            _names7 = {"gen2": ["STARLINK_GEN2"], "all": ["STARLINK", "STARLINK_GEN2"]}.get(
+                _gen7, ["STARLINK"])
+            _inc7 = max(sh.inclination_deg for n in _names7 for sh in _c7[n].shells)
+            _lats7 = sorted(c7["latitude_deg"].unique())
+            _incl_lat = max(la for la in _lats7 if la <= _inc7)
+            _in = c7[c7["latitude_deg"] <= _incl_lat]["abs_err"]
+            _out = c7[c7["latitude_deg"] > _incl_lat]["abs_err"]
+            add("AnalyticInclLatDeg", _num(_incl_lat, "{:.0f}"), e7)
+            add("AnalyticSignedMinInclPct", _pct(_in.min()), e7)
+            add("AnalyticSignedMaxInclPct", _pct(_in.max()), e7)
+            if len(_out):
+                add("AnalyticMaxAbsBeyondPct", _pct(_out.abs().max()), e7)
             if olow:
                 add("AnalyticOverLowLatLo", _num(olow[0][0], "{:.0f}"), e7)
                 add("AnalyticOverLowLatHi", _num(olow[-1][1], "{:.0f}"), e7)
