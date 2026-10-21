@@ -3,14 +3,16 @@
 % scripts/make_numbers.py (AGENTS.md rule 1).  Do not type result numbers inline.
 %
 % Alternative titles:
-%   When the Rule Is Not Enough: Satellite Diversity and Compliance with FCC
-%   NGSO Spectrum-Sharing Limits
-%   Hidden Dependencies in LEO Spectrum Sharing: Satellite Diversity Decides
-%   Compliance with FCC Interference Limits
-%   Frequent In-Line Events, Conditional Compliance: Satellite Diversity
-%   Decides the FCC's NGSO Sharing Limits
-%   The Burden Falls on the Higher Constellation: Geographic Incidence of
-%   47 CFR 25.261 for Co-Frequency NGSO User Downlinks
+%   Satellite Handoff Decides FCC Interference Compliance Between Starlink and
+%   OneWeb
+%   How Satellite Handoff Shapes FCC Interference Protection Between Starlink
+%   and OneWeb
+%   Dodging In-Line Events Costs Throughput: Handoff Policy Decides FCC
+%   Interference Protection for Co-Frequency LEO Constellations
+%   Handoff Policy Decides FCC Interference Protection for Co-Frequency LEO
+%   Constellations
+%   Avoiding the Trigger, Losing the Throughput: Victim Handoff and FCC
+%   Protection Limits in LEO Spectrum Sharing
 \documentclass[conference]{IEEEtran}
 \IEEEoverridecommandlockouts % allow \thanks in conference mode
 
@@ -30,8 +32,7 @@
 
 \begin{document}
 
-\title{Compliance Through Handoff: How Satellite Diversity Decides FCC
-Interference Protection for Co-Frequency LEO Constellations}
+\title{Victim Handoff Policies and FCC Interference\\ Protection in Starlink--OneWeb Coexistence}
 
 \author{
 \IEEEauthorblockN{
@@ -54,37 +55,41 @@ Email: \texttt{\{hm1125, vm602\}@msstate.edu}
 \maketitle
 
 \begin{abstract}
-Starlink and OneWeb now serve users in the same Ku band from thousands of
+Starlink and OneWeb serve users in the same Ku band from thousands of
 low-Earth-orbit satellites. When their satellites line up in a user's view, the
 FCC's rule 47 CFR~25.261 decides who gives way: an in-line event triggers band
 splitting, and a later-licensed system must keep the throughput and availability
 losses it causes an earlier-licensed system below fixed limits. Whether these
 protections hold in practice has not been quantified. We develop a general model
 of co-frequency non-geostationary interference and of the rule's criteria, apply
-it to both constellations as filed and as deployed, and derive a closed-form
-approximation that links the regulatory power criterion to satellite geometry.
-The rule is triggered far more often than geometric in-line screens suggest, and
-its burden falls mostly on OneWeb, the system it protects, which is affected
-three to four times as often as Starlink. Without satellite diversity, Starlink
-at its filed maximum power violates both protection limits. Diversity restores
-compliance, but only when the victim can switch to another satellite, and
-OneWeb's own filed elevation mask often leaves none. The rule's protection
-therefore depends on satellite diversity and on the victim's design, neither of
-which the rule mentions.
+it to second-generation Starlink and OneWeb as filed and as deployed, and derive
+an analytic approximation that links the regulatory power criterion to satellite
+geometry. The trigger fires far more often than geometric in-line screens
+suggest, mostly on OneWeb, the system the rule protects. In a degraded-throughput
+compatibility analysis without handoff, Starlink at its filed maximum power
+exceeds both protection limits. Under a
+25$^\circ$ elevation mask and unrestricted switching, both handoff policies we
+compare meet the availability limit, but the throughput verdict depends on the
+policy: as deployed, leaving every interfered satellite moves users to weaker
+links and still exceeds the limit, whereas staying when the interfered link
+remains the better one meets it. A minimum dwell time on each satellite or a
+55$^\circ$ elevation mask also breaks the availability limit. Because the FCC allows
+compatibility analyses to assume the incumbent's satellite selection strategy,
+that assumption decides the outcome.
 \end{abstract}
 
 \begin{IEEEkeywords}
 NGSO, spectrum sharing, in-line interference, 47 CFR 25.261, satellite
-diversity, Starlink, OneWeb.
+diversity, handoff, Starlink, OneWeb.
 \end{IEEEkeywords}
 
 \section{Introduction}
 The Ku-band sky over a user terminal is now crowded: our snapshot counts
-\NStarlinkOp\ operational Starlink and \NOnewebOp\ OneWeb satellites, all
-transmitting to users in the same band. Continually, somewhere on Earth, a
-satellite of one system slides close to the line of sight between a user and a
-satellite of the other system. The two signals collide, and someone has to give
-way.
+\NStarlinkOperational\ operational Starlink satellites, \NStarlinkGenTwo\ of them
+second-generation, and \NOnewebOp\ OneWeb satellites, all transmitting to users
+in the same band. Continually, somewhere on Earth, a satellite of one system
+slides close to the line of sight between a user and a satellite of the other
+system. The two signals collide, and someone has to give way.
 
 In the United States, who gives way is written into 47 CFR~25.261~\cite{cfr25261},
 the Federal Communications Commission (FCC) rule for sharing spectrum among
@@ -92,77 +97,69 @@ non-geostationary-orbit (NGSO) satellite systems. The FCC licenses such systems
 in batches called \emph{processing rounds}; a system licensed in an earlier round
 is the \emph{incumbent} and one licensed in a later round is the \emph{entrant}.
 Two systems are \emph{co-frequency} when they are authorized to use the same
-frequencies for the same type of link. The rule makes a simple promise. When interference raises a receiver's noise
-temperature by more than \DttThresholdPct\% ($\Delta T/T$), an \emph{in-line
-event} occurs and, absent coordination, systems of the same processing round
-split the band for as long as it lasts (\S\,25.261(c))~\cite{fcc2329}. Systems of
-a later round must do more: under \S\,25.261(d) they may cost an earlier-round
-system no more than \DegradeLimitPct\% of its time-averaged throughput and no
-more than \UnavailLimitPct\% of its availability, on every link with at least
-\RuleBaselineAvailPct\% baseline availability (the fraction of time the link
-works without interference) at a carrier-to-noise ratio (C/N) of
-\CnGateDb~dB~\cite{fcc24117}. The protection runs for ten years after the first
-grant in the later round, after which (c) applies across rounds. OneWeb~\cite{fcc1777}
-and the first generation of Starlink (Gen1)~\cite{fcc1838} were licensed in the 2016 round and its second
-generation (Gen2)~\cite{fcc2291} in the 2020 round, so the rule promises OneWeb protection
-against Starlink Gen2. A separate 2026 order rewrote sharing between NGSO and geostationary (GSO)
-systems~\cite{fcc2626}
-but left these NGSO--NGSO criteria unchanged.
+frequencies for the same type of link. When interference raises a receiver's
+noise temperature by more than \DttThresholdPct\% ($\Delta T/T$), an
+\emph{in-line event} occurs; absent coordination, systems of the \emph{same}
+round then split the band for its duration (\S\,25.261(c))~\cite{cfr25261,fcc2329}.
+Between rounds a different mechanism applies: before operating, an entrant must
+coordinate with each earlier-round incumbent or submit a \emph{compatibility
+showing}, based on a degraded-throughput methodology, that it causes the
+incumbent no more than \DegradeLimitPct\% time-weighted throughput degradation
+and no more than \UnavailLimitPct\% absolute change in availability, on links
+with at least \RuleBaselineAvailPct\% baseline availability (the fraction of time
+the link works without interference) at a carrier-to-noise ratio (C/N) of
+\CnGateDb~dB (\S\,25.261(d))~\cite{cfr25261,fcc24117}. Ten years after the
+first grant in the later round, this protection ends and (c) applies across the
+rounds (\S\,25.261(e)). OneWeb~\cite{fcc1777} and the first generation of
+Starlink (Gen1)~\cite{fcc1838} were licensed in the 2016 round and Starlink's
+second generation (Gen2)~\cite{fcc2291} in the 2020 round, so the rule promises
+OneWeb protection against Starlink Gen2. A separate 2026 order rewrote sharing
+between NGSO and geostationary systems~\cite{fcc2626} but left these criteria
+unchanged.
 
-Whether this promise is kept in practice has not been measured. How often does
-the event fire? Where on Earth? Which system absorbs it? And when a
-later-round system meets the limits, is it the rule that protects the incumbent,
-or something the incumbent does itself? The answers are not obvious, because the
-interference geometry changes every second, operators steer and power-control
-their beams, and the victim's antenna sees interferers through its sidelobes, not
-only along the line of sight. Interference between the OneWeb and SpaceX user
-downlinks was anticipated early~\cite[Sec.~5.1]{delportillo2019}; later work asked
-whether interference among dense NGSO constellations matters in
-practice~\cite{braun2019} and how satellite selection enables in-band
-coexistence~\cite{kim2025}. None of these evaluates the FCC's own criteria.
+The FCC evaluates the limits through compatibility analyses and allows such an
+analysis to use an \emph{assumed} satellite selection strategy for the incumbent
+when the actual one is not provided~\cite{fcc24117}. How much that assumption
+matters has not been measured. Interference between the OneWeb and SpaceX user
+downlinks was anticipated early~\cite[Sec.~5.1]{delportillo2019}; later work
+asked whether interference among dense NGSO constellations matters in
+practice~\cite{braun2019} and designed entrant-side satellite selection for
+in-band coexistence in Ka band~\cite{kim2025,kim2026selection}. None of these
+evaluates the FCC's own criteria, and none asks what the \emph{victim's} handoff
+does to the verdict.
 
-This paper does.\footnote{\url{https://github.com/CLIS-WPI/ngso-sharing-incidence}} We model the
-constellations both \emph{as filed} (the orbits
-in the operators' FCC filings) and \emph{as deployed} (the satellites actually in
-orbit today), apply
-the rule's exact criteria at every latitude, and follow the interference from
-the trigger to the protection limits. The answer is a twist: the rule's
-protection is real only when the victim can \emph{hand off} to another
-satellite, and the protected system's own filed design can take that option
-away. Our contributions are:
+This paper does.\footnote{\url{https://github.com/CLIS-WPI/ngso-sharing-incidence}}
+We model the constellations both \emph{as filed} (the orbits in the operators'
+FCC filings) and \emph{as deployed} (the satellites in orbit today), apply the
+rule's exact criteria at every latitude, and evaluate the victim with and
+without handoff to another of its own satellites. Our contributions are:
 \begin{itemize}
-\item A general model of NGSO co-frequency interference and of the
-\S\,25.261 criteria, instantiated for Starlink, OneWeb, and Amazon Leo
-(formerly Project Kuiper), which reduces to a single co-frequency user-downlink
-pair, Starlink--OneWeb.
-\item To our knowledge, the first latitude-resolved measurement of how often the \S\,25.261 event
-fires and whether the \S\,25.261(d) limits hold, as filed and as deployed, with
-and without satellite diversity, at two sourced Starlink power levels.
-\item A closed-form approximation that turns the regulatory power criterion into
-a geometric one through an equivalent off-axis angle, independent of terminal
-size, validated against the simulation.
-\item Evidence that compliance hinges on satellite diversity and on the victim's
-elevation mask, neither of which the rule mentions, and that the burden falls
-on the very system the rule protects.
+\item A general model of NGSO co-frequency interference, of the \S\,25.261
+criteria, and of victim handoff policies, instantiated for Starlink Gen2 and
+OneWeb, the only co-frequency user-downlink pair among Starlink, OneWeb, and
+Amazon Leo (formerly Project Kuiper).
+\item To our knowledge, the first latitude-resolved measurement of how often the
+\S\,25.261 event fires and whether the \S\,25.261(d) limits hold, as filed and as
+deployed, at two sourced Starlink power levels.
+\item The finding that the throughput verdict depends on the victim's handoff
+policy: as deployed, leaving every interfered satellite exceeds the limit,
+whereas staying when the interfered link is still the better one meets it; a
+minimum dwell time or a high elevation mask also breaks the availability limit.
+\item An analytic approximation that turns the regulatory power criterion into a
+geometric one through an equivalent off-axis angle, independent of terminal size.
 \end{itemize}
-Section~\ref{sec:model} develops the model, Section~\ref{sec:setup} instantiates
-it, Section~\ref{sec:analytic} derives the approximation,
-Section~\ref{sec:results} presents the results, and
-Section~\ref{sec:discussion} draws the regulatory implications.
 
 \section{System Model}
 \label{sec:model}
 
 \emph{Systems and geometry.} We consider a set $\mathcal{K}$ of NGSO systems.
-System $k \in \mathcal{K}$ consists of shells $\mathcal{S}_k$ (altitude, inclination,
-planes, satellites per plane) and is authorized in a processing round
-$\rho_k$. Satellite positions $\mathbf{p}_j(t)$ evolve over discrete time
-$t \in \mathcal{T}$. Earth stations $g \in \mathcal{G}$ are placed at known
-geodetic positions. Satellite $j$ is visible from $g$ when its elevation
-$\epsilon_{g,j}(t)$ is at least the minimum elevation $\epsilon_k^{\min}$ of its
-system; $\mathcal{V}_{k}(g,t)$ denotes the visible satellites of system $k$. A
-station of system $k$ is served by $s_k(g,t) \in \mathcal{V}_k(g,t)$, selected by
-a policy of the operator (e.g., highest elevation).
+System $k \in \mathcal{K}$ consists of shells $\mathcal{S}_k$ (altitude,
+inclination, planes, satellites per plane) and is authorized in a processing
+round $\rho_k$. Satellite positions evolve over discrete time
+$t \in \mathcal{T}$, and earth stations $g \in \mathcal{G}$ are placed at known
+geodetic positions. Satellite $j$ is visible from $g$ when its elevation is at
+least the minimum elevation $\epsilon_k^{\min}$ of its system;
+$\mathcal{V}_{k}(g,t)$ denotes the visible satellites of system $k$.
 
 \emph{Co-frequency pairs.} Each system holds authorized frequency ranges
 $\mathcal{F}_k^{\ell}$ for each link type $\ell$ (user/gateway, up/down). An
@@ -170,64 +167,71 @@ ordered pair $(A,B)$ is screened on link type $\ell$ only if
 $\mathcal{F}_A^{\ell} \cap \mathcal{F}_B^{\ell} \neq \emptyset$; the coupling is
 evaluated at the centre frequency $f$ of the overlap, with wavelength $\lambda$.
 
-\emph{Interference and the in-line event.} For a victim station $g$ of system $A$
-served by $s_A$, the aggregate interference from system $B$ is
-\begin{equation}
-I_g(t) = \sum_{j \in \mathcal{V}_B(g,t)} \frac{\mathrm{EIRP}_j\,
-g_j(\phi_{g,j})\, G_{\text{rx}}(\theta_{g,j})}{L(r_{g,j})},
+\emph{Signal, interference, and the in-line event.} A victim station $g$ of
+system $A$ served by satellite $s \in \mathcal{V}_A(g,t)$ has carrier-to-noise
+ratio and aggregate interference from system $B$
+\begin{gather}
+c_g(t;s) = \frac{\mathrm{EIRP}_s\, G_{\text{rx}}(0)}{L(r_{g,s})\,N}, \label{eq:cn}\\
+I_g(t;s) = \sum_{j \in \mathcal{V}_B(g,t)} \frac{\mathrm{EIRP}_j\,
+g_j(\phi_{g,j})\, G_{\text{rx}}(\theta_{g,j}^{s})}{L(r_{g,j})},
 \label{eq:agg}
-\end{equation}
-where $\mathrm{EIRP}_j$ is the peak equivalent isotropically radiated power
-(EIRP) density of satellite $j$, $g_j(\phi)$ its
-normalized transmit pattern at the off-axis angle $\phi_{g,j}$ toward $g$,
-$G_{\text{rx}}(\theta)$ the victim receive gain at the angle $\theta_{g,j}$
-between $s_A$ and $j$ seen from $g$, and $L(r)=(4\pi r/\lambda)^2$ the free-space
-loss at slant range $r_{g,j}$. With noise density $N = kT_{\text{sys}}$ (per unit
-bandwidth), the in-line event is
+\end{gather}
+where $\mathrm{EIRP}$ is the peak equivalent isotropically radiated power density
+(linear), $g_j(\phi)$ the normalized transmit pattern of satellite $j$ at the
+off-axis angle $\phi_{g,j}$ toward $g$, $G_{\text{rx}}(\theta)$ the victim
+receive gain at the angle $\theta_{g,j}^{s}$ between $s$ and $j$ seen from $g$
+(the terminal points at $s$), $L(r)=(4\pi r/\lambda)^2$ the free-space loss at
+slant range $r$, and $N = kT_{\text{sys}}$ the noise density. The in-line event
+on link $s$ is
 \begin{equation}
-E_g(t) = \mathbb{1}\{\Delta T/T = I_g(t)/N > \delta\},
+E_g(t;s) = \mathbb{1}\{\Delta T/T = I_g(t;s)/N > \delta\},
 \label{eq:event}
 \end{equation}
-with $\delta$ the regulatory threshold. Three interferer sets bracket the
-unknown beam plans of system $B$: \emph{realistic}, where $B$'s serving satellite
-for the site radiates its main beam ($g_j = 1$) and every other visible $B$
-satellite contributes through its sidelobe; \emph{co-located}, where only $B$'s
-serving satellite is counted; and an \emph{upper bound}, where every visible
-$B$ satellite radiates at peak toward $g$.
+with $\delta$ the regulatory threshold. Three interferer sets bracket the unknown
+beam plans of system $B$: \emph{realistic}, where $B$'s serving satellite for the
+site radiates its main beam ($g_j = 1$) and every other visible $B$ satellite
+contributes through its sidelobe, with its boresight approximated by nadir;
+\emph{co-located}, where only $B$'s serving satellite is counted; and an
+\emph{upper bound}, where every visible $B$ satellite radiates at peak toward $g$.
 
-\emph{Interferer power models.} Two models are considered. Under
-\emph{constant EIRP}, $\mathrm{EIRP}_j$ is fixed. Under \emph{constant PFD}, the
-operator holds the surface power-flux density (PFD) at $\mathrm{PFD}_0$ while steering,
-so that
+\emph{Interferer power models.} Under \emph{constant EIRP}, $\mathrm{EIRP}_j$ is
+fixed. Under \emph{constant PFD}, the operator holds the surface power-flux
+density (PFD) at $\mathrm{PFD}_0$ while steering, so that (in dB)
 \begin{equation}
-\mathrm{EIRP}_j(r) = \mathrm{PFD}_0 + 10\log_{10}(4\pi r^2) \quad
-[\text{dBW/MHz}],
+\mathrm{EIRP}_{j,\text{dB}}(r) = \mathrm{PFD}_{0,\text{dB}} + 10\log_{10}(4\pi r^2),
 \label{eq:pfd}
 \end{equation}
 capped at its value at the range $r_{\max}$ of the minimum service elevation.
 
-\emph{Protection metrics.} Let $c_g(t)$ be the victim's carrier-to-noise ratio and
-$\gamma_g(t) = c_g(t)/(1+I_g(t)/N)$ its signal-to-interference-plus-noise ratio (SINR). With an achievable-rate map $R(\cdot)$
-(e.g., the Shannon rate with an implementation margin) and a C/N threshold
-$\gamma_0$, the time-weighted throughput degradation and the absolute change in
-unavailability are
-\begin{equation}
-D_g = 1 - \frac{\overline{R(\gamma_g)}}{\overline{R(c_g)}},\qquad
-\Delta U_g = \Pr\{\gamma_g < \gamma_0\} - \Pr\{c_g < \gamma_0\},
-\label{eq:metrics}
-\end{equation}
-where $\overline{\cdot}$ and $\Pr\{\cdot\}$ are taken over $\mathcal{T}$ and an
-unserved instant counts as unavailable. A link qualifies for protection only if
-its baseline availability $\Pr\{c_g \ge \gamma_0\}$ is at least $a_{\min}$. The
-rule is met when $D_g \le D_{\max}$ and $\Delta U_g \le U_{\max}$ at every
-qualifying station. Both metrics are invariant to the channel bandwidth, since
-$I/N$ and $c$ are per-unit-bandwidth ratios and $D_g$ is a rate ratio.
+\emph{Handoff policies.} The baseline policy serves $g$ from the highest-elevation
+visible satellite $s_0(g,t)$. A handoff policy considers switching only while the
+baseline link is in event, $E_g(t;s_0)=1$, and only to \emph{admissible}
+alternates $j \in \mathcal{V}_A(g,t)\setminus\{s_0\}$ with $E_g(t;j)=0$, each
+evaluated with its own link budget (\ref{eq:cn})--(\ref{eq:agg}). With
+$\gamma_g(t;s) = c_g(t;s)/(1+I_g(t;s)/N)$ the SINR,
+\emph{event-avoiding} handoff always leaves $s_0$ for the admissible alternate
+with the highest $\gamma$, whereas \emph{rate-maximizing} handoff picks the higher $\gamma$ among
+the admissible alternates and the degraded link $s_0$, i.e., it maximizes the rate
+over this restricted set only. If no alternate
+is admissible, the event is \emph{unresolvable} and the victim stays on $s_0$.
+Two constraints restrict switching: only the $K$ highest-elevation satellites
+are candidates, and the victim keeps a satellite for a minimum dwell time of $N_{\text{s}}$
+seconds after a switch.
 
-\emph{Satellite diversity.} With diversity (a \emph{handoff} to another
-satellite), at each $t$ the victim may replace
-$s_A$ by any $j' \in \mathcal{V}_A(g,t)$ for which (\ref{eq:event}) is not
-triggered; the event is \emph{unresolvable} if no such $j'$ exists. $D_g$ and
-$\Delta U_g$ are then evaluated on the link actually used.
+\emph{Protection metrics.} Let $s(t)$ be the satellite actually used. With the
+rate map $R(\gamma) = \log_2(1+\gamma/m)$ for a served instant and $R=0$ for an
+unserved one ($m$ an implementation margin) and a C/N threshold $\gamma_0$,
+\begin{gather}
+D_g = 1 - \frac{\overline{R(\gamma_g(t;s(t)))}}{\overline{R(c_g(t;s_0))}},\\
+\Delta U_g = \Pr\{\gamma_g(t;s(t)) < \gamma_0\} - \Pr\{c_g(t;s_0) < \gamma_0\},
+\label{eq:metrics}
+\end{gather}
+over $t\in\mathcal{T}$, with an unserved instant counted as unavailable. The
+baseline is the interference-free link under the baseline policy. A link
+qualifies for protection only if its baseline availability
+$\Pr\{c_g \ge \gamma_0\}$ is at least $a_{\min}$, and the rule is met when
+$D_g \le D_{\max}$ and $\Delta U_g \le U_{\max}$. Both metrics are invariant to the
+channel bandwidth.
 
 \section{Regulatory Instantiation and Evaluation Setup}
 \label{sec:setup}
@@ -235,55 +239,68 @@ $\Delta U_g$ are then evaluated on the link actually used.
 \emph{Rule parameters.} Under 47 CFR~25.261, $\delta = \DttThreshold$
 ($I/N > \InThresholdDb$~dB)~\cite{cfr25261}, and for \S\,25.261(d)
 $D_{\max} = \DegradeLimitPct\%$, $U_{\max} = \UnavailLimitPct\%$,
-$\gamma_0 = \CnGateDb$~dB, and $a_{\min} = \RuleBaselineAvailPct\%$~\cite{fcc24117}.
-\S\,25.261(d) is evaluated only where it legally applies, i.e., for a victim
-from an earlier processing round than the interferer.
+$\gamma_0 = \CnGateDb$~dB, and $a_{\min} = \RuleBaselineAvailPct\%$~\cite{fcc24117};
+\S\,25.261(d) is evaluated only where it legally applies, i.e., OneWeb victim and
+Starlink Gen2 interferer. Our evaluation is a compatibility analysis under the
+modeled assumptions, of the kind a showing under (d) contains and with which an
+entrant's operations must then conform (\S\,25.261(d)(4)). It does not represent
+Starlink's actual beam scheduling, operating power, or coordination agreements,
+so an exceeded limit means a failed analysis under these assumptions, not an
+observed violation.
 
-\emph{Systems.} We instantiate the model for Starlink, OneWeb, and Amazon Leo
-(formerly Project Kuiper; ``Kuiper'' below, as in its filings).
-Screening their authorized bands by link type leaves a single co-frequency
+\emph{Systems.} Screening the authorized bands of Starlink, OneWeb, and Amazon Leo
+(formerly Project Kuiper; ``Kuiper'' in its filings) leaves one co-frequency
 user-downlink pair, Starlink and OneWeb in \SharedBandLoGhz--\SharedBandHiGhz~GHz,
 coupled at $f = \SharedFreqGhz$~GHz; Kuiper's user downlink is in Ka band.
-OneWeb (2016 round) is the protected victim of Starlink Gen2 (2020 round).
-\emph{As filed}, the systems are Walker-Delta shells (evenly spaced orbital planes, the
-standard model of a filed constellation) propagated with a two-body
-model plus $J_2$ secular drift over \EventNPhasings\ independent constellation
-phasings (random rotations of each constellation in orbit, which serve as
-statistical replications). \emph{As deployed}, positions come from an October 2026 snapshot of the public CelesTrak
-orbital-element catalog~\cite{celestrak} (\NStarlinkRaw\ Starlink and \NOnewebRaw\ OneWeb
-objects, filtered to \NStarlinkOp\ and \NOnewebOp\ at operational altitude) over
-\NStartTimes\ independent start times. The \NStations\ stations lie at latitudes
-\LatMinDeg--\LatMaxDeg$^\circ$ in \LatStepDeg$^\circ$ steps on \NLongitudes\
-meridians, and each is served by the highest-elevation visible satellite. The
-victim gain follows the International Telecommunication Union (ITU-R)
-earth-station pattern S.1428~\cite{itu1428} and the interferer follows the ITU-R satellite pattern
-S.1528~\cite{itu1528}; $R(\cdot)$ is the Shannon rate with a \ImplMarginDb~dB
-margin. Table~\ref{tab:params} lists all parameters and their sources.
+\emph{As filed}, Starlink Gen2 is the three shells granted in FCC 22-91 at
+53, 43, and 33$^\circ$ inclination~\cite{fcc2291}, modeled as
+Walker-Delta shells (\FilGenTwoNSats\ satellites; equal split of the granted
+total, an assumption) propagated with a two-body model plus $J_2$ drift over
+\EventNPhasings\ independent phasings (random rotations of each constellation).
+\emph{As deployed}, positions come from a CelesTrak orbital-element
+snapshot~\cite{celestrak} of \SnapshotDate\ (\NStarlinkRaw\ Starlink and
+\NOnewebRaw\ OneWeb objects; \NStarlinkOperational\ and \NOnewebOp\ at
+\OpAltStarlinkLoKm--\OpAltStarlinkHiKm\ and \OpAltOnewebLoKm--\OpAltOnewebHiKm~km).
+Each Starlink satellite is assigned to Gen2 or Gen1 by shell: the
+\NSatsFortyThree\ satellites at 43$^\circ$ are Gen2 (no Gen1 shell exists
+there), the \NSatsFiftyThreeGenTwo\ at 53$^\circ$ with an international designator
+(COSPAR launch) of \GenTwoLaunchCutoff\ or later, the first launch into the
+Gen2-only 43$^\circ$ shell after the Gen2 grant, are Gen2 (an assumption: a later
+replacement launched into a Gen1 shell would be misassigned), and the rest are Gen1,
+giving \NStarlinkGenTwo\ Gen2 and \NStarlinkGenOne\ Gen1 satellites; the
+33$^\circ$ shell is still empty. Operational altitudes
+(\AltFortyThreeMedKm~km at 43$^\circ$, \AltFiftyThreeGenTwoMedKm~km at
+53$^\circ$) differ from those filed, so we classify by inclination and
+launch rather than altitude. Each run covers \DurationH~h in \TimeStepS~s steps
+from \NStartTimes\ start times \StartSpacingH~h apart (non-overlapping); the
+as-deployed satellites are propagated from the snapshot with the same $J_2$ model. The \NStations\ stations
+lie at latitudes \LatMinDeg--\LatMaxDeg$^\circ$ in \LatStepDeg$^\circ$ steps on
+\NLongitudes\ meridians (0, 90, 180, and 270$^\circ$\,E). The victim gain follows the International
+Telecommunication Union (ITU-R) earth-station pattern S.1428~\cite{itu1428} and
+the interferer the ITU-R satellite pattern S.1528~\cite{itu1528};
+$m = 10^{\ImplMarginDb/10}$ (a \ImplMarginDb~dB margin). Propagation is clear-sky free space; rain fade, which the
+FCC assesses case by case~\cite{fcc24117}, is not modeled. Table~\ref{tab:params}
+lists the parameters and their sources.
 
 \emph{Interferer power.} Starlink Ku holds a constant surface PFD while
-steering~\cite{fcc2291}, so (\ref{eq:pfd}) applies with two sourced anchors for
-$\mathrm{PFD}_0$, both taken at the \PfdAnchorElevDeg$^\circ$ service edge
-(the lowest elevation at which Starlink serves users). (a)
-\emph{Gen2 filed maximum} (primary): the 47 CFR~25.208(b) limit,
-$\PfdLimitDbw$~dBW/m$^2$/MHz~\cite{cfr25208} (model $\PrimaryPfdDbw$); as a cross-check, the filed Gen2 EIRP
-density varies with altitude~\cite{fcc2291}, and its top value,
-\StarlinkFiledTopDbw~dBW/MHz after conversion from the per-4-kHz bandwidth in
-which FCC filings state Ku-band densities, gives $\FiledPfdDbw$, within
-\FiledPfdOffsetDb~dB of the limit; the bottom of the same range is used as a
-sensitivity case (``Gen2 range low end''). (b) \emph{Gen1 design point}: the constant PFD of the 2016
-filing~\cite[Table~A.7-1]{spacex2016}, $\GenOnePfdDbw$~dBW/m$^2$/MHz,
-\PfdOffsetGenOneDb~dB below the limit; for Gen1 itself \S\,25.261(c), not (d),
-applies, so (b) serves as a sourced lower operating point of the interferer.
-Section~25.208(b) covers only \PfdScopeLoGhz--\PfdScopeHiGhz~GHz of the shared
-band. OneWeb is constant-EIRP with fixed beams. Replacing the channel bandwidth
-by \BwCheckMhz~MHz~\cite[Table~3]{delportillo2019} leaves every metric unchanged
-(largest difference \BwMaxAbsDiffPct\ percentage points, pp), as expected from the bandwidth
-invariance above.
+steering~\cite{fcc2291}, so (\ref{eq:pfd}) applies with two sourced anchors at
+the \PfdAnchorElevDeg$^\circ$ service edge (the lowest elevation at which Starlink
+serves users). (a) \emph{Gen2 filed maximum} (primary): the 47 CFR~25.208(b)
+limit, $\PfdLimitDbw$~dBW/m$^2$/MHz~\cite{cfr25208}; the top of the filed Gen2
+EIRP density~\cite{fcc2291}, \StarlinkFiledTopDbw~dBW/MHz after conversion from
+the per-4-kHz bandwidth in which FCC filings state Ku-band densities, gives
+$\FiledPfdDbw$, within \FiledPfdOffsetDb~dB. (b) \emph{Gen1 design point}: the
+constant PFD of the 2016 filing~\cite[Table~A.7-1]{spacex2016},
+$\GenOnePfdDbw$~dBW/m$^2$/MHz, \PfdOffsetGenOneDb~dB lower, used as a sourced
+lower operating point. Section~25.208(b) covers only
+\PfdScopeLoGhz--\PfdScopeHiGhz~GHz of the shared band. OneWeb transmits at
+constant EIRP from fixed beams.
 
-\emph{Aggregation.} Every \S\,25.261(d) number is the worst qualifying station
-per replication (phasing or start time), averaged across replications, with a
+\emph{Aggregation.} Every \S\,25.261(d) number is the worst qualifying station per
+replication (phasing or start time), averaged across replications, with a
 \CiPct\% $t$-interval; a limit is \emph{exceeded} only if the whole interval lies
-above it and \emph{met} only if it lies below.
+above it and \emph{met} only if it lies below. We also report how many of the
+\FilGenTwoReps\ station-replications exceed a limit.
 
 \begin{table}[t]
 \caption{Model parameters and sources (\textsc{a}: ASSUMED).}
@@ -296,18 +313,19 @@ above it and \emph{met} only if it lies below.
 \begin{tabular}{llll}
 \toprule
 \rowcolor{headblue}
-\textbf{Parameter} & \textbf{Starlink} & \textbf{OneWeb} & \textbf{Source}\\
+\textbf{Parameter} & \textbf{Starlink Gen2} & \textbf{OneWeb} & \textbf{Source}\\
 \midrule
-Walker altitude (km) & \StarlinkAltKm & \OnewebAltKm & shell layout \textsc{a}\\
+Filed altitude (km) & 525--535 & \OnewebAltKm & \cite{fcc2291} / \textsc{a}\\
+Planes$\times$sats, $F$ & 28$\times$89 (each), 1 & 18$\times$36, 1 & \textsc{a}\\
 Surface PFD (dBW/m$^2$/MHz) & $\PrimaryPfdDbw$\ / $\GenOnePfdDbw$ & -- &
   \cite{cfr25208,fcc2291} / \cite{spacex2016}\\
 EIRP density (dBW/MHz) & -- & \OneEirpDbw & \cite[Table~3]{delportillo2019}\\
 Peak gain (dBi) & \StarPeakGainDbi & \OnePeakGainDbi & \cite{fcc2291} / \textsc{a}\\
 3-dB beamwidth (deg) & \StarBeamwidthDeg & \OneBeamwidthDeg & derived / \textsc{a}\\
 Noise temp.\ (K) & \StarNoiseK & \OneNoiseK & \cite[Table~6]{delportillo2019}\\
-Bandwidth (MHz) & \BwCheckMhz & \BwCheckMhz & \cite[Table~3]{delportillo2019}\\
+Bandwidth (MHz) & \StarBwMhz & \OneBwMhz & \cite[Table~3]{delportillo2019}\\
 Min.\ elevation (deg) & \StationMinElevDeg & \StationMinElevDeg\ (\OnewebMinElevSensDeg) &
-  \cite{fcc2291} / \textsc{a} (\cite[Sec.~2.2]{delportillo2019})\\
+  \cite{fcc2291}; \textsc{a} (\cite[Sec.~2.2]{delportillo2019})\\
 Terminal aperture (m) & \multicolumn{2}{c}{\EirpHeadDiam--\AperMaxM, eff.\ \AperEff} & \textsc{a}\\
 Impl.\ margin (dB) & \multicolumn{2}{c}{\ImplMarginDb} & \textsc{a}\\
 \bottomrule
@@ -316,156 +334,199 @@ Impl.\ margin (dB) & \multicolumn{2}{c}{\ImplMarginDb} & \textsc{a}\\
 
 \section{Analytic Approximation}
 \label{sec:analytic}
-Why should a power criterion depend on geometry at all? Under constant PFD it
-reduces to one.
-For a constant-PFD interferer (\ref{eq:pfd}), the main-beam contribution
-$\mathrm{PFD}_0\,\lambda^2/(4\pi)\,G_{\text{rx}}(\theta)$ is range-independent, so
-in the co-located case the event (\ref{eq:event}) depends only on the victim
-off-axis angle $\theta$ and reduces to $\theta < \theta^{*}$, where (in dB)
+Why should a power criterion depend on geometry at all? Under constant PFD
+(\ref{eq:pfd}), the main-beam interference
+$\mathrm{PFD}_0\,\lambda^2/(4\pi)\,G_{\text{rx}}(\theta)$ is range-independent,
+so in the co-located case the event (\ref{eq:event}) depends only on the victim
+off-axis angle $\theta$ and reduces to $\theta < \theta^{*}$, where, with $N$
+and $\mathrm{PFD}_0$ in matching per-MHz units,
 \begin{equation}
-G_{\text{rx}}(\theta^{*}) = \delta_{\text{dB}} + N - \mathrm{PFD}_0 -
-10\log_{10}(\lambda^2/4\pi).
+G_{\text{rx}}(\theta^{*}) = \delta_{\text{dB}} + N_{\text{dB}} -
+\mathrm{PFD}_{0,\text{dB}} - 10\log_{10}(\lambda^2/4\pi).
 \label{eq:thetastar}
 \end{equation}
-Whenever $\theta^{*}$ falls in the sidelobe envelope of the receive pattern,
-which for S.1428 is $G = 32 - 25\log_{10}\theta$ ($1^\circ$--$48^\circ$), the
-aperture cancels. For the instantiation of Section~\ref{sec:setup} this gives
-$\theta^{*} = \AnalyticThetaStarDeg^\circ$ for the OneWeb victim (spread \AnalyticThetaSpreadDeg$^\circ$ across
-\EirpHeadDiam--\AperMaxM~m). This explains why the event fraction barely depends
-on the terminal size: as deployed, its peak ranges only from
-\BindMinApertureDepPct\% to \BindMaxApertureDepPct\% across the apertures
-studied. The co-located event probability is then
+Whenever $\theta^{*}$ falls in the sidelobe envelope of the receive pattern, which
+for S.1428 is $G = 32 - 25\log_{10}\theta$ ($1^\circ$--$48^\circ$), the aperture
+cancels: for OneWeb, $\theta^{*} = \AnalyticThetaStarDeg^\circ$ (spread
+\AnalyticThetaSpreadDeg$^\circ$ across \EirpHeadDiam--\AperMaxM~m), which explains
+why the event fraction barely depends on terminal size. The co-located event
+probability is then
 \begin{equation}
 P = v_A v_B\,\Pr\{\angle(\hat u_A,\hat u_B) < \theta^{*}\},
 \label{eq:pevent}
 \end{equation}
 where $v_k = 1 - e^{-n_k}$ is the probability that system $k$ has a satellite in
-view ($n_k$ its mean visible count) and each serving direction $\hat u$ is the nearest
-of $n$ satellites uniform in the ground footprint, mapped to the look angle. The
-two serving directions are independent: the simulated marginals reproduce the
-simulated separation probability within \DiagnosisIndepMaxErrPct~pp, whereas a marginal uniform in the look-angle cap errs by up to
-\DiagnosisOldMaxErrPct~pp. Fig.~\ref{fig:analytic} compares (\ref{eq:pevent})
-with the simulated co-located as-filed curve: the model is within
-\AnalyticMaxAbsErrPct~pp (signed error $\AnalyticSignedMinPct$\ to
-\AnalyticSignedMaxPct~pp); the error varies with latitude, with under-prediction
-at \AnalyticUnderLatLo--\AnalyticUnderLatHi$^\circ$ and over-prediction at
-\AnalyticOverLowLatLo--\AnalyticOverLowLatHi$^\circ$ and
-\AnalyticOverHighLatLo--\AnalyticOverHighLatHi$^\circ$. The model captures the
-magnitude and latitude trend of the event fraction; the simulation remains the
-primary result.
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=0.86\columnwidth]{P5_analytic_validation.png}
-\caption{Analytic approximation (\ref{eq:pevent}) versus simulation, co-located
-variant, OneWeb victim, as filed, three terminal apertures (curves overlap since
-$\theta^{*}$ is aperture-independent).}
-\label{fig:analytic}
-\end{figure}
+view, $n_k$ its mean visible count from the Walker latitude density averaged over
+the argument of latitude, and each serving direction $\hat u_k$ is the nearest of
+$n_k$ satellites uniform in the ground footprint, mapped to the look angle.
+Feeding the simulated marginals into the separation integral reproduces the
+simulated separation probability within \DiagnosisIndepMaxErrPct\ percentage
+points (pp), supporting the approximation that the two serving directions are
+independent. On the
+Gen1 Walker geometry on which it was validated, (\ref{eq:pevent}) is within
+\AnalyticMaxAbsErrPct~pp of the simulation (signed error $\AnalyticSignedMinPct$
+to \AnalyticSignedMaxPct~pp), under-predicting at
+\AnalyticUnderLatLo--\AnalyticUnderLatHi$^\circ$ and over-predicting elsewhere,
+because a uniform footprint ignores the pile-up of satellites near the shell
+inclination. It captures the magnitude of the event fraction; the simulation
+remains the primary result.
 
 \section{Results}
 \label{sec:results}
-We now follow one OneWeb user through the rule, from the trigger to the
-protection limits, and ask at each step what the rule promises and what the
-geometry delivers.
+We follow one OneWeb user through the rule, from the trigger to the protection
+limits, with Starlink Gen2 at its filed maximum unless stated otherwise.
 
 \emph{The trigger fires often, and mostly on OneWeb.}
-Fig.~\ref{fig:events} shows the fraction of time the $\Delta T/T$ criterion is
-exceeded. For a OneWeb user it peaks at
-\BindDepWorstPct$\pm$\BindDepWorstCi\% at \BindDepWorstLat$^\circ$ latitude as
-deployed (\BindFilWorstPct\% as filed). A Starlink user is hit far less: its peak
-is \BindDepStarWorstPct\% as deployed and \BindFilStarWorstPct\% as filed, so the
-OneWeb user carries \BurdenRatioDep$\times$ (as deployed) and
-\BurdenRatioFil$\times$ (as filed) the exposure. The asymmetry has a physical
-cause. As victim, OneWeb at \OnewebAltKm~km looks through the PFD-limited beams
-of the lower, denser Starlink shell at \StarlinkAltKm~km; as interferer, its
-longer slant range and lower EIRP density weaken its own contribution. The
+Fig.~\ref{fig:events} shows the fraction of time with $\Delta T/T$ above the
+threshold. For a OneWeb user it peaks at \BindDepWorstPct$\pm$\BindDepWorstCi\% at
+\BindDepWorstLat$^\circ$ as deployed (\BindFilWorstPct\% as filed), whereas a
+Starlink user peaks at \BindDepStarWorstPct\%: OneWeb carries
+\BurdenRatioDep$\times$ the exposure. As victim, OneWeb at \OnewebAltKm~km looks
+through the PFD-limited beams of the lower, denser Starlink shells; as interferer,
+its longer slant range and lower EIRP density weaken its contribution. The
 co-located variant is close to the realistic one
-(\BindDepColoPct$\pm$\BindDepColoCi\% and \BindFilColoPct\%), so a single beam,
-Starlink's serving beam over the site, does most of the damage; the upper bound
-reaches \UpperBoundEventPct\% by construction.
-% TODO(Claude Code): explain, with numbers from results/, (a) the drop between the
-% peak latitude and 55 deg and (b) the as-deployed vs as-filed gap at low
-% latitudes; state only causes the data support.
+(\BindDepColoPct$\pm$\BindDepColoCi\%), so Starlink's serving beam over the site
+does most of the damage. The event fraction follows Gen2 visibility, which peaks
+near 40$^\circ$ (\VisDepLatForty\ satellites above the mask) and collapses
+beyond the 53$^\circ$ shell inclination (\VisDepLatSixty\ at
+60$^\circ$); at low latitudes the as-deployed fraction exceeds the as-filed
+one although fewer Starlink satellites are visible (\VisDepLatZero\ versus
+\VisFilLatZero\ at the equator), so the event rate is not set by the interferer
+count alone.
 
 \emph{A narrow geometric screen would miss most of it.}
 A common shortcut declares an in-line event only when the two serving satellites
 are nearly aligned. With a \ThetaScreenDeg$^\circ$ separation threshold, that
-screen fires only \ThetaColoPeakPct\% of the time at its peak
-(\ThetaColoPeakLat$^\circ$) and \ThetaColoEquatorPct\% at the equator, as filed.
-Equation~(\ref{eq:thetastar}) explains the gap: at the PFD limit, Starlink's
-serving beam pushes OneWeb's $\Delta T/T$ over the threshold through the
-terminal's sidelobes out to $\theta^{*} = \AnalyticThetaStarDeg^\circ$, far
-beyond a few degrees. Geometric definitions therefore understate how often the
-rule actually applies.
+screen fires only \ThetaColoPeakPct\% of the time at its peak (co-located,
+on the filed Walker shells of Starlink Gen1). Equation
+(\ref{eq:thetastar}) explains the gap: Starlink's serving beam pushes OneWeb's
+$\Delta T/T$ over the threshold through the terminal's sidelobes out to
+$\theta^{*} = \AnalyticThetaStarDeg^\circ$.
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\columnwidth]{B1_events_both.png}
+\includegraphics[width=0.94\columnwidth]{B1_events_both.png}
 \caption{Fraction of time with $\Delta T/T>\DttThresholdPct\%$ versus latitude,
-realistic variant, both directions, as filed (\EventNPhasings\ phasings) and as
-deployed (\NStartTimes\ start times), \EirpHeadDiam~m, Starlink at the Gen2 filed
-maximum; per-latitude means over meridians and replications.}
+realistic variant, both directions, Starlink Gen2 at its filed maximum, as filed
+(\EventNPhasings\ phasings) and as deployed (\NStartTimes\ start times),
+\EirpHeadDiam~m; means over meridians and replications.}
 \label{fig:events}
 \end{figure}
 
-\emph{Without handoff, the protection fails.}
-Suppose the OneWeb user simply stays on its serving satellite. At Starlink's Gen2
-filed maximum, all OneWeb links qualify for protection (\QualOneCases\ of
-\QualOneTotal\ cases as filed), and both limits are broken in both geometries
-(Fig.~\ref{fig:limits}): throughput degrades by
-\DegrDepMaxPct$\pm$\DegrDepMaxCi\% as deployed and
-\DegrFilMaxPct$\pm$\DegrFilMaxCi\% as filed, against a \DegradeLimitPct\% limit,
-and availability drops by \UnavailIncDepPct$\pm$\UnavailIncDepCi\% and
-\UnavailIncPct$\pm$\UnavailIncCi\%, against \UnavailLimitPct\%. For comparison
-only (not a compliance test, since OneWeb is the earlier-round system), a
-Starlink user loses \DegrDepStarPct$\pm$\DegrDepStarCi\% of throughput.
+\emph{Without handoff, the showing fails.}
+If the OneWeb user stays on its serving satellite, both limits are broken in both
+geometries (Table~\ref{tab:handoff}): throughput degrades by
+\DepGenTwoNoHoDegrPct$\pm$\DepGenTwoNoHoDegrCi\% as deployed
+(\DepGenTwoNoHoDegrOver\ of \DepGenTwoReps\ station-replications over the limit)
+and availability drops by \DepGenTwoNoHoUnavPct$\pm$\DepGenTwoNoHoUnavCi\%. All
+OneWeb links qualify (\QualOneStationReps\ of \QualOneStationRepsTotal). The
+availability limit is the harder one: at \PfdOffsetThreeDb~dB below the filed
+maximum the throughput loss can no longer be distinguished from its limit
+(\TabPfdMinusThreeDegrNoDivPct$\pm$\TabPfdMinusThreeDegrNoDivCi\%), whereas the
+availability change (\TabPfdMinusThreeUnavNoDivPct$\pm$\TabPfdMinusThreeUnavNoDivCi\%)
+still exceeds its limit; only at the Gen1 design PFD are both met
+(\TabGenOneDegrNoDivPct$\pm$\TabGenOneDegrNoDivCi\% and
+\TabGenOneUnavNoDivPct$\pm$\TabGenOneUnavNoDivCi\%; Table~\ref{tab:cases}).
+A Starlink user, for comparison only, loses
+\DegrDepStarPct$\pm$\DegrDepStarCi\% of throughput.
+
+\begin{table}[t]
+\caption{\S\,25.261(d) metrics by victim handoff policy, OneWeb victim, Starlink
+Gen2 at its filed maximum, realistic variant, \EirpHeadDiam~m: throughput
+degradation (mean$\pm$\CiPct\% CI) and availability change $\Delta$Unav.\ (mean)
+of the worst station per replication, in \%; limits \DegradeLimitPct\% and
+\UnavailLimitPct\%.}
+\label{tab:handoff}
+\centering
+\footnotesize
+\setlength{\tabcolsep}{2.5pt}
+\renewcommand{\arraystretch}{1.15}
+\rowcolors{3}{white}{rowgray}
+\begin{tabular}{lcccc}
+\toprule
+\rowcolor{headblue}
+ & \multicolumn{2}{c}{\textbf{As filed}} & \multicolumn{2}{c}{\textbf{As deployed}}\\
+\rowcolor{headblue}
+\textbf{Policy} & Degr. & $\Delta$Unav. & Degr. & $\Delta$Unav.\\
+\midrule
+No handoff & \FilGenTwoNoHoDegrPct$\pm$\FilGenTwoNoHoDegrCi & \FilGenTwoNoHoUnavPct
+  & \DepGenTwoNoHoDegrPct$\pm$\DepGenTwoNoHoDegrCi & \DepGenTwoNoHoUnavPct\\
+Event-avoiding & \FilGenTwoEvAvDegrPct$\pm$\FilGenTwoEvAvDegrCi & \FilGenTwoEvAvUnavPct
+  & \DepGenTwoEvAvDegrPct$\pm$\DepGenTwoEvAvDegrCi & \DepGenTwoEvAvUnavPct\\
+Rate-maximizing & \FilGenTwoRateMaxDegrPct$\pm$\FilGenTwoRateMaxDegrCi & \FilGenTwoRateMaxUnavPct
+  & \DepGenTwoRateMaxDegrPct$\pm$\DepGenTwoRateMaxDegrCi & \DepGenTwoRateMaxUnavPct\\
+Event-av., $K{=}2$ & \FilKTwoDegrPct$\pm$\FilKTwoDegrCi & \FilKTwoUnavPct
+  & \DepKTwoDegrPct$\pm$\DepKTwoDegrCi & \DepKTwoUnavPct\\
+Event-av., $N_{\text{s}}{=}60$ & \FilNSixtyDegrPct$\pm$\FilNSixtyDegrCi & \FilNSixtyUnavPct
+  & \DepNSixtyDegrPct$\pm$\DepNSixtyDegrCi & \DepNSixtyUnavPct\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\emph{Handoff always fixes availability, but which handoff decides throughput.}
+Now let the OneWeb user switch satellites during events (Table~\ref{tab:handoff},
+Fig.~\ref{fig:limits}). Availability is restored under every unconstrained
+policy: no admissible alternate was ever missing. Throughput is different.
+Event-avoiding handoff, the policy that clears every in-line event, still breaks
+the limit as deployed (\DepGenTwoEvAvDegrPct$\pm$\DepGenTwoEvAvDegrCi\%, with
+\DepGenTwoEvAvDegrOver\ of \DepGenTwoReps\ station-replications over it), whereas
+rate-maximizing handoff meets it
+(\DepGenTwoRateMaxDegrPct$\pm$\DepGenTwoRateMaxDegrCi\%, none over). The reason is
+the cost of the escape route. During events the interference is moderate: the
+median $I/N$ of Starlink's serving beam is $\DepInServMedDb$~dB against a clear-sky
+C/N of \DepCnMedMinDb--\DepCnMedMaxDb~dB, so staying loses little, whereas the
+admissible alternate is a lower, more distant OneWeb satellite with a weaker
+link. Event-avoiding handoff takes that worse link
+\DepGenTwoEvAvAltPct\% of the time; rate-maximizing handoff only
+\DepGenTwoRateMaxAltPct\%. As filed, event-avoiding handoff meets the limit only
+narrowly (\FilGenTwoEvAvDegrPct$\pm$\FilGenTwoEvAvDegrCi\%). The verdict does not
+hinge on the generation split: as deployed, event-avoiding handoff also exceeds
+the same numerical threshold against Gen1 alone, for which (d) does not apply
+(\DepGenOneEvAvDegrPct$\pm$\DepGenOneEvAvDegrCi\%), and against all Starlink
+(\DepGenAllEvAvDegrPct$\pm$\DepGenAllEvAvDegrCi\%), while rate-maximizing handoff
+stays below it in every case (largest
+\DepGenAllRateMaxDegrPct$\pm$\DepGenAllRateMaxDegrCi\%).
 
 \begin{figure*}[t]
 \centering
 \includegraphics[width=0.8\textwidth]{B2_limits.png}
 \caption{\S\,25.261(d) metrics versus latitude, OneWeb victim, realistic variant,
-as deployed, \EirpHeadDiam~m, Gen2 filed maximum: throughput degradation (left)
-and availability change (right), without and with diversity; per-latitude means
-over meridians and start times. Dotted lines: \DegradeLimitPct\% and
+as deployed, \EirpHeadDiam~m, Starlink Gen2 at its filed maximum: throughput
+degradation (left) and availability change (right), without handoff and with
+event-avoiding handoff (dashed; zero on the right); means over meridians and
+start times with \CiPct\% bands (the text and Table~\ref{tab:handoff} report the
+worst station per replication instead). Dotted lines: \DegradeLimitPct\% and
 \UnavailLimitPct\% limits.}
 \label{fig:limits}
 \end{figure*}
 
-\emph{How much power is too much.}
-Is the violation an artifact of assuming maximum power?
-Fig.~\ref{fig:pfd} and Table~\ref{tab:cases} lower it. The limits are still
-broken \PfdOffsetThreeDb~dB below the Gen2 maximum. Only at Starlink's Gen1 design
-power, \PfdOffsetGenOneDb~dB below, does the throughput loss fall within the
-limit (\TabGenOneDegrNoDivPct$\pm$\TabGenOneDegrNoDivCi\%), and even there the
-availability change (\TabGenOneUnavNoDivPct$\pm$\TabGenOneUnavNoDivCi\%) cannot
-be distinguished from the \UnavailLimitPct\% threshold. At the low end of the
-filed Gen2 range, throughput passes narrowly
-(\TabLowDegrNoDivPct$\pm$\TabLowDegrNoDivCi\%) but availability does not
-(\TabLowUnavNoDivPct$\pm$\TabLowUnavNoDivCi\%).  Three further cases also break both limits: Starlink's
-user-beam EIRP as reported for its Gen1 architecture in~\cite{delportillo2019};
-constant-EIRP instead of constant-PFD steering; and generic noise temperatures of
-\NoiseAssumedOneK/\NoiseAssumedStarK~K in place of the values
-of~\cite{delportillo2019}. Without handoff, compliance therefore requires Starlink to operate at
-least \PfdOffsetGenOneDb~dB below its Gen2 filed maximum.
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=0.86\columnwidth]{B3_pfd_offset.png}
-\caption{No-diversity throughput degradation versus Starlink PFD offset from the
-25.208(b) limit: Gen2 filed maximum, $-\PfdOffsetThreeDb$~dB, and Gen1 design
-point; OneWeb victim, realistic, as deployed, \EirpHeadDiam~m. Labels give
-mean$\pm$\CiPct\% CI over \SenStartTimes\ start times (bars are smaller than the
-markers).}
-\label{fig:pfd}
-\end{figure}
-
+\emph{Restricted switching or a high mask breaks availability.}
+Limiting candidates to the two highest-elevation satellites leaves events
+unresolved \DepKTwoUnresPct\% of the time and raises the availability change to
+\DepKTwoUnavPct$\pm$\DepKTwoUnavCi\%, still within its limit. A minimum dwell time of 60~s per satellite
+(a limit on switching frequency, distinct from the interruption a real handoff
+causes, which we do not model) breaks both limits
+(\DepNSixtyDegrPct$\pm$\DepNSixtyDegrCi\% and \DepNSixtyUnavPct$\pm$\DepNSixtyUnavCi\%),
+of which only \DepNSixtySwitchOnlyPct~pp is the cost of the dwell time itself;
+without it, event-avoiding handoff switches
+\DepNTenSwitchesPerHour\ times per hour. We tested only these two settings, so
+the dwell time at which compliance is lost remains open.
+OneWeb's filed design keeps a satellite above \OnewebMinElevSensDeg$^\circ$ for
+its users~\cite[Sec.~2.2]{delportillo2019}. Under that mask only the stations at
+\MinElevQualLatLo--\MinElevQualLatHi$^\circ$ (\MinElevQualStations\ of
+\NStations) reach the baseline availability needed for protection, so below
+\MinElevQualLatLo$^\circ$ \S\,25.261(d) is not even defined; where it is, at most
+\MinElevNAboveMin--\MinElevNAboveMax\ OneWeb satellites are above the mask on
+average, and event-avoiding handoff exceeds both limits
+(\TabMinElevFiftyFiveDegrDivPct$\pm$\TabMinElevFiftyFiveDegrDivCi\% and
+\TabMinElevFiftyFiveUnavDivPct$\pm$\TabMinElevFiftyFiveUnavDivCi\%). This matches
+the observation that OneWeb's fixed, non-steerable beams leave it only a passive
+role in in-line coordination~\cite[Sec.~5.1]{delportillo2019}.
 
 \begin{table*}[t]
 \caption{Sensitivity of the \S\,25.261(d) results, realistic variant, OneWeb
-victim, as deployed, \EirpHeadDiam~m terminal, \SenStartTimes\ start times
-(the text quotes \NStartTimes\ start times for the primary case, hence small
-differences). Event: worst-station fraction of time with
+victim, Starlink Gen2, as deployed, \EirpHeadDiam~m terminal, \SenStartTimes\ start
+times; ``Handoff'' is event-avoiding. Event: worst-station fraction of time with
 $\Delta T/T>\DttThresholdPct\%$. Entries: mean\,$\pm$\,\CiPct\% CI, in \%.}
 \label{tab:cases}
 \centering
@@ -479,7 +540,7 @@ $\Delta T/T>\DttThresholdPct\%$. Entries: mean\,$\pm$\,\CiPct\% CI, in \%.}
  & & \multicolumn{2}{c}{\textbf{Throughput degradation} (limit \DegradeLimitPct\%)}
  & \multicolumn{2}{c}{\textbf{Availability change} (limit \UnavailLimitPct\%)}\\
 \rowcolor{headblue}
-\textbf{Case} & \textbf{Event} & No diversity & Diversity & No diversity & Diversity\\
+\textbf{Case} & \textbf{Event} & No handoff & Handoff & No handoff & Handoff\\
 \midrule
 Gen2 filed maximum & \TabPrimEventPct\,$\pm$\,\TabPrimEventCi & \TabPrimDegrNoDivPct\,$\pm$\,\TabPrimDegrNoDivCi & \TabPrimDegrDivPct\,$\pm$\,\TabPrimDegrDivCi & \TabPrimUnavNoDivPct\,$\pm$\,\TabPrimUnavNoDivCi & \TabPrimUnavDivPct\,$\pm$\,\TabPrimUnavDivCi\\
 PFD $-\PfdOffsetThreeDb$~dB & \TabPfdMinusThreeEventPct\,$\pm$\,\TabPfdMinusThreeEventCi & \TabPfdMinusThreeDegrNoDivPct\,$\pm$\,\TabPfdMinusThreeDegrNoDivCi & \TabPfdMinusThreeDegrDivPct\,$\pm$\,\TabPfdMinusThreeDegrDivCi & \TabPfdMinusThreeUnavNoDivPct\,$\pm$\,\TabPfdMinusThreeUnavNoDivCi & \TabPfdMinusThreeUnavDivPct\,$\pm$\,\TabPfdMinusThreeUnavDivCi\\
@@ -493,90 +554,69 @@ OneWeb \OnewebMinElevSensDeg$^\circ$ mask & \TabMinElevFiftyFiveEventPct\,$\pm$\
 \end{tabular}
 \end{table*}
 
-\emph{Handoff rescues compliance.}
-Now let the OneWeb user switch to another visible OneWeb satellite whenever its
-own link is hit. The picture changes completely: throughput degradation falls to
-\DegrDepDivPct$\pm$\DegrDepDivCi\% as deployed and
-\DegrFilDivPct$\pm$\DegrFilDivCi\% as filed, and the availability change to
-\UnavailDepDivPct\% and \UnavailFilDivPct\%. Both limits are met, and they stay
-met in every row of Table~\ref{tab:cases} with a \StationMinElevDeg$^\circ$ mask,
-including constant-EIRP steering (largest degradation
-\TabConstEirpDegrDivPct$\pm$\TabConstEirpDegrDivCi\%). The rule's promise holds,
-but it is satellite diversity, not the rule, that keeps it.
-
-\emph{\ldots unless the victim cannot look low.}
-Handoff needs a second satellite in view, and OneWeb's own filed design
-restricts where it looks: the system keeps a satellite above
-\OnewebMinElevSensDeg$^\circ$ for its users~\cite[Sec.~2.2]{delportillo2019}.
-Applying this mask to the as-deployed OneWeb constellation tells two stories.
-First, coverage itself thins out: the time with no OneWeb satellite above the
-mask is \MinElevNoneEquatorPct\% at the equator, and only the stations at
-\MinElevQualLatLo--\MinElevQualLatHi$^\circ$ (\MinElevQualStations\ of
-\NStations) reach \RuleBaselineAvailPct\% baseline availability; below
-\MinElevQualLatLo$^\circ$, \S\,25.261(d) protection is not even defined. Second,
-where protection is defined, the escape route is narrow. At the worst qualifying
-station (\MinElevWorstLat$^\circ$) the serving satellite is the same as with a
-\StationMinElevDeg$^\circ$ mask (none is above the mask only
-\MinElevWorstNonePct\% of the time), so the no-diversity metrics do not change;
-but the mean number of OneWeb satellites above \OnewebMinElevSensDeg$^\circ$ at
-the qualifying latitudes is only \MinElevNAboveMin--\MinElevNAboveMax, with a
-10th percentile of \MinElevNAboveTenMin: often there is nowhere to go. With
-diversity, throughput degradation
-(\TabMinElevFiftyFiveDegrDivPct$\pm$\TabMinElevFiftyFiveDegrDivCi\%) can no longer
-be distinguished from the limit, and the availability change
-(\TabMinElevFiftyFiveUnavDivPct$\pm$\TabMinElevFiftyFiveUnavDivCi\%) exceeds it.
-This matches the early observation that OneWeb's fixed, non-steerable beams leave
-it only a passive role in in-line interference
-coordination~\cite[Sec.~5.1]{delportillo2019}. We read
-\OnewebMinElevSensDeg$^\circ$ as the filed design elevation and
-\StationMinElevDeg$^\circ$ as an operational assumption; together they bracket
-current practice.
-
 \section{Discussion}
 \label{sec:discussion}
-Three implications follow for the design and enforcement of \S\,25.261.
-\emph{Protection is borrowed from the victim.} At the same interferer power, the
-limits are broken or met depending on whether the victim can hand off. Handoff is
-the incumbent's operational choice, yet compliance is a test of the entrant; a
-compliance showing that assumes diversity quietly transfers part of the burden to
-the system the rule protects. \emph{The availability gate interacts with design.}
-Protection applies only to links with \RuleBaselineAvailPct\% baseline
-availability. Under its filed elevation mask, the protected system qualifies for protection
-only at higher latitudes, so the gate can withdraw protection exactly where
-coverage is thin. \emph{Measure the criterion, not a proxy.} Geometric in-line
-screens understate how often the $\Delta T/T$ criterion applies, because the
-trigger reaches deep into the victim terminal's sidelobes; regulatory showings
-should evaluate the criterion itself.
-
+Three implications follow for compatibility showings under \S\,25.261(d).
+\emph{The assumed selection strategy decides the verdict.} The FCC lets an
+analysis assume the incumbent's satellite selection strategy~\cite{fcc24117}. At
+the same interferer power, our verdict flips between ``exceeded'' and ``met''
+depending on that assumption alone, so showings should state and justify it, and
+regulators should test more than one. \emph{Avoiding the trigger is not the same as
+protecting the link.} The in-line event triggers the same-round
+band-splitting procedure (c), not the inter-round test (d). In the scenarios we
+tested, a victim that clears every in-line event gives up more throughput under
+(d) than one that tolerates moderate interference. A OneWeb terminal faces both
+relationships at once, (c) toward Starlink Gen1 and (d) toward Gen2, and after the
+sunset of (d) the Gen2 relationship also moves to (c). Whether a combination of
+satellite selection, band splitting, and coordination serves both well requires
+modeling the two regimes jointly, which we leave open. Scoring the alternate satellite with the serving satellite's
+C/N, a natural shortcut, hides this cost: it would report only
+\DepGenTwoLegacyDegrPct\% degradation. \emph{Measure the criterion, not a proxy.}
+Geometric in-line screens understate how often the $\Delta T/T$ criterion applies,
+because the trigger reaches deep into the victim terminal's sidelobes. Unlike
+entrant-side satellite selection for coexistence~\cite{kim2026selection}, which
+designs the interferer's response, our results show that the protected system's
+own response, which the entrant cannot control, determines compliance.
 
 \section{Limitations}
-(a) The S.1528 sidelobe of non-serving interferers assumes nadir-pointing beams.
-(b) Consumer terminals are flat panels; the S.1428 dish pattern approximates them.
-(c) Each station uses its highest-elevation satellite; operators' selection
-policies differ. (d) Diversity is unlimited and assumes knowledge of the
-interfering serving satellite. (e) Only the user downlink is modelled.
-(f) The OneWeb EIRP is taken from~\cite{delportillo2019}; its constant-EIRP
-steering and the \StationMinElevDeg$^\circ$ minimum elevation are assumptions;
-the \OnewebMinElevSensDeg$^\circ$ result uses the as-deployed geometry. (g) The
-primary Starlink power is the regulatory PFD maximum; Table~\ref{tab:cases}
-bounds lower power. (h) The as-deployed geometry is a single snapshot, so its
-confidence intervals reflect temporal variation within that snapshot, not
-variation across snapshots.
+(a) Propagation is clear-sky and the rate map is a margin-reduced Shannon bound;
+with rain fade and discrete modulation the availability gate and $\Delta U_g$ would
+be evaluated nearer to threshold. (b) The S.1428 dish pattern approximates flat
+panels, which also lose gain when scanning toward low elevation, a hidden cost of
+low-elevation handoff. (c) Non-serving interferers are nadir-pointing. (d) The
+baseline uses the highest-elevation satellite and handoff ignores satellite
+capacity. (e) Only the user downlink is modeled. (f) The OneWeb EIRP is taken
+from~\cite{delportillo2019}; its constant EIRP from fixed beams and the
+\StationMinElevDeg$^\circ$ mask are assumptions. (g) The equal split of the Gen2
+grant and the launch-date classification at 53$^\circ$ are assumptions;
+the analytic model and the geometric-screen comparison use the Gen1 Walker shells, and the
+\OnewebMinElevSensDeg$^\circ$ visibility diagnosis uses an earlier snapshot of the
+same OneWeb constellation. (h) Handoff is instantaneous and without interruption at the
+\TimeStepS~s step of the simulation, so we cannot resolve faster switching or the
+outage a real handoff causes. (i) Without drag, $J_2$ propagation drifts from SGP4
+for individual Starlink satellites after the first days, mostly along track, so
+later days act as further phasings of the observed shells rather than forecasts;
+the visible-count and event statistics we use show no trend across days.
+As-deployed intervals describe day-to-day variation conditional on one snapshot;
+tests found no detectable dependence between days, but eight days give them little
+power. As-filed intervals cover only the uncertainty from the sampled phasings. All statements hold under
+the modeled assumptions.
 
 \section{Conclusion}
-The FCC's NGSO sharing rule promises an earlier-round system that a later-round
-system will cost it at most \DegradeLimitPct\% of throughput and
-\UnavailLimitPct\% of availability. For the Starlink--OneWeb Ku user downlink, we
-find that the rule's trigger fires often, up to
-\BindDepWorstPct$\pm$\BindDepWorstCi\% of the time for a OneWeb user and
-\BurdenRatioDep$\times$ more than for a Starlink user. Without handoff, Starlink
-Gen2 at its filed maximum breaks both limits, and only its lower Gen1 design
-power brings throughput back within the limit. With handoff, both limits are
-met, unless OneWeb's own filed \OnewebMinElevSensDeg$^\circ$ elevation mask
-removes the satellites it would hand off to. The protection the rule promises is
-therefore delivered by satellite diversity and constrained by the victim's
-design, neither of which the rule mentions. Future work will extend the analysis
-to gateway links, capacity-limited diversity, and new co-frequency entrants.
+The FCC's NGSO sharing rule promises an incumbent that an entrant will cost it at
+most \DegradeLimitPct\% of throughput and \UnavailLimitPct\% of availability. For
+OneWeb and Starlink Gen2 in the Ku user downlink, the rule's trigger fires up to
+\BindDepWorstPct$\pm$\BindDepWorstCi\% of the time for a OneWeb user, mostly on
+the protected system. In a compatibility analysis without handoff, Starlink at its filed
+maximum exceeds both limits; only its lower Gen1 design power meets them. Under a
+25$^\circ$ mask and unrestricted switching, both handoff policies we compare
+restore availability; as deployed, of these two only the rate-maximizing policy,
+which stays on an interfered satellite whenever that link is still the better
+one, also meets the throughput limit, whereas a victim that dodges every in-line
+event still loses more than the limit allows. Whether \S\,25.261(d) protects an incumbent therefore
+depends on the incumbent's handoff policy, which compatibility analyses may only
+assume. Future work will add rain fade, gateway links, and capacity-limited
+handoff.
 
 \section*{Acknowledgment}
 This material is based upon work supported in part by NSF under Awards
