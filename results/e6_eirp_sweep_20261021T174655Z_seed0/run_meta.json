@@ -1,0 +1,19 @@
+{
+  "experiment": "e6_eirp_sweep",
+  "seed": 0,
+  "timestamp_utc": "20261021T174655Z",
+  "git_hash": "a6cde29661edc8dd7c9bc6de1659e15ffe6736e6",
+  "git_worktree": {
+    "dirty": false,
+    "modified_files": [],
+    "diff_sha256": null
+  },
+  "compute_dtype": "float32",
+  "python": "3.11.10",
+  "platform": "Linux-6.18.40.1-microsoft-standard-WSL2-x86_64-with-glibc2.35",
+  "argv": [
+    "experiments/e6_eirp_sweep.py",
+    "--starlink-generation",
+    "gen2"
+  ]
+}

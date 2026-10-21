@@ -431,9 +431,8 @@ def section_claims(old: dict, new: dict, texts: dict) -> list[str]:
     ]
     L = ["## 5. Change log: paper sentences that depend on a verdict", "",
          "Each claim of the text is tested against the overlapping and the non-overlapping "
-         "macro sets with the paper's own rule (Sec. 4).  Line numbers: the Phase 4 Overleaf "
-         "rewrite (`paper/main_overleaf4.tex`, copied from `ngsi_wcnc2027_overleaf(4).zip`) "
-         "and the repository's unedited `paper/main.tex`.", "",
+         "macro sets with the paper's own rule (Sec. 4).  Line numbers in: "
+         + ", ".join(f"`{p.relative_to(REPO).as_posix()}`" for p in texts) + ".", "",
          md_table(claims), ""]
     un = _unres_unconstrained()
     L += ["'No admissible alternate was ever missing' (unconstrained policies, qualified "

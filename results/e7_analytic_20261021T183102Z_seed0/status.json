@@ -1,0 +1,33 @@
+{
+  "experiment": "e7_analytic",
+  "status": "ok",
+  "n_grid": 240,
+  "min_elevation_deg": 25.0,
+  "earth_radius_km": 6371.0,
+  "starlink_generation": "gen2",
+  "e4_run": "e4_dtt_20261021T174655Z_seed0",
+  "theta_star_deg": {
+    "STARLINK<-ONEWEB@0.45m": NaN,
+    "STARLINK<-ONEWEB@0.6m": NaN,
+    "STARLINK<-ONEWEB@0.75m": NaN,
+    "ONEWEB<-STARLINK@0.45m": 13.875601880609203,
+    "ONEWEB<-STARLINK@0.6m": 13.875601880609203,
+    "ONEWEB<-STARLINK@0.75m": 13.875601880609203
+  },
+  "theta_star_aperture_spread_deg": 0.0,
+  "comparison": {
+    "0.45": {
+      "max_abs_err": 0.07756179935476552,
+      "max_rel_err": 0.9391795333773745
+    },
+    "0.6": {
+      "max_abs_err": 0.07756179935476552,
+      "max_rel_err": 0.9391795333773745
+    },
+    "0.75": {
+      "max_abs_err": 0.07756179935476552,
+      "max_rel_err": 0.9391795333773745
+    }
+  },
+  "note": "analytic model assumes PFD-constant interferer steering and range-independent I/N; only those pairs are reported"
+}

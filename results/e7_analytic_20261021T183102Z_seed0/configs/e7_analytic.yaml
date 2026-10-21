@@ -1,0 +1,19 @@
+# Experiment 7 - analytic validation of the co-located in-line event fraction.
+name: e7_analytic
+description: >
+  Closed-form reconstruction of the E4 co-located Delta T/T event fraction vs
+  latitude (src/ngsi/analytic.py), for the PFD-constant interferer direction.
+  theta* is the off-axis angle at which the victim ITU-R S.1428 gain meets the
+  I/N = -12.2 dB threshold; the event probability then follows from the
+  nearest-of-N serving-satellite law built on the validated Walker latitude
+  density.  The model is NOT tuned to the simulator: the analytic and simulated
+  curves are written side by side (summary_compare.csv) with their discrepancies.
+constellations: [STARLINK, KUIPER, ONEWEB]
+stations: stations.yaml
+seed: 0
+params:
+  n_grid: 240        # quadrature grid for the separation-probability integral
+  # Starlink Walker shells for the model and the E4 run it is compared with
+  # (Phase 4: the FCC 22-91 Gen2 shells, as in E4).  See ngsi.runner.
+  starlink_generation: gen2
+  source: ASSUMED

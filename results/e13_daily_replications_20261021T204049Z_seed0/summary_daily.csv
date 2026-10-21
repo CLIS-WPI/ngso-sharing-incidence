@@ -1,0 +1,593 @@
+experiment,generation,run,metric,day,value,case
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,event fraction at peak latitude 50 deg,0,0.20691550925925928,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,event fraction at peak latitude 50 deg,1,0.203125,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,event fraction at peak latitude 50 deg,2,0.20379050925925926,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,event fraction at peak latitude 50 deg,3,0.20300925925925928,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,event fraction at peak latitude 50 deg,4,0.20604745370370373,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,event fraction at peak latitude 50 deg,5,0.20379050925925926,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,event fraction at peak latitude 50 deg,6,0.20341435185185186,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,event fraction at peak latitude 50 deg,7,0.19956597222222222,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"degradation, no handoff",0,0.036897246235872316,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"degradation, no handoff",1,0.03740005580829875,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"degradation, no handoff",2,0.037848699594730806,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"degradation, no handoff",3,0.03613475023913493,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"degradation, no handoff",4,0.03875824559721652,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"degradation, no handoff",5,0.03764837164204171,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"degradation, no handoff",6,0.03687777255974045,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"degradation, no handoff",7,0.03787624632037756,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"availability change, no handoff",0,0.010648148148148148,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"availability change, no handoff",1,0.010300925925925927,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"availability change, no handoff",2,0.012037037037037037,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"availability change, no handoff",3,0.010416666666666668,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"availability change, no handoff",4,0.011805555555555555,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"availability change, no handoff",5,0.01087962962962963,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"availability change, no handoff",6,0.010763888888888889,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"availability change, no handoff",7,0.012152777777777778,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"degradation, event-avoiding",0,0.030490252135011664,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"degradation, event-avoiding",1,0.030132920341049974,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"degradation, event-avoiding",2,0.031016651812051488,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"degradation, event-avoiding",3,0.030944890338200248,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"degradation, event-avoiding",4,0.03137108835660285,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"degradation, event-avoiding",5,0.031225175310225284,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"degradation, event-avoiding",6,0.031322580660554045,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"degradation, event-avoiding",7,0.030750157648479326,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"availability change, event-avoiding",0,0.0,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"availability change, event-avoiding",1,0.0,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"availability change, event-avoiding",2,0.0,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"availability change, event-avoiding",3,0.0,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"availability change, event-avoiding",4,0.0,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"availability change, event-avoiding",5,0.0,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"availability change, event-avoiding",6,0.0,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"availability change, event-avoiding",7,0.0,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"degradation, rate-maximizing",0,0.020334078659655086,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"degradation, rate-maximizing",1,0.020378008542890957,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"degradation, rate-maximizing",2,0.020586471663399886,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"degradation, rate-maximizing",3,0.020471235757745565,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"degradation, rate-maximizing",4,0.020794955395044057,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"degradation, rate-maximizing",5,0.020567238802773224,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"degradation, rate-maximizing",6,0.020690959144380128,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"degradation, rate-maximizing",7,0.020301688550223962,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"availability change, rate-maximizing",0,0.0,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"availability change, rate-maximizing",1,0.0,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"availability change, rate-maximizing",2,0.0,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"availability change, rate-maximizing",3,0.0,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"availability change, rate-maximizing",4,0.0,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"availability change, rate-maximizing",5,0.0,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"availability change, rate-maximizing",6,0.0,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"availability change, rate-maximizing",7,0.0,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"degradation, legacy",0,0.006486170677973968,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"degradation, legacy",1,0.006466229225492337,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"degradation, legacy",2,0.0065003071942177915,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"degradation, legacy",3,0.006436915052569381,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"degradation, legacy",4,0.006466773757146882,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"degradation, legacy",5,0.006465559829554435,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"degradation, legacy",6,0.0064946292218033275,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"degradation, legacy",7,0.006424101776968616,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"availability change, legacy",0,0.0,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"availability change, legacy",1,0.0,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"availability change, legacy",2,0.0,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"availability change, legacy",3,0.0,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"availability change, legacy",4,0.0,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"availability change, legacy",5,0.0,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"availability change, legacy",6,0.0,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"availability change, legacy",7,0.0,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"degradation, event-avoiding K=2",0,0.031513472814926446,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"degradation, event-avoiding K=2",1,0.030732254453991303,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"degradation, event-avoiding K=2",2,0.03190063125214393,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"degradation, event-avoiding K=2",3,0.03210543750453021,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"degradation, event-avoiding K=2",4,0.03262534075183887,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"degradation, event-avoiding K=2",5,0.032624837046601574,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"degradation, event-avoiding K=2",6,0.03243725012047938,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"degradation, event-avoiding K=2",7,0.031564350233649674,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"availability change, event-avoiding K=2",0,0.001388888888888889,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"availability change, event-avoiding K=2",1,0.0011574074074074073,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"availability change, event-avoiding K=2",2,0.0011574074074074073,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"availability change, event-avoiding K=2",3,0.0016203703703703703,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"availability change, event-avoiding K=2",4,0.0015046296296296296,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"availability change, event-avoiding K=2",5,0.0016203703703703703,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"availability change, event-avoiding K=2",6,0.0016203703703703703,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"availability change, event-avoiding K=2",7,0.001388888888888889,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"degradation, event-avoiding K=3",0,0.030491681815380645,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"degradation, event-avoiding K=3",1,0.030138193621978338,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"degradation, event-avoiding K=3",2,0.03101205384807637,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"degradation, event-avoiding K=3",3,0.03094177090990813,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"degradation, event-avoiding K=3",4,0.031373718304130715,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"degradation, event-avoiding K=3",5,0.031252990908056555,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"degradation, event-avoiding K=3",6,0.031312362141052597,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"degradation, event-avoiding K=3",7,0.030895790168353754,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"availability change, event-avoiding K=3",0,0.0002314814814814815,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"availability change, event-avoiding K=3",1,0.0002314814814814815,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"availability change, event-avoiding K=3",2,0.00011574074074074075,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"availability change, event-avoiding K=3",3,0.00011574074074074075,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"availability change, event-avoiding K=3",4,0.0002314814814814815,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"availability change, event-avoiding K=3",5,0.00011574074074074075,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"availability change, event-avoiding K=3",6,0.00011574074074074075,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"availability change, event-avoiding K=3",7,0.0002314814814814815,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"degradation, event-avoiding N=10 s",0,0.030490252135011664,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"degradation, event-avoiding N=10 s",1,0.030132920341049974,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"degradation, event-avoiding N=10 s",2,0.031016651812051488,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"degradation, event-avoiding N=10 s",3,0.030944890338200248,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"degradation, event-avoiding N=10 s",4,0.03137108835660285,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"degradation, event-avoiding N=10 s",5,0.031225175310225284,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"degradation, event-avoiding N=10 s",6,0.031322580660554045,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"degradation, event-avoiding N=10 s",7,0.030750157648479326,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"availability change, event-avoiding N=10 s",0,0.0,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"availability change, event-avoiding N=10 s",1,0.0,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"availability change, event-avoiding N=10 s",2,0.0,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"availability change, event-avoiding N=10 s",3,0.0,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"availability change, event-avoiding N=10 s",4,0.0,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"availability change, event-avoiding N=10 s",5,0.0,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"availability change, event-avoiding N=10 s",6,0.0,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"availability change, event-avoiding N=10 s",7,0.0,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"degradation, event-avoiding N=60 s",0,0.053071950733918016,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"degradation, event-avoiding N=60 s",1,0.052433994049107424,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"degradation, event-avoiding N=60 s",2,0.05203733472540151,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"degradation, event-avoiding N=60 s",3,0.052551996520939115,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"degradation, event-avoiding N=60 s",4,0.05281453960243876,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"degradation, event-avoiding N=60 s",5,0.053940227144433917,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"degradation, event-avoiding N=60 s",6,0.053248306524606215,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"degradation, event-avoiding N=60 s",7,0.05276964927627159,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"availability change, event-avoiding N=60 s",0,0.004166666666666667,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"availability change, event-avoiding N=60 s",1,0.003935185185185185,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"availability change, event-avoiding N=60 s",2,0.005208333333333333,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"availability change, event-avoiding N=60 s",3,0.004629629629629629,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"availability change, event-avoiding N=60 s",4,0.0042824074074074075,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"availability change, event-avoiding N=60 s",5,0.0045138888888888885,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"availability change, event-avoiding N=60 s",6,0.004398148148148148,
+e5,gen2,e5_as_deployed_20261021T174655Z_seed0,"availability change, event-avoiding N=60 s",7,0.005555555555555556,
+e5,gen1,e5_as_deployed_20261021T192749Z_seed0,event fraction at peak latitude 65 deg,0,0.20208333333333334,
+e5,gen1,e5_as_deployed_20261021T192749Z_seed0,event fraction at peak latitude 65 deg,1,0.20517939814814817,
+e5,gen1,e5_as_deployed_20261021T192749Z_seed0,event fraction at peak latitude 65 deg,2,0.20341435185185186,
+e5,gen1,e5_as_deployed_20261021T192749Z_seed0,event fraction at peak latitude 65 deg,3,0.20026041666666666,
+e5,gen1,e5_as_deployed_20261021T192749Z_seed0,"degradation, no handoff",0,0.037233787835651344,
+e5,gen1,e5_as_deployed_20261021T192749Z_seed0,"degradation, no handoff",1,0.03616097528367279,
+e5,gen1,e5_as_deployed_20261021T192749Z_seed0,"degradation, no handoff",2,0.03710362657242072,
+e5,gen1,e5_as_deployed_20261021T192749Z_seed0,"degradation, no handoff",3,0.03597996636904344,
+e5,gen1,e5_as_deployed_20261021T192749Z_seed0,"availability change, no handoff",0,0.011574074074074075,
+e5,gen1,e5_as_deployed_20261021T192749Z_seed0,"availability change, no handoff",1,0.011921296296296296,
+e5,gen1,e5_as_deployed_20261021T192749Z_seed0,"availability change, no handoff",2,0.010763888888888889,
+e5,gen1,e5_as_deployed_20261021T192749Z_seed0,"availability change, no handoff",3,0.010532407407407407,
+e5,gen1,e5_as_deployed_20261021T192749Z_seed0,"degradation, event-avoiding",0,0.026300082889128995,
+e5,gen1,e5_as_deployed_20261021T192749Z_seed0,"degradation, event-avoiding",1,0.027311773180894505,
+e5,gen1,e5_as_deployed_20261021T192749Z_seed0,"degradation, event-avoiding",2,0.02673930976115324,
+e5,gen1,e5_as_deployed_20261021T192749Z_seed0,"degradation, event-avoiding",3,0.02663081256738864,
+e5,gen1,e5_as_deployed_20261021T192749Z_seed0,"availability change, event-avoiding",0,0.0,
+e5,gen1,e5_as_deployed_20261021T192749Z_seed0,"availability change, event-avoiding",1,0.0,
+e5,gen1,e5_as_deployed_20261021T192749Z_seed0,"availability change, event-avoiding",2,0.0,
+e5,gen1,e5_as_deployed_20261021T192749Z_seed0,"availability change, event-avoiding",3,0.0,
+e5,gen1,e5_as_deployed_20261021T192749Z_seed0,"degradation, rate-maximizing",0,0.018373474242365684,
+e5,gen1,e5_as_deployed_20261021T192749Z_seed0,"degradation, rate-maximizing",1,0.01896438857587024,
+e5,gen1,e5_as_deployed_20261021T192749Z_seed0,"degradation, rate-maximizing",2,0.01860364046485119,
+e5,gen1,e5_as_deployed_20261021T192749Z_seed0,"degradation, rate-maximizing",3,0.018636780127216146,
+e5,gen1,e5_as_deployed_20261021T192749Z_seed0,"availability change, rate-maximizing",0,0.0,
+e5,gen1,e5_as_deployed_20261021T192749Z_seed0,"availability change, rate-maximizing",1,0.0,
+e5,gen1,e5_as_deployed_20261021T192749Z_seed0,"availability change, rate-maximizing",2,0.0,
+e5,gen1,e5_as_deployed_20261021T192749Z_seed0,"availability change, rate-maximizing",3,0.0,
+e5,gen1,e5_as_deployed_20261021T192749Z_seed0,"degradation, legacy",0,0.006036604485618269,
+e5,gen1,e5_as_deployed_20261021T192749Z_seed0,"degradation, legacy",1,0.006032939791322578,
+e5,gen1,e5_as_deployed_20261021T192749Z_seed0,"degradation, legacy",2,0.006010704920710985,
+e5,gen1,e5_as_deployed_20261021T192749Z_seed0,"degradation, legacy",3,0.006034616138200888,
+e5,gen1,e5_as_deployed_20261021T192749Z_seed0,"availability change, legacy",0,0.0,
+e5,gen1,e5_as_deployed_20261021T192749Z_seed0,"availability change, legacy",1,0.0,
+e5,gen1,e5_as_deployed_20261021T192749Z_seed0,"availability change, legacy",2,0.0,
+e5,gen1,e5_as_deployed_20261021T192749Z_seed0,"availability change, legacy",3,0.0,
+e5,all,e5_as_deployed_20261021T194046Z_seed0,event fraction at peak latitude 50 deg,0,0.23932291666666666,
+e5,all,e5_as_deployed_20261021T194046Z_seed0,event fraction at peak latitude 50 deg,1,0.23466435185185186,
+e5,all,e5_as_deployed_20261021T194046Z_seed0,event fraction at peak latitude 50 deg,2,0.23619791666666667,
+e5,all,e5_as_deployed_20261021T194046Z_seed0,event fraction at peak latitude 50 deg,3,0.23825231481481482,
+e5,all,e5_as_deployed_20261021T194046Z_seed0,"degradation, no handoff",0,0.04254353030079128,
+e5,all,e5_as_deployed_20261021T194046Z_seed0,"degradation, no handoff",1,0.04070624740336348,
+e5,all,e5_as_deployed_20261021T194046Z_seed0,"degradation, no handoff",2,0.04103749710235827,
+e5,all,e5_as_deployed_20261021T194046Z_seed0,"degradation, no handoff",3,0.042541329818810536,
+e5,all,e5_as_deployed_20261021T194046Z_seed0,"availability change, no handoff",0,0.012268518518518519,
+e5,all,e5_as_deployed_20261021T194046Z_seed0,"availability change, no handoff",1,0.011921296296296296,
+e5,all,e5_as_deployed_20261021T194046Z_seed0,"availability change, no handoff",2,0.010763888888888889,
+e5,all,e5_as_deployed_20261021T194046Z_seed0,"availability change, no handoff",3,0.011226851851851852,
+e5,all,e5_as_deployed_20261021T194046Z_seed0,"degradation, event-avoiding",0,0.03437549728292599,
+e5,all,e5_as_deployed_20261021T194046Z_seed0,"degradation, event-avoiding",1,0.03401729847472945,
+e5,all,e5_as_deployed_20261021T194046Z_seed0,"degradation, event-avoiding",2,0.0340485425223056,
+e5,all,e5_as_deployed_20261021T194046Z_seed0,"degradation, event-avoiding",3,0.033688869559789336,
+e5,all,e5_as_deployed_20261021T194046Z_seed0,"availability change, event-avoiding",0,0.0,
+e5,all,e5_as_deployed_20261021T194046Z_seed0,"availability change, event-avoiding",1,0.0,
+e5,all,e5_as_deployed_20261021T194046Z_seed0,"availability change, event-avoiding",2,0.0,
+e5,all,e5_as_deployed_20261021T194046Z_seed0,"availability change, event-avoiding",3,0.0,
+e5,all,e5_as_deployed_20261021T194046Z_seed0,"degradation, rate-maximizing",0,0.022832042291897614,
+e5,all,e5_as_deployed_20261021T194046Z_seed0,"degradation, rate-maximizing",1,0.023039395928703854,
+e5,all,e5_as_deployed_20261021T194046Z_seed0,"degradation, rate-maximizing",2,0.022988149934331514,
+e5,all,e5_as_deployed_20261021T194046Z_seed0,"degradation, rate-maximizing",3,0.023080891733007425,
+e5,all,e5_as_deployed_20261021T194046Z_seed0,"availability change, rate-maximizing",0,0.0,
+e5,all,e5_as_deployed_20261021T194046Z_seed0,"availability change, rate-maximizing",1,0.0,
+e5,all,e5_as_deployed_20261021T194046Z_seed0,"availability change, rate-maximizing",2,0.0,
+e5,all,e5_as_deployed_20261021T194046Z_seed0,"availability change, rate-maximizing",3,0.0,
+e5,all,e5_as_deployed_20261021T194046Z_seed0,"degradation, legacy",0,0.006685240331101516,
+e5,all,e5_as_deployed_20261021T194046Z_seed0,"degradation, legacy",1,0.0068636236244992155,
+e5,all,e5_as_deployed_20261021T194046Z_seed0,"degradation, legacy",2,0.006772200730332134,
+e5,all,e5_as_deployed_20261021T194046Z_seed0,"degradation, legacy",3,0.006759198038149172,
+e5,all,e5_as_deployed_20261021T194046Z_seed0,"availability change, legacy",0,0.0,
+e5,all,e5_as_deployed_20261021T194046Z_seed0,"availability change, legacy",1,0.0,
+e5,all,e5_as_deployed_20261021T194046Z_seed0,"availability change, legacy",2,0.0,
+e5,all,e5_as_deployed_20261021T194046Z_seed0,"availability change, legacy",3,0.0,
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, no handoff",0,0.02365186759531901,delportillo_common
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, no handoff",1,0.024020941410140217,delportillo_common
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, no handoff",2,0.02462856696598048,delportillo_common
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, no handoff",3,0.023058938741236767,delportillo_common
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, no handoff",4,0.025089518261645738,delportillo_common
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, no handoff",5,0.02433854952054404,delportillo_common
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, no handoff",6,0.023703471586515312,delportillo_common
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, no handoff",7,0.02465079107791024,delportillo_common
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, no handoff",0,0.005902777777777778,delportillo_common
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, no handoff",1,0.005555555555555556,delportillo_common
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, no handoff",2,0.006365740740740741,delportillo_common
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, no handoff",3,0.005671296296296297,delportillo_common
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, no handoff",4,0.006365740740740741,delportillo_common
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, no handoff",5,0.005902777777777778,delportillo_common
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, no handoff",6,0.005671296296296297,delportillo_common
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, no handoff",7,0.005787037037037038,delportillo_common
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, event-avoiding",0,0.018205532798635682,delportillo_common
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, event-avoiding",1,0.0183706977875866,delportillo_common
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, event-avoiding",2,0.018542215995936417,delportillo_common
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, event-avoiding",3,0.0187212811605314,delportillo_common
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, event-avoiding",4,0.018825755770605745,delportillo_common
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, event-avoiding",5,0.018933743798377645,delportillo_common
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, event-avoiding",6,0.01890064361407473,delportillo_common
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, event-avoiding",7,0.01833769714626532,delportillo_common
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, event-avoiding",0,0.0,delportillo_common
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, event-avoiding",1,0.0,delportillo_common
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, event-avoiding",2,0.0,delportillo_common
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, event-avoiding",3,0.0,delportillo_common
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, event-avoiding",4,0.0,delportillo_common
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, event-avoiding",5,0.0,delportillo_common
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, event-avoiding",6,0.0,delportillo_common
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, event-avoiding",7,0.0,delportillo_common
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, rate-maximizing",0,0.01224613924141904,delportillo_common
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, rate-maximizing",1,0.012238931261389419,delportillo_common
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, rate-maximizing",2,0.012266084115768239,delportillo_common
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, rate-maximizing",3,0.01233841250646217,delportillo_common
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, rate-maximizing",4,0.012551846829172986,delportillo_common
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, rate-maximizing",5,0.012149951701662554,delportillo_common
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, rate-maximizing",6,0.012425882800492505,delportillo_common
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, rate-maximizing",7,0.012107138934197015,delportillo_common
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, rate-maximizing",0,0.0,delportillo_common
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, rate-maximizing",1,0.0,delportillo_common
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, rate-maximizing",2,0.0,delportillo_common
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, rate-maximizing",3,0.0,delportillo_common
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, rate-maximizing",4,0.0,delportillo_common
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, rate-maximizing",5,0.0,delportillo_common
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, rate-maximizing",6,0.0,delportillo_common
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, rate-maximizing",7,0.0,delportillo_common
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, no handoff",0,0.04577682521686266,noise_assumed
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, no handoff",1,0.046502142574504246,noise_assumed
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, no handoff",2,0.04668887378167563,noise_assumed
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, no handoff",3,0.04499101569629471,noise_assumed
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, no handoff",4,0.047870345555626526,noise_assumed
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, no handoff",5,0.04655435214124637,noise_assumed
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, no handoff",6,0.04572604541002068,noise_assumed
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, no handoff",7,0.04667516438710462,noise_assumed
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, no handoff",0,0.010532407407407407,noise_assumed
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, no handoff",1,0.010069444444444445,noise_assumed
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, no handoff",2,0.011921296296296296,noise_assumed
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, no handoff",3,0.010185185185185186,noise_assumed
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, no handoff",4,0.011458333333333334,noise_assumed
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, no handoff",5,0.010416666666666668,noise_assumed
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, no handoff",6,0.010648148148148148,noise_assumed
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, no handoff",7,0.012037037037037037,noise_assumed
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, event-avoiding",0,0.037021991907383645,noise_assumed
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, event-avoiding",1,0.03681948107894206,noise_assumed
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, event-avoiding",2,0.037620494709660224,noise_assumed
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, event-avoiding",3,0.03765573040605186,noise_assumed
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, event-avoiding",4,0.037924384999557414,noise_assumed
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, event-avoiding",5,0.03760275426049553,noise_assumed
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, event-avoiding",6,0.03788037189348614,noise_assumed
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, event-avoiding",7,0.03724119182165808,noise_assumed
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, event-avoiding",0,0.0,noise_assumed
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, event-avoiding",1,0.0,noise_assumed
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, event-avoiding",2,0.0,noise_assumed
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, event-avoiding",3,0.0,noise_assumed
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, event-avoiding",4,0.0,noise_assumed
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, event-avoiding",5,0.0,noise_assumed
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, event-avoiding",6,0.0,noise_assumed
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, event-avoiding",7,0.0,noise_assumed
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, rate-maximizing",0,0.024616503277423596,noise_assumed
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, rate-maximizing",1,0.024695859331971493,noise_assumed
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, rate-maximizing",2,0.025073183332539162,noise_assumed
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, rate-maximizing",3,0.025006325028250065,noise_assumed
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, rate-maximizing",4,0.02512294820379435,noise_assumed
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, rate-maximizing",5,0.025041314927590652,noise_assumed
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, rate-maximizing",6,0.02514592226629153,noise_assumed
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, rate-maximizing",7,0.024697603958927394,noise_assumed
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, rate-maximizing",0,0.0,noise_assumed
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, rate-maximizing",1,0.0,noise_assumed
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, rate-maximizing",2,0.0,noise_assumed
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, rate-maximizing",3,0.0,noise_assumed
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, rate-maximizing",4,0.0,noise_assumed
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, rate-maximizing",5,0.0,noise_assumed
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, rate-maximizing",6,0.0,noise_assumed
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, rate-maximizing",7,0.0,noise_assumed
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, no handoff",0,0.036913657080443585,oneweb_min_elev_55
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, no handoff",1,0.03742376434175487,oneweb_min_elev_55
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, no handoff",2,0.03785157518809401,oneweb_min_elev_55
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, no handoff",3,0.036145370879286265,oneweb_min_elev_55
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, no handoff",4,0.03876932785688725,oneweb_min_elev_55
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, no handoff",5,0.037676770250284375,oneweb_min_elev_55
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, no handoff",6,0.03689490527144179,oneweb_min_elev_55
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, no handoff",7,0.03788353046408066,oneweb_min_elev_55
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, no handoff",0,0.010532407407407407,oneweb_min_elev_55
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, no handoff",1,0.010300925925925927,oneweb_min_elev_55
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, no handoff",2,0.012037037037037037,oneweb_min_elev_55
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, no handoff",3,0.010416666666666668,oneweb_min_elev_55
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, no handoff",4,0.011805555555555555,oneweb_min_elev_55
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, no handoff",5,0.01087962962962963,oneweb_min_elev_55
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, no handoff",6,0.010763888888888889,oneweb_min_elev_55
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, no handoff",7,0.012152777777777778,oneweb_min_elev_55
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, event-avoiding",0,0.028877332804966627,oneweb_min_elev_55
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, event-avoiding",1,0.02768121982578109,oneweb_min_elev_55
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, event-avoiding",2,0.028088842908322142,oneweb_min_elev_55
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, event-avoiding",3,0.02716235042633952,oneweb_min_elev_55
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, event-avoiding",4,0.027802086017773897,oneweb_min_elev_55
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, event-avoiding",5,0.026777938736093132,oneweb_min_elev_55
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, event-avoiding",6,0.027953269083032417,oneweb_min_elev_55
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, event-avoiding",7,0.028226433741621704,oneweb_min_elev_55
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, event-avoiding",0,0.0061342592592592594,oneweb_min_elev_55
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, event-avoiding",1,0.005324074074074074,oneweb_min_elev_55
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, event-avoiding",2,0.005671296296296297,oneweb_min_elev_55
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, event-avoiding",3,0.004976851851851852,oneweb_min_elev_55
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, event-avoiding",4,0.004976851851851852,oneweb_min_elev_55
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, event-avoiding",5,0.005439814814814815,oneweb_min_elev_55
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, event-avoiding",6,0.005555555555555556,oneweb_min_elev_55
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, event-avoiding",7,0.005671296296296297,oneweb_min_elev_55
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, rate-maximizing",0,0.02727738857054951,oneweb_min_elev_55
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, rate-maximizing",1,0.026036185236264053,oneweb_min_elev_55
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, rate-maximizing",2,0.0265275801216589,oneweb_min_elev_55
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, rate-maximizing",3,0.02545723372558506,oneweb_min_elev_55
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, rate-maximizing",4,0.026310046050627367,oneweb_min_elev_55
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, rate-maximizing",5,0.02523853426010403,oneweb_min_elev_55
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, rate-maximizing",6,0.026358269133505363,oneweb_min_elev_55
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, rate-maximizing",7,0.02668988909699499,oneweb_min_elev_55
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, rate-maximizing",0,0.0061342592592592594,oneweb_min_elev_55
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, rate-maximizing",1,0.005324074074074074,oneweb_min_elev_55
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, rate-maximizing",2,0.005671296296296297,oneweb_min_elev_55
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, rate-maximizing",3,0.004976851851851852,oneweb_min_elev_55
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, rate-maximizing",4,0.004976851851851852,oneweb_min_elev_55
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, rate-maximizing",5,0.005439814814814815,oneweb_min_elev_55
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, rate-maximizing",6,0.005555555555555556,oneweb_min_elev_55
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, rate-maximizing",7,0.005671296296296297,oneweb_min_elev_55
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, no handoff",0,0.036897246235872316,primary
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, no handoff",1,0.03740005580829875,primary
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, no handoff",2,0.037848699594730806,primary
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, no handoff",3,0.03613475023913493,primary
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, no handoff",4,0.03875824559721652,primary
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, no handoff",5,0.03764837164204171,primary
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, no handoff",6,0.03687777255974045,primary
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, no handoff",7,0.03787624632037756,primary
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, no handoff",0,0.010648148148148148,primary
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, no handoff",1,0.010300925925925927,primary
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, no handoff",2,0.012037037037037037,primary
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, no handoff",3,0.010416666666666668,primary
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, no handoff",4,0.011805555555555555,primary
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, no handoff",5,0.01087962962962963,primary
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, no handoff",6,0.010763888888888889,primary
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, no handoff",7,0.012152777777777778,primary
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, event-avoiding",0,0.030490252135011664,primary
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, event-avoiding",1,0.030132920341049974,primary
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, event-avoiding",2,0.031016651812051488,primary
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, event-avoiding",3,0.030944890338200248,primary
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, event-avoiding",4,0.03137108835660285,primary
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, event-avoiding",5,0.031225175310225284,primary
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, event-avoiding",6,0.031322580660554045,primary
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, event-avoiding",7,0.030750157648479326,primary
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, event-avoiding",0,0.0,primary
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, event-avoiding",1,0.0,primary
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, event-avoiding",2,0.0,primary
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, event-avoiding",3,0.0,primary
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, event-avoiding",4,0.0,primary
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, event-avoiding",5,0.0,primary
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, event-avoiding",6,0.0,primary
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, event-avoiding",7,0.0,primary
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, rate-maximizing",0,0.020334078659655086,primary
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, rate-maximizing",1,0.020378008542890957,primary
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, rate-maximizing",2,0.020586471663399886,primary
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, rate-maximizing",3,0.020471235757745565,primary
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, rate-maximizing",4,0.020794955395044057,primary
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, rate-maximizing",5,0.020567238802773224,primary
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, rate-maximizing",6,0.020690959144380128,primary
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, rate-maximizing",7,0.020301688550223962,primary
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, rate-maximizing",0,0.0,primary
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, rate-maximizing",1,0.0,primary
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, rate-maximizing",2,0.0,primary
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, rate-maximizing",3,0.0,primary
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, rate-maximizing",4,0.0,primary
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, rate-maximizing",5,0.0,primary
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, rate-maximizing",6,0.0,primary
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, rate-maximizing",7,0.0,primary
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, no handoff",0,0.09936153134113246,starlink_constant_eirp
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, no handoff",1,0.10065531296119068,starlink_constant_eirp
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, no handoff",2,0.09979231232025476,starlink_constant_eirp
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, no handoff",3,0.09894809945306982,starlink_constant_eirp
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, no handoff",4,0.10248757764585525,starlink_constant_eirp
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, no handoff",5,0.09979415463468477,starlink_constant_eirp
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, no handoff",6,0.09850801071351678,starlink_constant_eirp
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, no handoff",7,0.09946738043217429,starlink_constant_eirp
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, no handoff",0,0.01840277777777778,starlink_constant_eirp
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, no handoff",1,0.019328703703703706,starlink_constant_eirp
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, no handoff",2,0.020023148148148148,starlink_constant_eirp
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, no handoff",3,0.017592592592592594,starlink_constant_eirp
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, no handoff",4,0.019791666666666666,starlink_constant_eirp
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, no handoff",5,0.01898148148148148,starlink_constant_eirp
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, no handoff",6,0.018171296296296297,starlink_constant_eirp
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, no handoff",7,0.019097222222222224,starlink_constant_eirp
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, event-avoiding",0,0.08499078280822381,starlink_constant_eirp
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, event-avoiding",1,0.08520947700973935,starlink_constant_eirp
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, event-avoiding",2,0.084888432285113,starlink_constant_eirp
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, event-avoiding",3,0.08536011946342426,starlink_constant_eirp
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, event-avoiding",4,0.0863479418863452,starlink_constant_eirp
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, event-avoiding",5,0.08596222138863219,starlink_constant_eirp
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, event-avoiding",6,0.0865192268687146,starlink_constant_eirp
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, event-avoiding",7,0.08525131814403597,starlink_constant_eirp
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, event-avoiding",0,0.0,starlink_constant_eirp
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, event-avoiding",1,0.0,starlink_constant_eirp
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, event-avoiding",2,0.0,starlink_constant_eirp
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, event-avoiding",3,0.0,starlink_constant_eirp
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, event-avoiding",4,0.0,starlink_constant_eirp
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, event-avoiding",5,0.0,starlink_constant_eirp
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, event-avoiding",6,0.0,starlink_constant_eirp
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, event-avoiding",7,0.0,starlink_constant_eirp
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, rate-maximizing",0,0.05417180682036771,starlink_constant_eirp
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, rate-maximizing",1,0.054304363271164835,starlink_constant_eirp
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, rate-maximizing",2,0.05492428527948445,starlink_constant_eirp
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, rate-maximizing",3,0.054521621392863207,starlink_constant_eirp
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, rate-maximizing",4,0.05466431471088318,starlink_constant_eirp
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, rate-maximizing",5,0.0550237046486165,starlink_constant_eirp
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, rate-maximizing",6,0.054788452089115314,starlink_constant_eirp
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, rate-maximizing",7,0.054388666480175374,starlink_constant_eirp
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, rate-maximizing",0,0.0,starlink_constant_eirp
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, rate-maximizing",1,0.0,starlink_constant_eirp
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, rate-maximizing",2,0.0,starlink_constant_eirp
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, rate-maximizing",3,0.0,starlink_constant_eirp
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, rate-maximizing",4,0.0,starlink_constant_eirp
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, rate-maximizing",5,0.0,starlink_constant_eirp
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, rate-maximizing",6,0.0,starlink_constant_eirp
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, rate-maximizing",7,0.0,starlink_constant_eirp
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, no handoff",0,0.016372466923862294,starlink_gen1_design
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, no handoff",1,0.016645711329710378,starlink_gen1_design
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, no handoff",2,0.01728179794783402,starlink_gen1_design
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, no handoff",3,0.015995097969127348,starlink_gen1_design
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, no handoff",4,0.01752514682725259,starlink_gen1_design
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, no handoff",5,0.016997775239543156,starlink_gen1_design
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, no handoff",6,0.016481642171650712,starlink_gen1_design
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, no handoff",7,0.017300787799401696,starlink_gen1_design
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, no handoff",0,0.0015046296296296296,starlink_gen1_design
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, no handoff",1,0.001851851851851852,starlink_gen1_design
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, no handoff",2,0.0016203703703703705,starlink_gen1_design
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, no handoff",3,0.001388888888888889,starlink_gen1_design
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, no handoff",4,0.0015046296296296296,starlink_gen1_design
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, no handoff",5,0.0017361111111111112,starlink_gen1_design
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, no handoff",6,0.0016203703703703705,starlink_gen1_design
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, no handoff",7,0.0017361111111111112,starlink_gen1_design
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, event-avoiding",0,0.0117816448832051,starlink_gen1_design
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, event-avoiding",1,0.011715117507557715,starlink_gen1_design
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, event-avoiding",2,0.011725966838946889,starlink_gen1_design
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, event-avoiding",3,0.011766644488800826,starlink_gen1_design
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, event-avoiding",4,0.012060488393225155,starlink_gen1_design
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, event-avoiding",5,0.011810770180900931,starlink_gen1_design
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, event-avoiding",6,0.011782570087234046,starlink_gen1_design
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, event-avoiding",7,0.01166375025240396,starlink_gen1_design
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, event-avoiding",0,0.0,starlink_gen1_design
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, event-avoiding",1,0.0,starlink_gen1_design
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, event-avoiding",2,0.0,starlink_gen1_design
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, event-avoiding",3,0.0,starlink_gen1_design
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, event-avoiding",4,0.0,starlink_gen1_design
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, event-avoiding",5,0.0,starlink_gen1_design
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, event-avoiding",6,0.0,starlink_gen1_design
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, event-avoiding",7,0.0,starlink_gen1_design
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, rate-maximizing",0,0.007952570813299031,starlink_gen1_design
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, rate-maximizing",1,0.007921647672088694,starlink_gen1_design
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, rate-maximizing",2,0.007947266261529862,starlink_gen1_design
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, rate-maximizing",3,0.0080219598050979,starlink_gen1_design
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, rate-maximizing",4,0.008136731478252779,starlink_gen1_design
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, rate-maximizing",5,0.007865598917068839,starlink_gen1_design
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, rate-maximizing",6,0.008175517909399743,starlink_gen1_design
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, rate-maximizing",7,0.007824960257388325,starlink_gen1_design
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, rate-maximizing",0,0.0,starlink_gen1_design
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, rate-maximizing",1,0.0,starlink_gen1_design
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, rate-maximizing",2,0.0,starlink_gen1_design
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, rate-maximizing",3,0.0,starlink_gen1_design
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, rate-maximizing",4,0.0,starlink_gen1_design
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, rate-maximizing",5,0.0,starlink_gen1_design
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, rate-maximizing",6,0.0,starlink_gen1_design
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, rate-maximizing",7,0.0,starlink_gen1_design
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, no handoff",0,0.02182207129455871,starlink_low_end
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, no handoff",1,0.022168372411122128,starlink_low_end
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, no handoff",2,0.022790744186870993,starlink_low_end
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, no handoff",3,0.021275774535980174,starlink_low_end
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, no handoff",4,0.023192970997782947,starlink_low_end
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, no handoff",5,0.022496087662418285,starlink_low_end
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, no handoff",6,0.021886757052694605,starlink_low_end
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, no handoff",7,0.02281143687764786,starlink_low_end
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, no handoff",0,0.004861111111111111,starlink_low_end
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, no handoff",1,0.004861111111111111,starlink_low_end
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, no handoff",2,0.005208333333333334,starlink_low_end
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, no handoff",3,0.004861111111111111,starlink_low_end
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, no handoff",4,0.005092592592592593,starlink_low_end
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, no handoff",5,0.005208333333333334,starlink_low_end
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, no handoff",6,0.005092592592592593,starlink_low_end
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, no handoff",7,0.005092592592592593,starlink_low_end
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, event-avoiding",0,0.016492709054909183,starlink_low_end
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, event-avoiding",1,0.016863862370561145,starlink_low_end
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, event-avoiding",2,0.016779749009835254,starlink_low_end
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, event-avoiding",3,0.01666416250819902,starlink_low_end
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, event-avoiding",4,0.017172651872391476,starlink_low_end
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, event-avoiding",5,0.016942995112335435,starlink_low_end
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, event-avoiding",6,0.017231622307307903,starlink_low_end
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, event-avoiding",7,0.016524582809719912,starlink_low_end
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, event-avoiding",0,0.0,starlink_low_end
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, event-avoiding",1,0.0,starlink_low_end
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, event-avoiding",2,0.0,starlink_low_end
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, event-avoiding",3,0.0,starlink_low_end
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, event-avoiding",4,0.0,starlink_low_end
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, event-avoiding",5,0.0,starlink_low_end
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, event-avoiding",6,0.0,starlink_low_end
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, event-avoiding",7,0.0,starlink_low_end
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, rate-maximizing",0,0.011142313948201199,starlink_low_end
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, rate-maximizing",1,0.011135251570778548,starlink_low_end
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, rate-maximizing",2,0.011123567547782653,starlink_low_end
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, rate-maximizing",3,0.011205518976210915,starlink_low_end
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, rate-maximizing",4,0.011414948663016622,starlink_low_end
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, rate-maximizing",5,0.011015831242009888,starlink_low_end
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, rate-maximizing",6,0.011340273234884068,starlink_low_end
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, rate-maximizing",7,0.01099770721315585,starlink_low_end
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, rate-maximizing",0,0.0,starlink_low_end
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, rate-maximizing",1,0.0,starlink_low_end
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, rate-maximizing",2,0.0,starlink_low_end
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, rate-maximizing",3,0.0,starlink_low_end
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, rate-maximizing",4,0.0,starlink_low_end
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, rate-maximizing",5,0.0,starlink_low_end
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, rate-maximizing",6,0.0,starlink_low_end
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, rate-maximizing",7,0.0,starlink_low_end
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, no handoff",0,0.02462847955088676,starlink_pfd_minus3
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, no handoff",1,0.025009153555967778,starlink_pfd_minus3
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, no handoff",2,0.02560770457831152,starlink_pfd_minus3
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, no handoff",3,0.0240127555302041,starlink_pfd_minus3
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, no handoff",4,0.02610072006526598,starlink_pfd_minus3
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, no handoff",5,0.02532142124638015,starlink_pfd_minus3
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, no handoff",6,0.02467352191969696,starlink_pfd_minus3
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, no handoff",7,0.025630829479228567,starlink_pfd_minus3
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, no handoff",0,0.006712962962962963,starlink_pfd_minus3
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, no handoff",1,0.0061342592592592594,starlink_pfd_minus3
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, no handoff",2,0.006828703703703704,starlink_pfd_minus3
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, no handoff",3,0.0061342592592592594,starlink_pfd_minus3
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, no handoff",4,0.006944444444444445,starlink_pfd_minus3
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, no handoff",5,0.00625,starlink_pfd_minus3
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, no handoff",6,0.0061342592592592594,starlink_pfd_minus3
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, no handoff",7,0.006712962962962963,starlink_pfd_minus3
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, event-avoiding",0,0.01902401275404253,starlink_pfd_minus3
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, event-avoiding",1,0.019059528793682112,starlink_pfd_minus3
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, event-avoiding",2,0.019437575502599946,starlink_pfd_minus3
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, event-avoiding",3,0.0198510056239406,starlink_pfd_minus3
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, event-avoiding",4,0.01963459120476052,starlink_pfd_minus3
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, event-avoiding",5,0.019751523083745615,starlink_pfd_minus3
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, event-avoiding",6,0.019777448175140933,starlink_pfd_minus3
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, event-avoiding",7,0.01921440122829199,starlink_pfd_minus3
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, event-avoiding",0,0.0,starlink_pfd_minus3
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, event-avoiding",1,0.0,starlink_pfd_minus3
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, event-avoiding",2,0.0,starlink_pfd_minus3
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, event-avoiding",3,0.0,starlink_pfd_minus3
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, event-avoiding",4,0.0,starlink_pfd_minus3
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, event-avoiding",5,0.0,starlink_pfd_minus3
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, event-avoiding",6,0.0,starlink_pfd_minus3
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, event-avoiding",7,0.0,starlink_pfd_minus3
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, rate-maximizing",0,0.01283617811620108,starlink_pfd_minus3
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, rate-maximizing",1,0.01281937642249198,starlink_pfd_minus3
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, rate-maximizing",2,0.012876128843073542,starlink_pfd_minus3
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, rate-maximizing",3,0.012915285494406459,starlink_pfd_minus3
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, rate-maximizing",4,0.013152085376404443,starlink_pfd_minus3
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, rate-maximizing",5,0.012764482466862126,starlink_pfd_minus3
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, rate-maximizing",6,0.013042103050667886,starlink_pfd_minus3
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"degradation, rate-maximizing",7,0.012701168678143415,starlink_pfd_minus3
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, rate-maximizing",0,0.0,starlink_pfd_minus3
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, rate-maximizing",1,0.0,starlink_pfd_minus3
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, rate-maximizing",2,0.0,starlink_pfd_minus3
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, rate-maximizing",3,0.0,starlink_pfd_minus3
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, rate-maximizing",4,0.0,starlink_pfd_minus3
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, rate-maximizing",5,0.0,starlink_pfd_minus3
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, rate-maximizing",6,0.0,starlink_pfd_minus3
+e6,gen2,e6_eirp_sweep_20261021T174655Z_seed0,"availability change, rate-maximizing",7,0.0,starlink_pfd_minus3
