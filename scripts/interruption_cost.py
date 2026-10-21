@@ -9,8 +9,12 @@ hour * tau / 3600`` (the interrupted fraction of time):
     degradation_tau  = 1 - (1 - degradation_div) * (1 - f)
     unavail_incr_tau = unavail_incr_div_frac + f
 
-The first line assumes the rate during an interruption would have equalled the
-policy's mean rate; the second counts every interrupted second as unavailable.
+"Excess switches" is a count difference per station-day,
+``max(0, switches_all_per_hour - base_switches_per_hour)``, not a match of switch
+instants.  The first line assumes the rate during an interruption would have
+equalled the policy's time-averaged rate (not the instantaneous rate at the
+switch); the second counts every interrupted second as unavailable, including
+seconds already unavailable or unserved (no overlap removal, an upper bound).
 Both are approximations stated in the report.  Aggregation as in the paper: worst
 qualified station per day, mean and 95% t-interval over days.  For each policy the
 largest tau at which a limit is still met (whole interval below it) is found by

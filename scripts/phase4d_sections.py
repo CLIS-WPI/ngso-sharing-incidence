@@ -137,13 +137,42 @@ def section_b() -> tuple[list[str], dict]:
              for _, r in mt.iterrows()]
     L = ["## 6. B: handoff interruption cost (post-processing)", "",
          f"Run `results/{run.name}/` (`scripts/interruption_cost.py`) on "
-         f"`results/{st['source_run']}/`.  Excess switches = the policy's satellite "
-         "changes minus the unconstrained interference-free baseline's own changes "
-         "(highest-elevation satellite), per station-day, floored at 0.  Each excess switch "
-         "interrupts the link for tau s: the rate during tau is 0 (degradation "
-         "1 - (1 - D)(1 - f), f = excess/h * tau / 3600; this assumes the lost rate equals "
-         "the policy's mean rate) and tau counts as unavailable (availability change + f).",
-         "", p4b.md_table(rows), "",
+         f"`results/{st['source_run']}/`; no re-simulation.", "",
+         "### 6.1 Exact definition", "",
+         "For station g, day d (one row of `raw_handoff.parquet`), T_d = 86 400 s, step "
+         "dt = 10 s, served(t) = the victim has a satellite above its mask:", "",
+         "- Policy switches: S_p(g,d) = #{t : s_p(t) != s_p(t - dt), both steps served} / "
+         "(T_d / 3600) [1/h], where s_p(t) is the satellite the policy uses "
+         "(`switches_all_per_hour`; `ngsi.dtt_screen.count_switches`).  A gap (an unserved "
+         "step) between two satellites is not counted as a switch.",
+         "- Baseline switches: S_0(g,d), the same count for s_0(t) = the highest-elevation "
+         "satellite (the unconstrained interference-free baseline that defines R_0), "
+         "`base_switches_per_hour`.  It is the same baseline for every policy, including the "
+         "dwell-constrained ones.",
+         "- Extra switches: E(g,d) = max(0, S_p - S_0).  This is a **count difference**, not "
+         "a match of switch instants: a policy switch at a time step where the baseline also "
+         "switches is not removed individually; only the excess of the totals is charged.",
+         "- Interrupted fraction of time: f(g,d; tau) = E(g,d) * tau / 3600.",
+         "- Availability change: dU_tau(g,d) = dU(g,d) + f(g,d; tau), with dU = "
+         "#{t : served, C/N_0(t) >= gamma_0 and gamma_p(t) < gamma_0} / n (gamma_0 = 0 dB; "
+         "C/N_0 is the baseline satellite's clear-sky C/N, gamma_p the policy's SINR; n the "
+         "number of steps), the simulated `unavail_incr_div_frac`.  **Overlap is not removed**: an interruption "
+         "is added even if it falls on a step that is already unavailable (gamma < gamma_0), "
+         "baseline-unavailable (C/N_0 < 0 dB) or unserved, so dU_tau is an upper bound on "
+         "the added unavailability for the stated tau.",
+         "- Throughput degradation: D_tau(g,d) = 1 - (1 - D(g,d)) (1 - f(g,d; tau)), i.e. "
+         "R_tau = R_p (1 - f) with R_p the policy's **time-averaged** rate over the day "
+         "(including its own outages), not the instantaneous rate at the switch instant; "
+         "D = 1 - R_p / R_0 is the simulated `degradation_div` against the same baseline R_0.",
+         "- Order: tau is applied to every station-day first; then, per day, the worst "
+         "qualified station (baseline availability >= 99%) is taken, and the reported value "
+         "is the mean +/- 95% t-interval of those daily worsts over the days, as for every "
+         "other 25.261(d) number.  'Over' counts station-days above the limit.",
+         "- Largest tau meeting a limit: bisection on [0, "
+         f"{st['tau_max_s']:g}] s for the condition mean + CI < limit (both D_tau and "
+         "dU_tau increase with tau).", "",
+         "### 6.2 Results", "",
+         p4b.md_table(rows), "",
          "Verdicts that change with tau:", "", p4b.md_table(changed) if changed else "- none", "",
          "Largest tau (bisection on [0, "
          f"{st['tau_max_s']:g}] s, whole interval below the limit):", "",

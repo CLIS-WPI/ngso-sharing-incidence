@@ -938,6 +938,9 @@ def phase4d_macros(add) -> None:
         mt = pd.read_csv(e14 / "summary_max_tau.csv").set_index("policy")
         st14 = json.loads((e14 / "status.json").read_text())
         add("IntTauMaxS", _num(st14["tau_max_s"], "{:g}"), e14)
+        _taus = [_num(t, "{:g}") for t in st14["taus_s"] if t > 0]
+        add("IntTauListS", ", ".join(_taus[:-1]) + ", and " + _taus[-1]
+            if len(_taus) > 1 else "".join(_taus), e14)
         for pol, tag in INT_TAG.items():
             g = si[si["policy"] == pol]
             if g.empty:
