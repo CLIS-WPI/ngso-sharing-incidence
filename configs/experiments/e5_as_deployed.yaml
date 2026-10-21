@@ -84,5 +84,19 @@ params:
     - {name: full_k3, link_cn: candidate, k: 3}
     - {name: full_n10, link_cn: candidate, min_interval_s: 10}
     - {name: full_n60, link_cn: candidate, min_interval_s: 60}
+    # Dwell-time sweep (Phase 4c), both rules; N ASSUMED.
+    - {name: full_n20, link_cn: candidate, min_interval_s: 20}
+    - {name: full_n30, link_cn: candidate, min_interval_s: 30}
+    - {name: full_n40, link_cn: candidate, min_interval_s: 40}
+    - {name: full_keep_serving_n10, link_cn: candidate, keep_serving_if_better: true,
+       min_interval_s: 10}
+    - {name: full_keep_serving_n20, link_cn: candidate, keep_serving_if_better: true,
+       min_interval_s: 20}
+    - {name: full_keep_serving_n30, link_cn: candidate, keep_serving_if_better: true,
+       min_interval_s: 30}
+    - {name: full_keep_serving_n40, link_cn: candidate, keep_serving_if_better: true,
+       min_interval_s: 40}
+    - {name: full_keep_serving_n60, link_cn: candidate, keep_serving_if_better: true,
+       min_interval_s: 60}
   primary_handoff: full
   source: ASSUMED

@@ -32,7 +32,8 @@ from ngsi.geometry import elevation_deg_batch, unit_look_vectors
 from ngsi.io import new_run_dir
 from ngsi.link_budget import terminal_peak_gain_dbi
 from ngsi.propagation import propagate_ecef
-from ngsi.runner import REPO_ROOT, _as_deployed_inputs, _load_inputs, device_str
+from ngsi.runner import (REPO_ROOT, _as_deployed_inputs, _load_inputs, _starlink_generation,
+                         device_str)
 from ngsi.screening import ScreenConfig, system_visibility
 
 RESULTS = REPO_ROOT / "results"
@@ -77,7 +78,8 @@ def main() -> int:
     device = device_str()
     radius = sim.earth.radius_km
 
-    systems0, tle_meta, _ = _as_deployed_inputs(exp, sim, REPO_ROOT, radius)
+    gen = _starlink_generation(p, None)
+    systems0, tle_meta, _ = _as_deployed_inputs(exp, sim, REPO_ROOT, radius, gen)
     epoch = float(tle_meta["common_epoch_jd"])
     sysd = {n: _with_beam(systems0[n], eirp_density_dbw_per_mhz=eirp[n])
             for n in (VICTIM, INTERF)}
@@ -146,6 +148,9 @@ def main() -> int:
     summary = {
         "geometry": "as-deployed CelesTrak snapshot (E6 TLEs)",
         "case": CASE, "mask_deg": mask, "n_start_times": n_st,
+        "start_offset_s": offset, "starlink_generation": gen,
+        "n_sats": {n: int(len(np.asarray(systems0[n].elements.semi_major_axis_km)))
+                   for n in (VICTIM, INTERF)},
         "n_stations": int(len(grid.latitudes)),
         "qualifying_latitudes_m55": sorted(qual55["latitude_deg"].unique().tolist()),
         "n_qual_stations_m55_per_start": df.groupby("start")["qual_m55"].sum().tolist(),

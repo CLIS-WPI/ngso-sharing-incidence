@@ -21,9 +21,12 @@ def main(argv: list[str] | None = None) -> int:
         default=REPO_ROOT / "configs" / "experiments" / "e7_analytic.yaml",
     )
     parser.add_argument("--results-root", type=Path, default=REPO_ROOT / "results")
+    parser.add_argument("--starlink-generation", choices=("gen1", "gen2", "all"),
+                        default=None, help="Starlink shells (default: the config's)")
     args = parser.parse_args(argv)
 
-    run_dir = run_e7(args.config, args.results_root)
+    run_dir = run_e7(args.config, args.results_root,
+                     starlink_generation=args.starlink_generation)
     print(f"[e7] run complete: {run_dir}")
     return 0
 

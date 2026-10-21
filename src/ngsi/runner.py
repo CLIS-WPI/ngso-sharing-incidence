@@ -1741,11 +1741,12 @@ def _newest_run(results_root: Path, prefix: str) -> Path | None:
     return runs[-1] if runs else None
 
 
-def _newest_primary_e4(results_root: Path) -> Path | None:
+def _newest_primary_e4(results_root: Path, generation: str | None = None) -> Path | None:
     """Newest E4 run whose status.json shows the primary (per-beam) steering.
 
     The constant-EIRP sensitivity runs override ``steering``; the analytic model
-    is anchored to the primary PFD-constant run, so skip the overrides.
+    is anchored to the primary PFD-constant run, so skip the overrides.  With
+    ``generation`` set, only runs of that Starlink generation qualify.
     """
     import json
 
@@ -1759,7 +1760,8 @@ def _newest_primary_e4(results_root: Path) -> Path | None:
             data = json.loads(status.read_text(encoding="utf-8"))
         except (ValueError, OSError):
             continue
-        if data.get("steering") in (None, "config", "null"):
+        if data.get("steering") in (None, "config", "null") and (
+                generation is None or data.get("starlink_generation") == generation):
             return run_dir
     return None
 
@@ -1769,6 +1771,7 @@ def run_e7(
     results_root: Path,
     repo_root: Path = REPO_ROOT,
     n_grid: int | None = None,
+    starlink_generation: str | None = None,
 ) -> Path:
     """Run E7: analytic vs simulated co-located Delta T/T event fraction.
 
@@ -1777,9 +1780,13 @@ def run_e7(
     interferer uses PFD-constant beam steering (the range-independent case the
     model assumes), then writes the analytic and simulated curves side by side
     with their absolute/relative discrepancies.  The model is not tuned.
+    ``starlink_generation`` (gen1 | gen2 | all; default from the config) picks the
+    Starlink Walker shells and the E4 run (same generation) to compare with.
     """
     exp = load_experiment(exp_path)
-    sim = load_simulation(repo_root / "configs" / "constellations.yaml")
+    gen = _starlink_generation(exp.params, starlink_generation)
+    sim = select_starlink_generation(
+        load_simulation(repo_root / "configs" / "constellations.yaml"), gen)
     bands = load_bands(repo_root / "configs" / "bands.yaml")
     lb = load_link_budget(repo_root / "configs" / "link_budget.yaml")
     grid_cfg = load_stations(repo_root / "configs" / exp.stations)
@@ -1798,7 +1805,7 @@ def run_e7(
         repo_root=repo_root,
     )
 
-    e4_dir = _newest_primary_e4(results_root)
+    e4_dir = _newest_primary_e4(results_root, gen)
     sim_df = None
     if e4_dir is not None:
         try:
@@ -1881,6 +1888,7 @@ def run_e7(
     _write_json(run_dir, "status.json",
                 {"experiment": exp.name, "status": "ok", "n_grid": ng,
                  "min_elevation_deg": min_el, "earth_radius_km": radius,
+                 "starlink_generation": gen,
                  "e4_run": e4_dir.name if e4_dir is not None else None,
                  "theta_star_deg": {f"{r['victim']}<-{r['interferer']}@{r['diameter_m']:g}m":
                                     r["theta_star_deg"] for _, r in tdf.iterrows()},

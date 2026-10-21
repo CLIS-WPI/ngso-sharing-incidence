@@ -13,4 +13,7 @@ stations: stations.yaml
 seed: 0
 params:
   n_grid: 240        # quadrature grid for the separation-probability integral
+  # Starlink Walker shells for the model and the E4 run it is compared with
+  # (Phase 4: the FCC 22-91 Gen2 shells, as in E4).  See ngsi.runner.
+  starlink_generation: gen2
   source: ASSUMED

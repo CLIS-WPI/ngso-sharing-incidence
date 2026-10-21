@@ -46,8 +46,10 @@ from ngsi.runner import (
     REPO_ROOT,
     _load_inputs,
     _phase_systems,
+    _starlink_generation,
     device_str,
     epoch_jd,
+    select_starlink_generation,
 )
 
 RESULTS = REPO_ROOT / "results"
@@ -79,10 +81,17 @@ def main() -> int:
     global THETA
     exp_path = REPO_ROOT / "configs" / "experiments" / "e4_dtt.yaml"
     sim, exp, grid_cfg, grid, _ = _load_inputs(exp_path, REPO_ROOT)
+    gen = _starlink_generation(exp.params, None)
+    sim = select_starlink_generation(sim, gen)
     bands = load_bands(REPO_ROOT / "configs" / "bands.yaml")
     freq = float(overlap(bands["ONEWEB"], bands["STARLINK"], "user_downlink").center_ghz)
     noise_temp = float(sim.systems["ONEWEB"].shells[0].beam.system_noise_temp_k)
-    THETA = theta_star_for_starlink(0.45, freq, 0.0, noise_temp)
+    sl = sim.systems["STARLINK"].shells[0]
+    THETA = theta_star_for_starlink(
+        0.45, freq, 0.0, noise_temp,
+        starlink_eirp_dbw_per_mhz=float(sl.beam.eirp_density_dbw_per_mhz),
+        starlink_altitude_km=float(sl.altitude_km),
+        anchor_elevation_deg=float(sl.beam.pfd_anchor_elevation_deg))
     device = device_str()
     radius = sim.earth.radius_km
     jd = epoch_jd(sim)
@@ -177,6 +186,7 @@ def main() -> int:
     df.to_csv(run_dir / "summary_diagnosis.csv", index=False)
     pd.DataFrame(rows).to_csv(run_dir / "raw_serving_radii.csv", index=False)
     summary = {
+        "starlink_generation": gen,
         "theta_star_deg": THETA,
         "max_abs_err_old_cond": float((df["model_cond"] - df["sim_cond"]).abs().max()),
         "max_abs_err_new_cond": float((df["new_cond"] - df["sim_cond"]).abs().max()),
