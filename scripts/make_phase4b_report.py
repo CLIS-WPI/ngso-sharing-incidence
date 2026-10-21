@@ -47,7 +47,7 @@ SKIP = ("Event", "Alt", "Unres", "SwitchOnly", "Switches", "Vis")
 def read_macros(path: Path) -> tuple[dict[str, str], dict[str, str]]:
     txt = path.read_text(encoding="utf-8")
     val = dict(re.findall(r"\\newcommand\{\\([A-Za-z]+)\}\{([^}]*)\}", txt))
-    src = dict(re.findall(r"^% ([A-Za-z]+) <- results/([^/\s]+)/", txt, flags=re.M))
+    src = dict(re.findall(r"^% ([A-Za-z]+) <- results/(\S+?)/\s*$", txt, flags=re.M))
     return val, src
 
 
@@ -83,7 +83,7 @@ def pm(val: dict, base: str) -> str:
 
 
 def asdep(src: dict, name: str) -> bool:
-    return src.get(name, "").startswith(("e5_as_deployed", "e6_eirp_sweep"))
+    return src.get(name, "").split("/")[-1].startswith(("e5_as_deployed", "e6_eirp_sweep"))
 
 
 # ------------------------------------------------------------------ paper text

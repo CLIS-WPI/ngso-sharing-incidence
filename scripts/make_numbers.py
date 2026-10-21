@@ -381,7 +381,11 @@ def main(argv: list[str] | None = None) -> int:
     def add(name: str, value: str, run: Path | None = None) -> None:
         macros.append((name, value))
         if run is not None:
-            sources.append(f"% {name} <- {RESULTS.name}/{run.name}/")
+            try:
+                rel = run.resolve().relative_to(RESULTS.resolve()).as_posix()
+            except ValueError:
+                rel = run.name
+            sources.append(f"% {name} <- {RESULTS.name}/{rel}/")
 
     # --- rule values (single source of truth in the library) ---
     from ngsi.constants import (
