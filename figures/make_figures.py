@@ -615,7 +615,8 @@ def fig_b2_limits(e5: Path) -> Path | None:
         hp = _sel(h[h["policy"] == pol])
         if not hp.empty:
             curves.append((hp, "degradation_div", "unavail_incr_div_frac", label, ls, color))
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.0, 2.5), sharex=True)
+    # 2.75 in tall: room for the two-line x labels without shrinking the panels.
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.0, 2.75), sharex=True)
 
     for df, cd, cu, label, ls, color in curves:
         lat = df["latitude_deg"]
@@ -627,7 +628,8 @@ def fig_b2_limits(e5: Path) -> Path | None:
     ax1.axhline(3.0, color="k", ls=":", lw=1.1)
     # Right end of the limit line (curves are low there); legend lower left, below them.
     ax1.text(64, 3.10, "3% limit", fontsize=6, ha="right")
-    ax1.set_xlabel("latitude [deg]")
+    # Panel labels as a second x-label line: centred, same size as the axis labels.
+    ax1.set_xlabel("latitude [deg]\n(a) Throughput degradation")
     ax1.set_ylabel("throughput degradation [%]")
     ax1.set_xlim(0, 65)
     ax1.set_ylim(bottom=0)
@@ -635,7 +637,7 @@ def fig_b2_limits(e5: Path) -> Path | None:
     ax1.legend(fontsize=6, loc="lower left")
     ax2.axhline(0.4, color="k", ls=":", lw=1.1)
     ax2.text(1, 0.45, "0.4% limit", fontsize=6)
-    ax2.set_xlabel("latitude [deg]")
+    ax2.set_xlabel("latitude [deg]\n(b) Availability change")
     ax2.set_ylabel("availability change [%]")
     ax2.set_ylim(bottom=-0.05)
     ax2.grid(alpha=0.3)
