@@ -1,0 +1,7 @@
+system_a,system_b,diameter_m,n_events_serving,in_serving_p10_db,in_serving_median_db,in_serving_p90_db,in_serving_median_rep_mean_db,in_serving_median_rep_ci95_db,n_events_aggregate,in_aggregate_p10_db,in_aggregate_median_db,in_aggregate_p90_db,in_aggregate_median_rep_mean_db,in_aggregate_median_rep_ci95_db
+STARLINK,ONEWEB,0.45,195563.0,-11.8,-8.64,5.82,-8.64,0.0,195563.0,-11.64,-8.38,5.82,-8.38,0.0
+STARLINK,ONEWEB,0.6,195758.0,-11.81,-8.64,4.72,-8.645,0.06352999999999864,195758.0,-11.64,-8.46,4.83,-8.46,0.0
+STARLINK,ONEWEB,0.75,196283.0,-11.82,-8.66,1.93,-8.655000000000001,0.06352999999999864,196283.0,-11.65,-8.48,2.47,-8.48,0.0
+ONEWEB,STARLINK,0.45,634070.0,-11.73,-8.45,0.24,-8.45,0.0,634070.0,-11.61,-8.32,0.29,-8.32,0.0
+ONEWEB,STARLINK,0.6,632349.0,-11.71,-8.43,0.26,-8.434999999999999,0.06352999999999864,632349.0,-11.61,-8.32,0.31,-8.32,0.0
+ONEWEB,STARLINK,0.75,631676.0,-11.7,-8.43,0.26,-8.43,0.0,631676.0,-11.61,-8.33,0.34,-8.33,0.0

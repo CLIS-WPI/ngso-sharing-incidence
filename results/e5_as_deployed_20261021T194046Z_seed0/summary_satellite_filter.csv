@@ -1,0 +1,3 @@
+system,n_raw,n_operational,n_kept,n_excluded_raise_or_deorbit,n_excluded_off_shell_high,operational_min_km,operational_max_km
+STARLINK,10649,9732,9732,917,0,450.0,600.0
+ONEWEB,651,648,648,3,0,1100.0,1300.0

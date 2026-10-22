@@ -1,0 +1,35 @@
+# Run with:  docker compose -f docker/docker-compose.yml <cmd>
+# Relative paths are resolved against this file's directory (docker/).
+# Project name is pinned so the container is `ngsi-dev-1` (not `docker-dev-1`)
+# and cannot collide with other compose projects on the host.
+name: ngsi
+services:
+  dev:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      args:
+        USER_UID: "${USER_UID:-1000}"
+        USER_GID: "${USER_GID:-1000}"
+    image: ngsi-dev:latest
+    working_dir: /workspace
+    volumes:
+      - ..:/workspace
+    environment:
+      NVIDIA_VISIBLE_DEVICES: "0"
+      NVIDIA_DRIVER_CAPABILITIES: "compute,utility"
+      # The bind-mounted repo is owned by the host user (e.g. on Windows), so git
+      # would refuse it as "dubious ownership" and run_meta.json would record
+      # git_hash "unknown".
+      GIT_CONFIG_COUNT: "1"
+      GIT_CONFIG_KEY_0: safe.directory
+      GIT_CONFIG_VALUE_0: /workspace
+    shm_size: 8gb
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ["0"]
+              capabilities: [gpu]
+    command: sleep infinity

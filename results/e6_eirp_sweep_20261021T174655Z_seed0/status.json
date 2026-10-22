@@ -1,0 +1,145 @@
+{
+  "experiment": "e6_eirp_sweep",
+  "status": "ok",
+  "n_start_times": 8,
+  "start_offset_s": 86400.0,
+  "time_step_s": 10.0,
+  "duration_s": 86400.0,
+  "min_elevation_deg": 25.0,
+  "device": "cuda",
+  "common_epoch_jd": 2461334.05165193,
+  "cases": [
+    {
+      "name": "primary",
+      "eirp": {
+        "STARLINK": 16.0018,
+        "ONEWEB": 10.6
+      },
+      "steering": null,
+      "noise": {},
+      "min_el": {}
+    },
+    {
+      "name": "starlink_low_end",
+      "eirp": {
+        "STARLINK": 12.1,
+        "ONEWEB": 10.6
+      },
+      "steering": null,
+      "noise": {},
+      "min_el": {}
+    },
+    {
+      "name": "delportillo_common",
+      "eirp": {
+        "STARLINK": 12.7,
+        "ONEWEB": 10.6
+      },
+      "steering": null,
+      "noise": {},
+      "min_el": {}
+    },
+    {
+      "name": "oneweb_cn_calibrated",
+      "eirp": {
+        "STARLINK": 16.0018,
+        "ONEWEB": 0.2
+      },
+      "steering": null,
+      "noise": {},
+      "min_el": {}
+    },
+    {
+      "name": "starlink_constant_eirp",
+      "eirp": {
+        "STARLINK": 16.0018,
+        "ONEWEB": 10.6
+      },
+      "steering": "constant_eirp",
+      "noise": {},
+      "min_el": {}
+    },
+    {
+      "name": "starlink_pfd_minus3",
+      "eirp": {
+        "STARLINK": 13.0018,
+        "ONEWEB": 10.6
+      },
+      "steering": null,
+      "noise": {},
+      "min_el": {}
+    },
+    {
+      "name": "starlink_gen1_design",
+      "eirp": {
+        "STARLINK": 9.9812,
+        "ONEWEB": 10.6
+      },
+      "steering": null,
+      "noise": {},
+      "min_el": {}
+    },
+    {
+      "name": "noise_assumed",
+      "eirp": {
+        "STARLINK": 16.0018,
+        "ONEWEB": 10.6
+      },
+      "steering": null,
+      "noise": {
+        "STARLINK": 150.0,
+        "ONEWEB": 200.0
+      },
+      "min_el": {}
+    },
+    {
+      "name": "oneweb_min_elev_55",
+      "eirp": {
+        "STARLINK": 16.0018,
+        "ONEWEB": 10.6
+      },
+      "steering": null,
+      "noise": {},
+      "min_el": {
+        "ONEWEB": 55.0
+      }
+    }
+  ],
+  "starlink_generation": "gen2",
+  "starlink_generation_counts": {
+    "gen1": 3773,
+    "gen2": 5959,
+    "unclassified": 0
+  },
+  "handoff_policies": [
+    {
+      "name": "full",
+      "link_cn": "candidate",
+      "k": null,
+      "min_interval_s": null,
+      "keep_serving_if_better": false
+    },
+    {
+      "name": "full_keep_serving",
+      "link_cn": "candidate",
+      "k": null,
+      "min_interval_s": null,
+      "keep_serving_if_better": true
+    }
+  ],
+  "primary_handoff": "full",
+  "n_sats": {
+    "STARLINK": 5959,
+    "ONEWEB": 648
+  },
+  "user_downlink_pairs": [
+    [
+      "STARLINK",
+      "ONEWEB"
+    ],
+    [
+      "ONEWEB",
+      "STARLINK"
+    ]
+  ]
+}

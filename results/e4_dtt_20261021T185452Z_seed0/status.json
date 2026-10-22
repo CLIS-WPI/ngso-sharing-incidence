@@ -1,0 +1,69 @@
+{
+  "experiment": "e4_dtt",
+  "status": "ok",
+  "n_phasings": 8,
+  "time_step_s": 10.0,
+  "duration_s": 86400.0,
+  "min_elevation_deg": 25.0,
+  "device": "cuda",
+  "dtt_threshold": 0.06,
+  "diameter_sweep_m": [
+    0.45,
+    0.6,
+    0.75
+  ],
+  "pattern": "S1428",
+  "implementation_margin_db": 3.0,
+  "steering": null,
+  "diversity_fspl": "interferer",
+  "starlink_generation": "all",
+  "handoff_policies": [
+    {
+      "name": "full",
+      "link_cn": "candidate",
+      "k": null,
+      "min_interval_s": null,
+      "keep_serving_if_better": false
+    },
+    {
+      "name": "full_keep_serving",
+      "link_cn": "candidate",
+      "k": null,
+      "min_interval_s": null,
+      "keep_serving_if_better": true
+    },
+    {
+      "name": "legacy",
+      "link_cn": "serving",
+      "k": null,
+      "min_interval_s": null,
+      "keep_serving_if_better": false
+    }
+  ],
+  "primary_handoff": "full",
+  "n_sats": {
+    "STARLINK": 11884,
+    "KUIPER": 3236,
+    "ONEWEB": 648
+  },
+  "beam_steering": {
+    "STARLINK": "pfd_constant",
+    "KUIPER": "constant_eirp",
+    "ONEWEB": "constant_eirp"
+  },
+  "beam_eirp_dbw_per_mhz": {
+    "STARLINK": 16.0018,
+    "KUIPER": -19.0,
+    "ONEWEB": 10.6
+  },
+  "user_downlink_pairs": [
+    [
+      "STARLINK",
+      "ONEWEB"
+    ],
+    [
+      "ONEWEB",
+      "STARLINK"
+    ]
+  ]
+}

@@ -1,0 +1,129 @@
+"""Assemble a system's shells into one Walker element set and apply phasing.
+
+A *system* is all shells of one operator (e.g. Starlink).  In-line events are
+only computed **between different systems**; shells of the same system never
+interfere with each other.  A *phasing* is a random RAAN offset and a random
+mean-anomaly (argument-of-latitude) offset drawn per shell, which rotates the
+whole Walker pattern without changing its geometry (AGENTS.md rule 5).
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, replace
+
+import numpy as np
+from numpy.typing import NDArray
+
+from .config import Constellation, Shell
+from .constellation import WalkerConstellation, walker_delta
+from .tle import (
+    TleRecord,
+    cluster_records,
+    common_epoch_jd,
+    elements_from_records,
+    shells_from_clusters,
+)
+
+TWO_PI = 2.0 * np.pi
+
+
+@dataclass(frozen=True)
+class SystemModel:
+    """One operator's full constellation as a single flat element set."""
+
+    name: str
+    elements: WalkerConstellation
+    shell_index: NDArray[np.int64]
+    shells: tuple[Shell, ...]
+
+    @property
+    def n_sats(self) -> int:
+        return len(self.elements)
+
+    @property
+    def n_shells(self) -> int:
+        return len(self.shells)
+
+
+def _concatenate(elements: list[WalkerConstellation]) -> WalkerConstellation:
+    return WalkerConstellation(
+        semi_major_axis_km=np.concatenate([e.semi_major_axis_km for e in elements]),
+        eccentricity=np.concatenate([e.eccentricity for e in elements]),
+        inclination_rad=np.concatenate([e.inclination_rad for e in elements]),
+        raan_rad=np.concatenate([e.raan_rad for e in elements]),
+        arg_perigee_rad=np.concatenate([e.arg_perigee_rad for e in elements]),
+        mean_anomaly_rad=np.concatenate([e.mean_anomaly_rad for e in elements]),
+        mean_motion_rad_s=np.concatenate([e.mean_motion_rad_s for e in elements]),
+        plane_index=np.concatenate([e.plane_index for e in elements]),
+        slot_index=np.concatenate([e.slot_index for e in elements]),
+    )
+
+
+def build_system(
+    system: Constellation,
+    rng: np.random.Generator | None = None,
+    earth_radius_km: float = 6371.0,
+) -> SystemModel:
+    """Build a :class:`SystemModel`, applying one random phasing per shell if ``rng`` given."""
+    els: list[WalkerConstellation] = []
+    idx: list[NDArray[np.int64]] = []
+    for i, shell in enumerate(system.shells):
+        el = walker_delta(
+            altitude_km=shell.altitude_km,
+            inclination_deg=shell.inclination_deg,
+            planes=shell.planes,
+            sats_per_plane=shell.sats_per_plane,
+            phasing_f=shell.phasing_f,
+            earth_radius_km=earth_radius_km,
+        )
+        if rng is not None:
+            draan = float(rng.uniform(0.0, TWO_PI))
+            dma = float(rng.uniform(0.0, TWO_PI))
+            el = replace(
+                el,
+                raan_rad=(el.raan_rad + draan) % TWO_PI,
+                mean_anomaly_rad=(el.mean_anomaly_rad + dma) % TWO_PI,
+            )
+        els.append(el)
+        idx.append(np.full(len(el), i, dtype=np.int64))
+    return SystemModel(
+        name=system.name,
+        elements=_concatenate(els),
+        shell_index=np.concatenate(idx),
+        shells=tuple(system.shells),
+    )
+
+
+def build_as_deployed_system(
+    system: Constellation,
+    records: list[TleRecord],
+    earth_radius_km: float = 6371.0,
+    epoch_jd: float | None = None,
+) -> SystemModel:
+    """Build a :class:`SystemModel` from a real TLE snapshot (Phase 3b).
+
+    Satellites keep their own TLE mean elements (advanced to ``epoch_jd`` by the
+    J2 secular rates; defaults to the snapshot's latest TLE epoch); shells are the
+    observed inclination/altitude clusters and inherit the modelled constellation's
+    beam (no filing states a per-generation beam).  There is no random phasing: the
+    constellation is fixed and replication is over simulation start times.  All
+    systems in one run must be built at the *same* ``epoch_jd``.
+    """
+    if not records:
+        raise ValueError(f"{system.name}: empty TLE snapshot")
+    if epoch_jd is None:
+        epoch_jd = common_epoch_jd(records)
+    clusters = cluster_records(records)
+    source = f"CelesTrak TLE snapshot, {len(records)} satellites ({system.name} group)"
+    shells, shell_index = shells_from_clusters(
+        records, clusters, system.shells[0].beam, source, earth_radius_km
+    )
+    elements = elements_from_records(
+        records, epoch_jd, earth_radius_km, plane_index=shell_index
+    )
+    return SystemModel(
+        name=system.name,
+        elements=elements,
+        shell_index=shell_index,
+        shells=tuple(shells),
+    )

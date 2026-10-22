@@ -1,0 +1,17 @@
+{
+  "experiment": "e9_min_elevation_diagnosis",
+  "seed": 0,
+  "timestamp_utc": "20261021T200803Z",
+  "git_hash": "8ce8ec98447ffa6a8feca6c29a5d228ffaadb638",
+  "git_worktree": {
+    "dirty": false,
+    "modified_files": [],
+    "diff_sha256": null
+  },
+  "compute_dtype": "float32",
+  "python": "3.11.10",
+  "platform": "Linux-6.18.40.1-microsoft-standard-WSL2-x86_64-with-glibc2.35",
+  "argv": [
+    "scripts/diagnose_min_elevation.py"
+  ]
+}

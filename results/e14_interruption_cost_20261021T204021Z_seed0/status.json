@@ -1,0 +1,12 @@
+{
+  "experiment": "e14_interruption_cost",
+  "status": "ok",
+  "source_run": "e5_as_deployed_20261021T174655Z_seed0",
+  "taus_s": [
+    0.0,
+    0.1,
+    0.5,
+    1.0
+  ],
+  "tau_max_s": 60.0
+}

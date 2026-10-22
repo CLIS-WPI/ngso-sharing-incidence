@@ -1,0 +1,118 @@
+"""Hand-checkable values for the link-budget / Delta T/T helpers."""
+
+from __future__ import annotations
+
+import numpy as np
+import pytest
+import torch
+
+from ngsi.antennas import s1428_gain, s1528_gain
+from ngsi.link_budget import (
+    EIRP_DENSITY_4KHZ_TO_MHZ_DB,
+    aggregate_dtt_from_i_over_n_db,
+    cn_db,
+    cn_over_n_plus_i_db,
+    dtt_from_i_over_n_db,
+    eirp_density_dbw_per_mhz_from_dbw_per_4khz,
+    i_over_n_db,
+    noise_power_dbw_per_mhz,
+    pattern_gain_batch,
+    pfd_constant_from_eirp,
+    pfd_eirp_density_dbw_per_mhz,
+    s1528_gain_batch,
+    shannon_throughput,
+    slant_range_km,
+    terminal_peak_gain_dbi,
+)
+
+
+def test_terminal_peak_gain() -> None:
+    # 0.6 m at 11.7 GHz, eta=0.6 -> eta (pi D/lambda)^2 = 0.6*(pi*23.42)^2.
+    d_over_lambda = 0.6 * 11.7e9 / 299792458.0
+    expected = 10.0 * np.log10(0.6 * (np.pi * d_over_lambda) ** 2)
+    assert terminal_peak_gain_dbi(0.6, 11.7, 0.6) == pytest.approx(expected)
+    assert terminal_peak_gain_dbi(0.6, 11.7, 0.6) == pytest.approx(35.11, abs=0.02)
+
+
+def test_noise_power_per_mhz() -> None:
+    # k*150*1e6 = 2.071e-15 W -> -146.84 dBW.
+    assert noise_power_dbw_per_mhz(150.0) == pytest.approx(-146.84, abs=0.01)
+
+
+def test_i_over_n_single_entry() -> None:
+    val = i_over_n_db(-8.3, 34.0, 173.8, 150.0)
+    assert val == pytest.approx(-8.3 + 34.0 - 173.8 + 146.84, abs=0.01)
+    assert val == pytest.approx(-1.26, abs=0.02)
+
+
+def test_dtt_and_aggregation() -> None:
+    assert dtt_from_i_over_n_db(0.0) == pytest.approx(1.0)
+    # two entries at exactly the -12.2 dB criterion add to 2*0.06.
+    agg = aggregate_dtt_from_i_over_n_db(-12.2, -12.2)
+    assert agg == pytest.approx(2.0 * 10.0 ** (-1.22), rel=1e-9)
+
+
+def test_cn_and_cn_over_n_plus_i() -> None:
+    # C/N equals EIRP + Gpeak - FSPL - noise.
+    assert cn_db(-8.3, 35.0, 170.0, 150.0) == pytest.approx(
+        -8.3 + 35.0 - 170.0 - noise_power_dbw_per_mhz(150.0)
+    )
+    # C/(N+I) = C/N - 10log10(1+DTT); DTT=0.06 -> -0.253 dB.
+    assert cn_over_n_plus_i_db(10.0, 0.06) == pytest.approx(10.0 - 0.253, abs=0.002)
+
+
+def test_shannon_throughput_with_margin() -> None:
+    # SNR 10 dB, 3 dB margin -> B log2(1 + 10/1.995).
+    r = shannon_throughput(10.0, 1e6, 3.0)
+    assert r == pytest.approx(1e6 * np.log2(1.0 + 10.0 / 10.0 ** 0.3), rel=1e-9)
+
+
+def test_pattern_gain_batch_matches_scalar() -> None:
+    peak, d, f = 35.0, 0.6, 11.7
+    psi = torch.tensor([0.0, 1.0, 5.0, 20.0], dtype=torch.float64)
+    got = pattern_gain_batch(psi, peak, d, f, kind="S1428")
+    assert got[0].item() == pytest.approx(peak)  # boresight
+    for i, p in enumerate([0.0, 1.0, 5.0, 20.0]):
+        assert got[i].item() == pytest.approx(s1428_gain(p, peak, d, f), abs=1e-9)
+
+
+def test_eirp_4khz_to_mhz_conversion() -> None:
+    # 10 log10(1000/4) = 23.9794 dB.
+    assert EIRP_DENSITY_4KHZ_TO_MHZ_DB == pytest.approx(23.9794, abs=1e-3)
+    # FCC-22-91A1 Ku range, top and low end (dBW/4kHz -> dBW/MHz).
+    assert eirp_density_dbw_per_mhz_from_dbw_per_4khz(-8.3) == pytest.approx(15.68, abs=0.01)
+    assert eirp_density_dbw_per_mhz_from_dbw_per_4khz(-11.9) == pytest.approx(12.08, abs=0.01)
+    # SpaceX 2016 Ku attachment value -11.07 dBW/4kHz -> 12.91 dBW/MHz.
+    assert eirp_density_dbw_per_mhz_from_dbw_per_4khz(-11.07) == pytest.approx(12.91, abs=0.01)
+
+
+def test_s1528_gain_batch_matches_scalar() -> None:
+    peak, bw = 44.0, 1.1
+    psi = torch.tensor([0.0, 0.5, 2.0, 30.0, 90.0], dtype=torch.float64)
+    got = s1528_gain_batch(psi, peak, bw)
+    for i, p in enumerate([0.0, 0.5, 2.0, 30.0, 90.0]):
+        assert got[i].item() == pytest.approx(s1528_gain(p, peak, bw), abs=1e-9)
+
+
+def test_slant_range_hand_check() -> None:
+    # Starlink h=550 km, el=25 deg, R=6371 km -> ~1123.3 km.
+    r = slant_range_km(550.0, 25.0, 6371.0)
+    assert r == pytest.approx(1123.3, abs=0.2)
+    # Nadir (90 deg) -> straight down = altitude.
+    assert slant_range_km(550.0, 90.0, 6371.0) == pytest.approx(550.0, abs=1e-6)
+    # Horizon (0 deg): sqrt((R+h)^2 - R^2) = 2721 km.
+    assert slant_range_km(550.0, 0.0, 6371.0) == pytest.approx(
+        np.sqrt(6921.0**2 - 6371.0**2), abs=1e-6)
+
+
+def test_pfd_constant_matches_section_25_208b() -> None:
+    # EIRP_max +15.68 dBW/MHz spread over r_max(550 km, el=25) -> ~-116.3
+    # dBW/m^2/MHz, within ~1 dB of the 47 CFR 25.208(b) NGSO Ku limit
+    # (-140 dBW/m^2/4kHz = -116 dBW/m^2/MHz, 25-90 deg).
+    r_max = slant_range_km(550.0, 25.0, 6371.0)
+    pfd = pfd_constant_from_eirp(15.68, r_max)
+    assert pfd == pytest.approx(-116.3, abs=0.1)
+    assert abs(pfd - (-116.0)) < 1.0
+    # Round trip: density at r_max reproduces the EIRP; nearer sat gets less.
+    assert pfd_eirp_density_dbw_per_mhz(pfd, r_max) == pytest.approx(15.68, abs=1e-9)
+    assert pfd_eirp_density_dbw_per_mhz(pfd, 550.0) == pytest.approx(15.68 - 20.0 * np.log10(1123.3 / 550.0), abs=0.1)
