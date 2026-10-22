@@ -99,66 +99,58 @@ diversity, handoff, Starlink, OneWeb.
 The Ku-band sky over a user terminal is now crowded: our snapshot counts
 \NStarlinkOperational\ operational Starlink satellites, \NStarlinkGenTwo\ of them
 second-generation, and \NOnewebOp\ OneWeb satellites, all transmitting to users
-in the same band. Their satellites keep crossing each other's lines of
-sight to users, and someone has to give way.
+in the same band. When one system's satellite crosses the line of sight of the
+other system's user, someone has to give way. The obvious defense for that user
+is to switch to another of its own satellites, but the alternate is often lower
+and farther away, so escaping the interference can cost more than tolerating it.
 
-In the United States, who gives way is written into 47 CFR~25.261~\cite{cfr25261},
-the Federal Communications Commission (FCC) rule for sharing spectrum among
-non-geostationary-orbit (NGSO) satellite systems. The FCC licenses such systems
-in batches called \emph{processing rounds}; a system licensed in an earlier round
-is the \emph{incumbent} and one licensed in a later round is the \emph{entrant}.
-Two systems are \emph{co-frequency} when they are authorized to use the same
-frequencies for the same type of link. When interference raises a receiver's
-noise temperature by more than \DttThresholdPct\% ($\Delta T/T$), an
-\emph{in-line event} occurs; absent coordination, systems of the \emph{same}
-round then split the band for its duration (\S\,25.261(c))~\cite{cfr25261,fcc2329}.
-Between rounds a different mechanism applies: before operating, an entrant must
-coordinate with each earlier-round incumbent or submit a \emph{compatibility
-showing}, based on a degraded-throughput methodology, that it causes the
-incumbent no more than \DegradeLimitPct\% time-weighted throughput degradation
-and no more than \UnavailLimitPct\% absolute change in availability, on links
-with at least \RuleBaselineAvailPct\% baseline availability (the fraction of time
-the link works without interference) at a carrier-to-noise ratio (C/N) of
-\CnGateDb~dB (\S\,25.261(d))~\cite{cfr25261,fcc24117}. Ten years after the
-first grant in the later round, this protection ends and (c) applies across the
-rounds (\S\,25.261(e)). OneWeb~\cite{fcc1777} and the first generation of
-Starlink (Gen1)~\cite{fcc1838} were licensed in the 2016 round and Starlink's
-second generation (Gen2)~\cite{fcc2291} in the 2020 round, so the rule promises
-OneWeb protection against Starlink Gen2. A separate 2026 order rewrote sharing
-between NGSO and geostationary systems~\cite{fcc2626} but left these criteria
-unchanged.
+This tradeoff matters for regulation. In the United States, sharing among
+non-geostationary-orbit (NGSO) systems is governed by the Federal Communications
+Commission (FCC) rule 47 CFR~25.261~\cite{cfr25261}, which protects a system
+licensed in an earlier \emph{processing round} (the \emph{incumbent}) from one
+licensed later (the \emph{entrant}). Before operating, the entrant must coordinate
+or submit a \emph{compatibility showing} that it costs the incumbent at most
+\DegradeLimitPct\% of throughput and \UnavailLimitPct\% of availability
+(\S\,25.261(d))~\cite{fcc24117}, and the FCC lets that analysis \emph{assume} the
+incumbent's satellite selection strategy when the actual one is not
+provided~\cite{fcc24117}. How much this assumption shapes the verdict has not been
+measured. We answer this question for the only co-frequency user-downlink pair
+among Starlink, OneWeb, and Amazon Leo (formerly Project Kuiper): OneWeb, from
+the 2016 round~\cite{fcc1777}, and Starlink Gen2, from the 2020
+round~\cite{fcc2291}.
 
-The FCC evaluates the limits through compatibility analyses and allows such an
-analysis to use an \emph{assumed} satellite selection strategy for the incumbent
-when the actual one is not provided~\cite{fcc24117}. How much that assumption
-matters has not been measured. Interference between the OneWeb and SpaceX user
-downlinks was anticipated early~\cite[Sec.~5.1]{delportillo2019}; later work
-asked whether interference among dense NGSO constellations matters in
-practice~\cite{braun2019} and designed entrant-side satellite selection for
-in-band coexistence in Ka band~\cite{kim2025,kim2026selection}. None of these
-evaluates the FCC's own criteria, and none asks what the \emph{victim's} handoff
-does to the verdict.
+\emph{The rule in brief.} Two systems are \emph{co-frequency} when they may use the
+same frequencies for the same type of link. When interference raises a
+receiver's noise temperature by more than \DttThresholdPct\% ($\Delta T/T$), an
+\emph{in-line event} occurs, and systems of the \emph{same} round split the band
+for its duration (\S\,25.261(c))~\cite{cfr25261,fcc2329}; OneWeb and Starlink Gen1
+(2016 round~\cite{fcc1838}) fall under this regime. The inter-round limits of (d)
+apply to links with at least \RuleBaselineAvailPct\% baseline availability (the
+fraction of time the link works without interference) at a carrier-to-noise
+ratio (C/N) of \CnGateDb~dB, and end ten years after the first later-round grant,
+when (c) takes over (\S\,25.261(e)). A 2026 order on NGSO--geostationary
+sharing~\cite{fcc2626} left these criteria unchanged.
 
-This paper does.\footnote{\url{https://github.com/CLIS-WPI/ngso-sharing-incidence}}
-We model the constellations both \emph{as filed} (the orbits in the operators'
-FCC filings) and \emph{as deployed} (the satellites in orbit today), apply the
-rule's exact criteria at every latitude, and evaluate the victim with and
-without handoff to another of its own satellites. Our contributions are:
+\emph{Related work.} Interference between the OneWeb and SpaceX user downlinks
+was anticipated early~\cite[Sec.~5.1]{delportillo2019}; later work asked whether
+interference among dense NGSO constellations matters in practice~\cite{braun2019}
+and designed entrant-side satellite selection for coexistence in Ka
+band~\cite{kim2025,kim2026selection}. None evaluates the FCC's own criteria, and
+none asks what the \emph{victim's} handoff does to the verdict.\footnote{Code and
+data: \url{https://github.com/CLIS-WPI/ngso-sharing-incidence}} Our contributions
+are:
 \begin{itemize}
 \item A general model of NGSO co-frequency interference, of the \S\,25.261
-criteria, and of victim handoff policies, instantiated for Starlink Gen2 and
-OneWeb, the only co-frequency user-downlink pair among Starlink, OneWeb, and
-Amazon Leo (formerly Project Kuiper).
+criteria, and of victim handoff policies, evaluated both \emph{as filed} (the
+orbits in the operators' filings) and \emph{as deployed} (the satellites in
+orbit today).
+\item The finding that the verdict depends on the victim's handoff policy: as
+deployed, leaving every interfered satellite narrowly exceeds the throughput
+limit, whereas staying while the interfered link is still the better one meets
+it; we map where each policy passes and fails under switching constraints.
 \item To our knowledge, the first latitude-resolved measurement of how often the
-\S\,25.261 event fires and whether the \S\,25.261(d) limits hold, as filed and as
-deployed, at two sourced Starlink power levels.
-\item The finding that the verdict depends on the victim's handoff policy and
-its switching: as deployed, leaving every interfered satellite narrowly exceeds
-the throughput limit, whereas staying when the interfered link is still the better
-one meets it; availability, in turn, needs frequent, near-lossless switching
-and a low elevation mask; we map where each policy passes and fails.
-\item An analytic approximation that turns the regulatory power criterion into a
-geometric one through an equivalent off-axis angle, independent of terminal size.
+\S\,25.261 event fires, and an analytic approximation that turns the power
+criterion into an equivalent off-axis angle, independent of terminal size.
 \end{itemize}
 
 \section{System Model}
@@ -636,20 +628,24 @@ the modeled assumptions.
 \section{Conclusion}
 The FCC's NGSO sharing rule promises an incumbent that an entrant will cost it at
 most \DegradeLimitPct\% of throughput and \UnavailLimitPct\% of availability. For
-OneWeb and Starlink Gen2 in the Ku user downlink, the rule's trigger fires up to
-\BindDepWorstPct$\pm$\BindDepWorstCi\% of the time for a OneWeb user (peak latitude mean), mostly on
-the protected system. In a compatibility analysis without handoff, Starlink at its filed
-maximum exceeds both limits; only its lower Gen1 design power meets them. As deployed, with a 25$^\circ$ mask and unrestricted, lossless switching, a victim
-that dodges every in-line event narrowly exceeds the throughput limit, whereas
-one that stays on an interfered satellite whenever that link is still the better
-one meets both limits. In separate sensitivity tests, the latter
-policy meets both limits at the shorter tested dwell times but exceeds the
-throughput limit first at \DepDwellRateMaxDegrFirstExceedS~s among the tested dwell times; under unrestricted
-switching, the post-hoc upper-bound estimate keeps availability within its limit up to
-about \IntRateMaxMaxTauUnavS~s of interruption per extra switch, a model estimate
-that is sensitive to the time step. Whether
-\S\,25.261(d) protects an incumbent therefore depends on its handoff policy and
-switching, which compatibility analyses may only assume. Future work will add rain fade and gateway links.
+OneWeb and Starlink Gen2, whether a compatibility analysis keeps this promise
+depends on an assumption the rule leaves open: how the incumbent's users switch
+satellites.
+Without interference-driven handoff, Starlink at its filed maximum exceeds both
+limits. With a 25$^\circ$ mask and unrestricted, lossless switching, a victim that
+dodges every in-line event moves to weaker links and, as deployed, narrowly
+exceeds the throughput limit, whereas one that keeps an interfered link while it
+is still the better one meets both limits; this gap persists in every geometry
+we tested. The better policy has limits
+too: among the tested settings, a \DepDwellRateMaxDegrFirstExceedS~s dwell time
+breaks its throughput limit, and a \DepDwellRateMaxUnavFirstExceedS~s dwell, a
+\OnewebMinElevSensDeg$^\circ$ mask, or more than about \IntRateMaxMaxTauUnavS~s of
+interruption per extra switch (an upper-bound, step-sensitive estimate) breaks
+its availability limit. Because the FCC lets compatibility analyses assume the
+incumbent's selection strategy, showings should state that policy and its
+switching constraints, test more than one, and evaluate the $\Delta T/T$
+criterion itself rather than a geometric screen. Future work will add rain fade
+and gateway links.
 
 \section*{Acknowledgment}
 This material is based upon work supported in part by NSF under Awards
