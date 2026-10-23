@@ -1,4 +1,4 @@
-"""Screening engine vs a brute-force NumPy reference (AGENTS.md rule 6)."""
+"""Screening engine vs a brute-force NumPy reference."""
 
 from __future__ import annotations
 

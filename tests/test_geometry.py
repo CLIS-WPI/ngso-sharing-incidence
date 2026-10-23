@@ -1,4 +1,4 @@
-"""Geometry: elevation/range hand checks (AGENTS.md rule 6)."""
+"""Geometry: elevation/range hand checks."""
 
 from __future__ import annotations
 

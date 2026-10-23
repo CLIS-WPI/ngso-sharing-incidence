@@ -1,4 +1,4 @@
-"""Delta T/T screener vs a brute-force NumPy reference (AGENTS.md rule 6)."""
+"""Delta T/T screener vs a brute-force NumPy reference."""
 
 from __future__ import annotations
 

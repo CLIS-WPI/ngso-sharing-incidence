@@ -62,10 +62,9 @@ def test_library_theta_star_matches_eq5() -> None:
     assert lib == pytest.approx(_theta_star_eq5(pfd0, t_sys, 11.7, DTT_THRESHOLD), abs=0.01)
 
 
-def test_theta_star_macro_matches_eq5() -> None:
-    txt = (REPO / "paper" / "numbers.tex").read_text(encoding="utf-8")
-    m = re.search(r"\\newcommand\{\\AnalyticThetaStarDeg\}\{([^}]*)\}", txt)
-    assert m, "AnalyticThetaStarDeg missing from paper/numbers.tex"
+def test_theta_star_macro_matches_eq5(numbers_tex: str) -> None:
+    m = re.search(r"\\newcommand\{\\AnalyticThetaStarDeg\}\{([^}]*)\}", numbers_tex)
+    assert m, "AnalyticThetaStarDeg missing from numbers.tex"
     sim = load_simulation(REPO / "configs" / "constellations.yaml")
     t_sys = sim.systems["ONEWEB"].shells[0].beam.system_noise_temp_k
     expected = _theta_star_eq5(-116.0, t_sys, 11.7, DTT_THRESHOLD)

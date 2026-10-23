@@ -1,4 +1,4 @@
-"""Beam/link schema and sourcing (AGENTS.md rule 2)."""
+"""Beam/link schema and sourcing."""
 
 from __future__ import annotations
 

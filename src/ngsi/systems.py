@@ -4,7 +4,7 @@ A *system* is all shells of one operator (e.g. Starlink).  In-line events are
 only computed **between different systems**; shells of the same system never
 interfere with each other.  A *phasing* is a random RAAN offset and a random
 mean-anomaly (argument-of-latitude) offset drawn per shell, which rotates the
-whole Walker pattern without changing its geometry (AGENTS.md rule 5).
+whole Walker pattern without changing its geometry.
 """
 
 from __future__ import annotations

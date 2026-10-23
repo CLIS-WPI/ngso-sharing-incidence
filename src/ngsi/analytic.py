@@ -5,7 +5,7 @@ interferer aggregate (the interferer's serving satellite, main beam, at the
 victim station) drives ``Delta T/T`` above the 47 CFR 25.261 threshold.  This
 module reconstructs that fraction from first principles, with **explicit and
 deliberately simple approximations**, so the simulation can be checked rather
-than merely trusted (AGENTS.md rule 6).
+than merely trusted.
 
 Model
 -----

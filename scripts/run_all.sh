@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Re-run every experiment the paper cites, then regenerate numbers, figures, paper.
+# Re-run every experiment the paper cites, then regenerate numbers and figures.
 # Intended to run *inside* the dev container:  make run-all
 #
-# Each command reproduces one run directory under results/ that paper/numbers.tex
+# Each command reproduces one run directory under results/ that numbers.tex
 # reads (same arguments, same order as recorded in that run's run_meta.json).
 # E1-E3 ran in float64 (the default); E4-E9 and the sensitivity runs in float32
 # (NGSI_COMPUTE_DTYPE, recorded in run_meta.json). New run directories get new
@@ -52,11 +52,10 @@ echo "== e12 J2 vs SGP4, e13 daily-replication dependence (evidence, no paper ma
 NGSI_COMPUTE_DTYPE=float64 python scripts/check_propagation.py
 NGSI_COMPUTE_DTYPE=float64 python scripts/analyze_daily_replications.py
 # E10 (bandwidth invariance) and E11 (float32 vs float64) compare superseded runs
-# kept on the development branch; see README.md.
+# kept on the development branch.
 
-echo "== paper numbers, figures, paper =="
+echo "== numbers.tex and figures (output/) =="
 python scripts/make_numbers.py
 python figures/make_figures.py
-bash scripts/build_paper.sh
 
 echo "done."

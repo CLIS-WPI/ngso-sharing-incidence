@@ -1,4 +1,4 @@
-"""TLE parsing and as-deployed element conversion (AGENTS.md rule 6).
+"""TLE parsing and as-deployed element conversion.
 
 A real CelesTrak TLE (STARLINK-1008, 2026 day 290) is used as the hand-checkable
 fixture; the epoch is cross-checked against ``utc_to_jd`` of the calendar date.

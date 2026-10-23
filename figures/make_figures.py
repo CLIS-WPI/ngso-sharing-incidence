@@ -1,11 +1,11 @@
-"""Build the paper figures from files under ``results/`` only (AGENTS.md rule 4).
+"""Build the paper figures from files under ``results/`` only.
 
-``paper/main.tex`` includes two figures, both drawn from the ``summary_*.csv``
+The paper includes two figures, both drawn from the ``summary_*.csv``
 tables of the headline E4 (as-filed) and E5 (as-deployed) runs; no physical
 quantity is hard-coded here:
 
-- Fig. 1 ``paper/figures/B1_events_both.png``  (:func:`fig_b1_events`)
-- Fig. 2 ``paper/figures/B2_limits.png``       (:func:`fig_b2_limits`)
+- Fig. 1 ``output/figures/B1_events_both.png``  (:func:`fig_b1_events`)
+- Fig. 2 ``output/figures/B2_limits.png``       (:func:`fig_b2_limits`)
 
 Run:  python figures/make_figures.py
 """
@@ -23,7 +23,7 @@ import pandas as pd
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 RESULTS_DIR = REPO_ROOT / "results"
-PAPER_FIG_DIR = REPO_ROOT / "paper" / "figures"
+PAPER_FIG_DIR = REPO_ROOT / "output" / "figures"
 VICTIM = "ONEWEB"
 HEAD_DIAM = 0.45
 
@@ -174,7 +174,7 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     for out in (fig_b1_events(e4, e5), fig_b2_limits(e5)):
         if out is not None:
-            print(f"[figures] wrote {out} (paper)")
+            print(f"[figures] wrote {out}")
     return 0
 
 

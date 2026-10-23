@@ -6,7 +6,7 @@ Implementations follow ITU-R recommendations:
 * :func:`s465_gain`   - reference pattern for *earth station* antennas.
 * :func:`s1428_gain`  - NGSO earth-station reference pattern (S.1428 family).
 
-Convention (see AGENTS.md rule 3): ``off_axis_deg`` is always the off-boresight
+Convention: ``off_axis_deg`` is always the off-boresight
 angle measured *at the antenna*, and each antenna's gain is counted exactly once.
 Number of degrees, gains in dBi.
 """

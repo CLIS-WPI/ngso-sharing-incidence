@@ -19,9 +19,9 @@ RUN apt-get update \
  && apt-get install -y --no-install-recommends git build-essential ca-certificates \
  && rm -rf /var/lib/apt/lists/*
 
-# LaTeX (Phase 3c paper build).  texlive-publishers provides IEEEtran.cls; the
-# -recommended/-extra sets provide graphicx, booktabs, etc.  latexmk drives the
-# multi-pass build (see scripts/build_paper.sh and `make paper`).
+# LaTeX toolchain (texlive-publishers provides IEEEtran.cls; latexmk drives
+# multi-pass builds). The paper source is on the development branch; nothing on
+# this branch needs LaTeX.
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
       biber latexmk \

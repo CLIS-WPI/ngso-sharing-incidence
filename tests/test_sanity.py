@@ -1,4 +1,4 @@
-"""Hand-checkable values for the analytic sanity functions (AGENTS.md rule 6)."""
+"""Hand-checkable values for the analytic sanity functions."""
 
 from __future__ import annotations
 

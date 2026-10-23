@@ -14,7 +14,7 @@ criterion.  For a victim earth station at a site and time step:
 * the 25.261(d) short-term trigger is ``Delta T/T > 0.06`` (equivalently
   ``I/N > -12.2 dB``), the single constant in :mod:`ngsi.constants`.
 
-All angles are at the antenna (AGENTS.md rule 3); each antenna gain is counted
+All angles are at the antenna; each antenna gain is counted
 exactly once.  The victim terminal pattern is ITU-R S.1428 (which delegates to the
 S.465 envelope), selectable for sensitivity.
 """

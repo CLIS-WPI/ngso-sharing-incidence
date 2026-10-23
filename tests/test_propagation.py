@@ -1,4 +1,4 @@
-"""Propagation: J2 secular rates and SGP4 validation (AGENTS.md rule 6).
+"""Propagation: J2 secular rates and SGP4 validation.
 
 The SGP4 test builds a *TLE-equivalent* for three circular satellites with
 ``Satrec.sgp4init`` (the same initialiser ``twoline2rv`` uses), propagates both

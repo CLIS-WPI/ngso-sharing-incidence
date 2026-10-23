@@ -2,7 +2,7 @@
 
 E5/E6 replicate over consecutive non-overlapping 24 h windows from one TLE
 snapshot.  For each headline metric this writes the per-day values (worst
-qualified station per day, the same aggregation as ``paper/numbers.tex``), their
+qualified station per day, the same aggregation as ``numbers.tex``), their
 mean and 95% t-interval, min / max, lag-1 autocorrelation, an OLS trend across
 days (slope, p-value) and Kendall's tau, and the CI basis that follows:
 

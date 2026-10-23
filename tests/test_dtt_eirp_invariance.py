@@ -1,4 +1,4 @@
-"""The victim's own EIRP must not move the Delta T/T screen (AGENTS.md rule 6).
+"""The victim's own EIRP must not move the Delta T/T screen.
 
 The 25.261(c) trigger depends on the *interferer's* power, the victim's receive
 gain and noise, and the geometry -- never on the victim's own transmit EIRP.  This

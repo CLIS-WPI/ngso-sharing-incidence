@@ -3,7 +3,7 @@
 Heavy logic for E1 (event rate vs latitude) and E2 (satellite diversity and the
 25.261 burden) lives here; ``experiments/*.py`` are thin entrypoints.
 
-Replication unit (AGENTS.md rule 5) is an independent constellation *phasing*:
+The replication unit is an independent constellation *phasing*:
 each phasing draws one random RAAN offset and mean-anomaly offset per shell.  All
 confidence intervals are computed **across phasings** (t-interval, n-1 df).
 """
@@ -1314,8 +1314,7 @@ def run_e5(
 
     Replaces the modelled Walker pattern + random phasing with a real snapshot:
     every satellite's TLE mean elements are advanced to a common epoch and the
-    analytic J2 propagator is run from N independent *start times* (AGENTS.md
-    rule 5).  Event-rate (geometric theta) and Delta T/T (power) screens are
+    analytic J2 propagator is run from N independent *start times*.  Event-rate (geometric theta) and Delta T/T (power) screens are
     produced on the same station grid as E1/E4.  ``starlink_generation``
     (gen1 | gen2 | all; default from the config) keeps only that generation of
     the operational Starlink satellites (see ``_as_deployed_inputs``).
@@ -1514,7 +1513,7 @@ def run_e6(
     Delta T/T power-screen exceedance (and the qualified 25.261(d) throughput
     degradation) for *both* ordered user-downlink pairs, so we can state which
     conclusions depend on the EIRP values.  Replication is over independent start
-    times (AGENTS.md rule 5).  ``starlink_generation`` selects the Starlink
+    times.  ``starlink_generation`` selects the Starlink
     generation as in E5.  Rows are produced per handoff policy
     (``handoff_policy``); the no-diversity columns do not depend on it.
     """

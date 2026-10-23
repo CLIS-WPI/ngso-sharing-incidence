@@ -6,7 +6,7 @@ Every run writes into ``results/<experiment>_<timestamp>_seed<seed>/`` containin
 * ``configs/``       - a verbatim copy of the config files used;
 * raw per-phasing tables as Parquet (preferred) or CSV.
 
-AGENTS.md rules 1 and 4: figures/tables are built only from these files, and any
+Figures/tables are built only from these files, and any
 number quoted in a report must be traceable to one of them.
 """
 

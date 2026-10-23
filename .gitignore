@@ -18,23 +18,14 @@ data/processed/*
 
 # --- Results ---
 # The run directories the paper cites are committed in full (parquet and raw CSV
-# included) so scripts/make_numbers.py can regenerate paper/numbers.tex without
+# included) so scripts/make_numbers.py can regenerate numbers.tex without
 # re-running the experiments. Figure copies are regenerated, not committed.
 results/**/*.png
 results/**/*.pdf
 
-# --- Paper ---
-# LaTeX build artifacts are regenerated from paper/*.tex; the PDF is a build
-# product (rebuild with `make paper`).
-paper/*.aux
-paper/*.log
-paper/*.fls
-paper/*.fdb_latexmk
-paper/*.out
-paper/*.blg
-paper/*.bbl
-paper/*.bcf
-paper/*.pdf
+# --- Generated output ---
+# `make regenerate` writes output/numbers.tex and output/figures/ from results/.
+output/
 
 # --- Misc ---
 .DS_Store

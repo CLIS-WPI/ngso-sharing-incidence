@@ -1,4 +1,4 @@
-"""Handoff (satellite-diversity) policies of the Delta T/T screener (AGENTS.md rule 6)."""
+"""Handoff (satellite-diversity) policies of the Delta T/T screener."""
 
 from __future__ import annotations
 

@@ -13,7 +13,7 @@ it remains the validation reference (:func:`ngsi.propagation.propagate_sgp4`,
 ``n`` so ``a = (mu / n^2)^(1/3)`` is consistent with the model's ``n``.
 
 No number read from a TLE is an input to any physical model: the snapshot is
-downloaded and its URL/date recorded in ``data/raw/README.md`` (AGENTS.md rule 1).
+downloaded and its URL/date recorded in ``data/raw/README.md``.
 """
 
 from __future__ import annotations

@@ -1,4 +1,4 @@
-"""Frame conversions: hand-checkable points (AGENTS.md rule 6)."""
+"""Frame conversions: hand-checkable points."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-"""Starlink Gen1 / Gen2 selection (Walker) and classification (TLE) (AGENTS.md rule 6)."""
+"""Starlink Gen1 / Gen2 selection (Walker) and classification (TLE)."""
 
 from __future__ import annotations
 

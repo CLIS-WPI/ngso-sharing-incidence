@@ -1,4 +1,4 @@
-"""Single-source Delta T/T constant and its I/N equivalent (AGENTS.md rule 6)."""
+"""Single-source Delta T/T constant and its I/N equivalent."""
 
 from __future__ import annotations
 

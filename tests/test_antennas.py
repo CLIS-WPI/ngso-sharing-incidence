@@ -1,4 +1,4 @@
-"""Antenna patterns: boresight and floor hand checks (AGENTS.md rule 6)."""
+"""Antenna patterns: boresight and floor hand checks."""
 
 from __future__ import annotations
 

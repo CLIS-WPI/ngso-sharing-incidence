@@ -1,9 +1,8 @@
-"""Write ``paper/numbers.tex`` from the newest run directory of each experiment.
+"""Write ``output/numbers.tex`` from the newest run directory of each experiment.
 
 Every number the paper quotes is a ``\\newcommand`` here, read from ``results/``
-(AGENTS.md rule 1: no number is invented, estimated, or hard-coded).  The LaTeX in
-``paper/main.tex`` references only these macros, so the paper cannot drift from the
-results.  Run before the LaTeX build (``scripts/build_paper.sh``).
+(no number is invented, estimated, or hard-coded).  The paper's LaTeX source
+references only these macros, so the paper cannot drift from the results.
 
 Run:  python scripts/make_numbers.py
 """
@@ -17,7 +16,7 @@ import pandas as pd
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 RESULTS = REPO_ROOT / "results"
-OUT = REPO_ROOT / "paper" / "numbers.tex"
+OUT = REPO_ROOT / "output" / "numbers.tex"
 
 # The binding (worst) direction is OneWeb-victim <- Starlink-interferer.
 VICTIM = "ONEWEB"
@@ -370,7 +369,7 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--results-root", type=Path, default=RESULTS,
                     help="read runs from here (default results/)")
-    ap.add_argument("--out", type=Path, default=OUT, help="write here (default paper/numbers.tex)")
+    ap.add_argument("--out", type=Path, default=OUT, help="write here (default output/numbers.tex)")
     args = ap.parse_args(argv)
     RESULTS, OUT = args.results_root.resolve(), args.out.resolve()
     macros: list[tuple[str, str]] = []

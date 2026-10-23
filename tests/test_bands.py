@@ -1,4 +1,4 @@
-"""Co-frequency overlap logic and the shipped band config (AGENTS.md rules 2, 6)."""
+"""Co-frequency overlap logic and the shipped band config."""
 
 from __future__ import annotations
 
