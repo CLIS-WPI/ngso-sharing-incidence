@@ -134,8 +134,8 @@ Re-running them:
 - **E12, E13:** reproducible from this branch (`run_all.sh` runs both). E12 reads the
   TLE snapshot and the E5 config (about 17 min on the GPU). E13 post-processes the
   kept E5 runs (under 1 min). E12 was produced at commit `0724e96`, and `src/` and
-  `configs/` have changed since then, so a re-run may differ slightly. E13 was
-  produced at `413230c`; `make_numbers.py` has changed by 5 lines since.
+  `configs/` have changed since then, so a re-run may differ slightly. E13 re-run on
+  this branch reproduces both of its CSVs byte-identical.
 - **E10, E11:** the recorded outcomes above are final. Their inputs are on
   `development` only. E10 compares `e4_dtt_20261020T151750Z_seed0` against
   `e4_dtt_20261019T183747Z_seed0`. E11 compares the float32/float64 pairs under
