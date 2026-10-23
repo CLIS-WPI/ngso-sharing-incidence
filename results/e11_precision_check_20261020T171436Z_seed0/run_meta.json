@@ -1,0 +1,39 @@
+{
+  "experiment": "e11_precision_check",
+  "seed": 0,
+  "timestamp_utc": "20261020T171436Z",
+  "git_hash": "45b4aa8eeb3e2efa0d70819c29b9e947ac27989e",
+  "git_worktree": {
+    "dirty": true,
+    "modified_files": [
+      "CLAUDE.md",
+      "configs/constellations.yaml",
+      "configs/experiments/e4_dtt.yaml",
+      "experiments/e4_dtt.py",
+      "experiments/e5_as_deployed.py",
+      "experiments/e6_eirp_sweep.py",
+      "figures/make_figures.py",
+      "paper/refs.bib",
+      "scripts/make_numbers.py",
+      "scripts/make_phase3d_report.py",
+      "src/ngsi/dtt_screen.py",
+      "src/ngsi/geometry.py",
+      "src/ngsi/io.py",
+      "src/ngsi/propagation.py",
+      "src/ngsi/runner.py",
+      "src/ngsi/screening.py",
+      "src/ngsi/tle.py"
+    ],
+    "diff_sha256": "8d2c4c87a82462a8b3acccd380eeb5542959d77be1132ce891f930d58179fda2"
+  },
+  "compute_dtype": "float64",
+  "python": "3.11.10",
+  "platform": "Linux-6.18.40.1-microsoft-standard-WSL2-x86_64-with-glibc2.35",
+  "argv": [
+    "scripts/compare_precision.py",
+    "--f64",
+    "data/processed/precision_float64/results",
+    "--f32",
+    "data/processed/precision_float32/results"
+  ]
+}

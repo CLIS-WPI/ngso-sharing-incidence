@@ -1,0 +1,42 @@
+{
+  "experiment": "e10_bandwidth_invariance",
+  "seed": 0,
+  "timestamp_utc": "20261020T165626Z",
+  "git_hash": "d97299a8150372ea4189a508ff529d12eef16066",
+  "git_worktree": {
+    "dirty": true,
+    "modified_files": [
+      "CLAUDE.md",
+      "configs/constellations.yaml",
+      "configs/experiments/e1_event_rate.yaml",
+      "docker/docker-compose.yml",
+      "experiments/e4_dtt.py",
+      "experiments/e5_as_deployed.py",
+      "experiments/e6_eirp_sweep.py",
+      "figures/make_figures.py",
+      "paper/main.tex",
+      "paper/refs.bib",
+      "scripts/make_numbers.py",
+      "scripts/make_phase3d_report.py",
+      "src/ngsi/dtt_screen.py",
+      "src/ngsi/geometry.py",
+      "src/ngsi/io.py",
+      "src/ngsi/propagation.py",
+      "src/ngsi/runner.py",
+      "src/ngsi/screening.py",
+      "src/ngsi/tle.py",
+      "tests/test_paper_numbers.py"
+    ],
+    "diff_sha256": "6ddc7bfb0e738de6d702a24bfbf207530b32f3bd382af7e52eb7e0754dbb2945"
+  },
+  "compute_dtype": "float64",
+  "python": "3.11.10",
+  "platform": "Linux-6.18.40.1-microsoft-standard-WSL2-x86_64-with-glibc2.35",
+  "argv": [
+    "scripts/check_bandwidth_invariance.py",
+    "--new",
+    "results/e4_dtt_20261020T151750Z_seed0",
+    "--ref",
+    "results/e4_dtt_20261019T183747Z_seed0"
+  ]
+}

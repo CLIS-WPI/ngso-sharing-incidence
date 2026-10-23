@@ -117,6 +117,32 @@ prints no E2/E3 value; E2/E3 macros exist only in `numbers.tex`.
 | Text: band, phasings | `make_numbers.py` | `e1_event_rate_20261018T012116Z_seed0` |
 | `numbers.tex` only (not printed) | `make_numbers.py` | `e2_diversity_20261019T145056Z_seed0`, `e3_capacity_diversity_20261018T012933Z_seed0` |
 
+### Evidence for statements without a printed number
+
+These checks back qualitative statements in the text (or a modelling choice). No
+`numbers.tex` macro reads them, so `make_numbers.py` does not depend on them.
+
+| check | `main.tex` line it supports | script | run directory (`results/…`) | recorded outcome |
+|---|---|---|---|---|
+| E10 bandwidth invariance | 244–245: "Both metrics are invariant to the channel bandwidth." | `scripts/check_bandwidth_invariance.py` | `e10_bandwidth_invariance_20261020T165626Z_seed0` | `passed: true`. Every `summary_*.csv` of an E4 run with 250/250 MHz channels matches one with 240/125 MHz within tolerance 1e-9 (largest difference 4.4e-16). |
+| E11 float32 vs float64 | none (modelling choice): every E4–E9 and sensitivity run uses `NGSI_COMPUTE_DTYPE=float32` | `scripts/compare_precision.py` | `e11_precision_check_20261020T171436Z_seed0` | `printed_paper_numbers_identical: true` for the 84 E4 paper macros of that time; per-column differences are in `precision_check.json`. |
+| E12 J2 vs SGP4 | 618–620: "Without drag, $J_2$ propagation drifts from SGP4 for individual Starlink satellites after the first days, mostly along track, so later days act as further phasings …" | `scripts/check_propagation.py` | `e12_propagation_check_20261020T224422Z_seed0` | `summary_sample_errors.csv`: position (radial / total) and look-angle errors at days 0, 1, 4, 8; `summary_daily_geometry.csv`: per-day visible counts and in-line fraction, J2 vs SGP4. |
+| E13 daily dependence | 621–622: "the visible-count and event statistics we use show no trend across days. As-deployed intervals describe day-to-day variation …" | `scripts/analyze_daily_replications.py` | `e13_daily_replications_20261021T204049Z_seed0` | `summary_daily_stats.csv`: lag-1 autocorrelation, OLS trend and Kendall's τ per headline metric over the 8 days; CI basis `t-interval` for 59 metrics and `constant` (zero spread) for 24. |
+
+Re-running them:
+
+- **E12, E13:** reproducible from this branch (`run_all.sh` runs both). E12 reads the
+  TLE snapshot and the E5 config (about 17 min on the GPU). E13 post-processes the
+  kept E5 runs (under 1 min). E12 was produced at commit `0724e96`, and `src/` and
+  `configs/` have changed since then, so a re-run may differ slightly. E13 was
+  produced at `413230c`; `make_numbers.py` has changed by 5 lines since.
+- **E10, E11:** the recorded outcomes above are final. Their inputs are on
+  `development` only. E10 compares `e4_dtt_20261020T151750Z_seed0` against
+  `e4_dtt_20261019T183747Z_seed0`. E11 compares the float32/float64 pairs under
+  `data/processed/precision_float{32,64}/`. Keeping those superseded E4 runs out of
+  `results/` here also keeps them out of the newest-run selection. To re-run either
+  check, check out `development`.
+
 `results/PHASE4C_REPORT.md` is the final report behind the paper: verdict tables
 and the dwell, interruption and time-step analyses. Its generator
 (`scripts/make_phase4c_report.py`) also reads superseded runs, so it is on
@@ -128,10 +154,10 @@ and the dwell, interruption and time-step analyses. Its generator
 configs/       all physics (constellations, stations, bands, link budget, experiments/*.yaml)
 src/ngsi/      library; runner.py holds the experiment orchestration
 experiments/   e1–e7 entrypoints (CLI flags -> ngsi.runner.run_eN)
-scripts/       make_numbers.py, build_paper.sh, run_all.sh, E8/E9/E14 scripts
+scripts/       make_numbers.py, build_paper.sh, run_all.sh, E8/E9/E14 scripts, E10–E13 checks
 figures/       make_figures.py (Fig. 1, Fig. 2)
 tests/         pytest suite (unit tests with hand-checkable values, paper-macro check)
-results/       the 16 run directories numbers.tex cites, PHASE4C_REPORT.md
+results/       the 16 run directories numbers.tex cites, the E10–E13 checks, PHASE4C_REPORT.md
 data/raw/tle/  CelesTrak TLE snapshot 2026-10-20 (sources and sha256 in data/raw/README.md)
 paper/         main.tex, numbers.tex (generated), refs.bib, figures/
 docker/        Dockerfile, docker-compose.yml
@@ -140,3 +166,7 @@ docker/        Dockerfile, docker-compose.yml
 `AGENTS.md` lists the project rules: numbers come only from `results/`, every
 parameter in `configs/` carries a `source:`, seeds are fixed, and runs execute only
 in the container.
+
+## License
+
+MIT; see `LICENSE`. Copyright (c) 2026 the authors / Worcester Polytechnic Institute.

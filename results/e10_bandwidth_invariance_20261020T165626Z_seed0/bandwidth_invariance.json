@@ -1,0 +1,47 @@
+{
+  "tolerance": 1e-09,
+  "passed": true,
+  "pairs": [
+    {
+      "new": "results/e4_dtt_20261020T151750Z_seed0/",
+      "ref": "results/e4_dtt_20261019T183747Z_seed0/",
+      "bandwidth_new_mhz": {
+        "STARLINK": 250.0,
+        "STARLINK_GEN2": 250.0,
+        "KUIPER": 500.0,
+        "ONEWEB": 250.0
+      },
+      "bandwidth_ref_mhz": {
+        "STARLINK": 240.0,
+        "KUIPER": 500.0,
+        "ONEWEB": 125.0
+      },
+      "files": {
+        "summary_band_overlap.csv": {
+          "comparable": true,
+          "keys_equal": true,
+          "n_values": 72,
+          "max_abs_diff": 0.0,
+          "nan_mismatch": 0,
+          "worst_column": "overlaps"
+        },
+        "summary_dtt.csv": {
+          "comparable": true,
+          "keys_equal": true,
+          "n_values": 11592,
+          "max_abs_diff": 4.3724179550445885e-16,
+          "nan_mismatch": 0,
+          "worst_column": "degradation_div_sd"
+        },
+        "summary_throughput.csv": {
+          "comparable": true,
+          "keys_equal": true,
+          "n_values": 3528,
+          "max_abs_diff": 3.999621814299026e-16,
+          "nan_mismatch": 0,
+          "worst_column": "degradation_div_mean"
+        }
+      }
+    }
+  ]
+}

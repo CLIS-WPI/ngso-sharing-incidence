@@ -71,7 +71,8 @@ Run an experiment directly:
 - `experiments/` - thin entrypoints; heavy logic belongs in `src/ngsi/`.
 - `scripts/` - `make_numbers.py` (paper/numbers.tex), `build_paper.sh`, `run_all.sh`,
   and the E8 / E9 / E14 scripts (`diagnose_analytic.py`, `diagnose_min_elevation.py`,
-  `interruption_cost.py`).
+  `interruption_cost.py`), and the E10-E13 evidence checks (`check_bandwidth_invariance.py`,
+  `compare_precision.py`, `check_propagation.py`, `analyze_daily_replications.py`).
 - `results/<experiment>_<utc>_seed<N>/` - provenance: `run_meta.json` (git hash,
   seed, timestamp), copied `configs/`, raw tables. Created via `ngsi.io.new_run_dir`.
 - `data/raw/` is gitignored except the TLE snapshot `data/raw/tle/`; record source

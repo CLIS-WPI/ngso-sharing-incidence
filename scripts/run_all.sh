@@ -48,6 +48,12 @@ python scripts/diagnose_min_elevation.py
 echo "== e14 interruption cost (post-processes the e5 raw tables) =="
 NGSI_COMPUTE_DTYPE=float64 python scripts/interruption_cost.py
 
+echo "== e12 J2 vs SGP4, e13 daily-replication dependence (evidence, no paper macros) =="
+NGSI_COMPUTE_DTYPE=float64 python scripts/check_propagation.py
+NGSI_COMPUTE_DTYPE=float64 python scripts/analyze_daily_replications.py
+# E10 (bandwidth invariance) and E11 (float32 vs float64) compare superseded runs
+# kept on the development branch; see README.md.
+
 echo "== paper numbers, figures, paper =="
 python scripts/make_numbers.py
 python figures/make_figures.py
