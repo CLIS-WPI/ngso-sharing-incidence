@@ -156,7 +156,7 @@ constraints.
 \item \emph{Event incidence:} to our knowledge, the first latitude-resolved
 estimate of how often the modeled in-line event fires, with an analytic
 approximation that reduces the power criterion to an aperture-independent
-off-axis angle.
+off-axis angle, plus a link-budget criterion for when switching pays.
 \end{itemize}
 
 \section{System Model}
@@ -369,17 +369,26 @@ P = v_A v_B\,\Pr\{\angle(\hat u_A,\hat u_B) < \theta^{*}\},
 where $v_k = 1 - e^{-n_k}$ is the probability that system $k$ has a satellite in
 view, $n_k$ its mean visible count from the Walker latitude density averaged over
 the argument of latitude, and each serving direction $\hat u_k$ is the nearest of
-$n_k$ satellites uniform in the ground footprint, mapped to the look angle.
-Feeding the simulated marginals into the separation integral reproduces the
-simulated separation probability within \DiagnosisIndepMaxErrPct\ percentage
-points (pp), supporting the approximation that the two serving directions are
-independent. On the filed Gen2 shells, (\ref{eq:pevent}) is within
-$\AnalyticSignedMinInclPct$ to \AnalyticSignedMaxInclPct~pp of the simulation up to
+$n_k$ satellites uniform in the ground footprint, mapped to the look angle. On
+the filed Gen2 shells, (\ref{eq:pevent}) is within
+$\AnalyticSignedMinInclPct$ to \AnalyticSignedMaxInclPct\ percentage points (pp) of the simulation up to
 \AnalyticInclLatDeg$^\circ$ latitude; beyond the Gen2 inclinations, where the
 satellite density falls to zero, the uniform-footprint assumption fails and the
-error reaches \AnalyticMaxAbsBeyondPct~pp. Equation (\ref{eq:pevent}) therefore
-gives only the order of magnitude of the event fraction; its main use is (\ref{eq:thetastar}), which is exact under constant
-PFD, and the simulation remains the primary result.
+error reaches \AnalyticMaxAbsBeyondPct~pp; (\ref{eq:pevent}) gives only the
+order of magnitude, whereas (\ref{eq:thetastar}) is exact under constant PFD.
+
+\emph{When does switching pay?} For OneWeb's constant EIRP, $c_g(t;s)$ in
+(\ref{eq:cn}) depends on $s$ only through $L(r_{g,s})$, so leaving the interfered
+$s_0$ for an event-free alternate $j$ raises the SINR only if
+\begin{equation}
+10\log_{10}\frac{1+I_g(t;s_0)/N}{1+I_g(t;j)/N} > 20\log_{10}\frac{r_{g,j}}{r_{g,s_0}},
+\label{eq:switch}
+\end{equation}
+i.e., the interference relief must exceed the extra path loss. At the median
+event $I/N$ of $\DepInServMedDb$~dB, the left side is a fraction of a decibel, so a
+more distant alternate rarely pays; rate-aware handoff applies
+(\ref{eq:switch}), event-avoiding handoff ignores it. The resulting throughput
+and availability are evaluated by simulation.
 
 \section{Results}
 \label{sec:results}
@@ -595,16 +604,14 @@ terminal faces both regimes at once, band splitting toward Starlink Gen1 and the
 protection limits toward Gen2, and after the ten-year sunset the Gen2 relationship
 also moves to band splitting. Whether a combination of
 satellite selection, band splitting, and coordination serves both well requires
-modeling the two regimes jointly, which we leave open. Scoring the alternate with the serving satellite's C/N, a natural
-shortcut, hides this cost (\DepGenTwoLegacyDegrPct\% degradation). \emph{Switching is the price of protection.} Relative to no interference-driven
+modeling the two regimes jointly, which we leave open. \emph{Switching is the price of protection.} Relative to no interference-driven
 handoff, rate-aware handoff lowers the degradation from \DepGenTwoNoHoDegrPct\% to
 \DepGenTwoRateMaxDegrPct\% at \DepDwellRateMaxNTenSwitchesPerHour\ instead of
 \IntRateMaxBaseSwitchesPerHour\ switches per hour, and it dominates event-avoiding
 handoff, which loses more throughput with more switches
 (\DepDwellEvAvNTenSwitchesPerHour\ per hour). Whether this is affordable depends on the
-interruption each switch causes. \emph{Measure the criterion, not a proxy.}
-Geometric in-line screens understate how often the $\Delta T/T$ criterion applies,
-because the trigger reaches deep into the victim terminal's sidelobes. Unlike
+interruption each switch causes. \emph{Measure the criterion, not a proxy:} only a screen at $\theta^{*}$ matches
+the $\Delta T/T$ criterion. Unlike
 entrant-side satellite selection for coexistence~\cite{kim2026selection}, which
 designs the interferer's response, our results show that the protected system's
 own response, which the entrant cannot control, determines compliance.
@@ -623,13 +630,10 @@ per extra switch, and a \TsCheckStepS~s step yields more switches per hour
 on the same days (\TsTwoEvAvSwitchesPerHour\ versus \TsTenEvAvSwitchesPerHour\ for
 event-avoiding, \TsTwoRateMaxSwitchesPerHour\ versus \TsTenRateMaxSwitchesPerHour\ for
 rate-aware),
-so the tolerable interruption is likely smaller than stated. (i) Without drag, $J_2$ propagation drifts from SGP4
-for individual Starlink satellites after the first days, mostly along track, so
-later days act as further phasings of the observed shells rather than forecasts;
-the visible-count and event statistics we use show no trend across days.
-As-deployed intervals describe day-to-day variation conditional on one snapshot;
-tests found no detectable dependence between days, but with little power.
-As-filed intervals cover only the sampled phasings. All statements hold under
+so the tolerable interruption is likely smaller than stated. (i) $J_2$ propagation drifts from SGP4 after the first days,
+so later days act as further phasings of the observed shells (the statistics we
+use show no trend); as-deployed intervals describe day-to-day variation within
+one snapshot, and as-filed intervals only the sampled phasings. All statements hold under
 the modeled assumptions.
 
 \section{Conclusion}

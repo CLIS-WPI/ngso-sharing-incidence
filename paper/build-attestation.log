@@ -202,10 +202,14 @@ neWeb and
 Underfull \hbox (badness 1997) in paragraph at lines 174--179
 \OT1/ptm/m/n/10 quency ranges $\OMS/cmsy/m/n/10 F[]$ \OT1/ptm/m/n/10 for each l
 ink type $\OML/cmm/m/it/10 `$ \OT1/ptm/m/n/10 (user/gateway,
-[2] [3]
+[2]
+
+LaTeX Warning: Reference `eq:switch' on page 3 undefined on input line 390.
+
+[3]
 
 LaTeX Font Warning: Font shape `OT1/ptm/m/scit' undefined
-(Font)              using `OT1/ptm/m/it' instead on input line 444.
+(Font)              using `OT1/ptm/m/it' instead on input line 453.
 
 [4 <./figures//B1_events_both.png>] [5 <./figures//B2_limits.png>] (./main.bbl)
 
@@ -220,6 +224,9 @@ Before submitting the final camera ready copy, remember to:
  process uses the appropriate paper size.
 
 [6] (./main.aux)
+
+LaTeX Warning: There were undefined references.
+
 
 LaTeX Warning: Label(s) may have changed. Rerun to get cross-references right.
 
@@ -244,7 +251,7 @@ cm/cmsy8.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/symbols
 ive/texmf-dist/fonts/type1/urw/times/utmbi8a.pfb></usr/share/texlive/texmf-dist
 /fonts/type1/urw/times/utmr8a.pfb></usr/share/texlive/texmf-dist/fonts/type1/ur
 w/times/utmri8a.pfb>
-Output written on main.pdf (6 pages, 407341 bytes).
+Output written on main.pdf (6 pages, 408058 bytes).
 Transcript written on main.log.
 Latexmk: Examining 'main.log'
 === TeX engine is 'pdfTeX'
@@ -452,7 +459,7 @@ ink type $\OML/cmm/m/it/10 `$ \OT1/ptm/m/n/10 (user/gateway,
 [2] [3]
 
 LaTeX Font Warning: Font shape `OT1/ptm/m/scit' undefined
-(Font)              using `OT1/ptm/m/it' instead on input line 444.
+(Font)              using `OT1/ptm/m/it' instead on input line 453.
 
 [4 <./figures//B1_events_both.png>] [5 <./figures//B2_limits.png>] (./main.bbl)
 
@@ -487,7 +494,7 @@ cm/cmsy8.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/symbols
 ive/texmf-dist/fonts/type1/urw/times/utmbi8a.pfb></usr/share/texlive/texmf-dist
 /fonts/type1/urw/times/utmr8a.pfb></usr/share/texlive/texmf-dist/fonts/type1/ur
 w/times/utmri8a.pfb>
-Output written on main.pdf (6 pages, 407341 bytes).
+Output written on main.pdf (6 pages, 408037 bytes).
 Transcript written on main.log.
 Latexmk: Examining 'main.log'
 === TeX engine is 'pdfTeX'
@@ -518,6 +525,8 @@ Latexmk: Found input bbl file 'main.bbl'
 Latexmk: Found input bbl file 'main.bbl'
 Latexmk: References changed.
 Latexmk: Log file says output to 'main.pdf'
+Latexmk: List of undefined refs and citations:
+  Reference `eq:switch' on page 3 undefined on input line 390
 Latexmk: Found bibliography file(s) [refs.bib]
 Rule 'bibtex main': File changes, etc:
    Changed files, or newly in use since previous run(s):
