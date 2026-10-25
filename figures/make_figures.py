@@ -593,7 +593,7 @@ def fig_b1_events(e4: Path, e5: Path) -> Path | None:
 
 def fig_b2_limits(e5: Path) -> Path | None:
     """Paper Fig. 2: degradation and availability change vs latitude, no handoff and
-    the event-avoiding and rate-maximizing handoff rules, 95% bands across days."""
+    the event-avoiding and rate-aware handoff rules, 95% bands across days."""
     try:
         d = _read(e5, "dtt")
         h = _read(e5, "handoff")
@@ -611,7 +611,7 @@ def fig_b2_limits(e5: Path) -> Path | None:
         (s, "degradation_nodiv", "unavail_incr_frac", "No handoff", "-", "#1f77b4"),
     ]
     for pol, label, ls, color in (("full", "Event-avoiding", "--", "#2ca02c"),
-                                  ("full_keep_serving", "Rate-maximizing", "-.", "#d62728")):
+                                  ("full_keep_serving", "Rate-aware", "-.", "#d62728")):
         hp = _sel(h[h["policy"] == pol])
         if not hp.empty:
             curves.append((hp, "degradation_div", "unavail_incr_div_frac", label, ls, color))

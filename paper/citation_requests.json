@@ -6,7 +6,7 @@
       "identifier": "doi:10.1109/TWC.2024.3511660",
       "claim_support": [
         {
-          "claim": "main.tex l.126-127: later work designed entrant-side satellite selection for in-band coexistence in Ka band",
+          "claim": "main.tex l.140-141: later work designed entrant-side satellite selection for in-band coexistence in Ka band",
           "relation": "background",
           "status": "unverified",
           "evidence": "Metadata only; sentence-level support not checked against the full text.",
@@ -19,7 +19,7 @@
       "identifier": "doi:10.1109/TWC.2025.3645992",
       "claim_support": [
         {
-          "claim": "main.tex l.127 and l.578: entrant-side satellite selection for in-band coexistence (contrast with victim-side handoff)",
+          "claim": "main.tex l.140-141 and l.589: entrant-side satellite selection for in-band coexistence (contrast with victim-side handoff)",
           "relation": "contrast",
           "status": "unverified",
           "evidence": "Metadata only; sentence-level support not checked against the full text.",
@@ -45,7 +45,7 @@
       "identifier": "doi:10.1109/DySPAN.2019.8935875",
       "claim_support": [
         {
-          "claim": "main.tex l.125-126: later work assessed NGSO-NGSO interference in practice",
+          "claim": "main.tex l.140: later work assessed NGSO-NGSO interference in practice",
           "relation": "background",
           "status": "unverified",
           "evidence": "Metadata only; sentence-level support not checked against the full text.",

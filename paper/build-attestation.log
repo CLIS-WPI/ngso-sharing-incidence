@@ -195,30 +195,24 @@ e.tex
 (/usr/share/texlive/texmf-dist/tex/latex/psnfss/ot1pcr.fd)
 (/usr/share/texlive/texmf-dist/tex/latex/psnfss/omspcr.fd)
 (/usr/share/texlive/texmf-dist/tex/latex/psnfss/ts1ptm.fd)
-Underfull \hbox (badness 2119) in paragraph at lines 134--142
+Underfull \hbox (badness 2119) in paragraph at lines 138--145
 []\OT1/ptm/m/it/10 Related work. \OT1/ptm/m/n/10 In-ter-fer-ence be-tween the O
 neWeb and
 [1{/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}]
-Underfull \hbox (badness 1997) in paragraph at lines 167--172
+Underfull \hbox (badness 1997) in paragraph at lines 171--176
 \OT1/ptm/m/n/10 quency ranges $\OMS/cmsy/m/n/10 F[]$ \OT1/ptm/m/n/10 for each l
 ink type $\OML/cmm/m/it/10 `$ \OT1/ptm/m/n/10 (user/gateway,
-
-Underfull \hbox (badness 2573) in paragraph at lines 262--295
-[]\OT1/ptm/m/it/10 Systems. \OT1/ptm/m/n/10 Screen-ing the au-tho-rized bands o
-f Star-link,
 [2] [3]
 
 LaTeX Font Warning: Font shape `TS1/ptm/m/sc' undefined
 (Font)              using `TS1/ptm/m/n' instead
-(Font)              for symbol `textsection' on input line 446.
+(Font)              for symbol `textsection' on input line 435.
 
 
 LaTeX Font Warning: Font shape `OT1/ptm/m/scit' undefined
-(Font)              using `OT1/ptm/m/it' instead on input line 446.
+(Font)              using `OT1/ptm/m/it' instead on input line 435.
 
-
-Underfull \vbox (badness 2970) has occurred while \output is active [4 <./figur
-es//B1_events_both.png>] [5 <./figures//B2_limits.png>] (./main.bbl)
+[4 <./figures//B1_events_both.png>] [5 <./figures//B2_limits.png>] (./main.bbl)
 
 ** Conference Paper **
 Before submitting the final camera ready copy, remember to:
@@ -250,13 +244,12 @@ ype1/public/amsfonts/cm/cmsy5.pfb></usr/share/texlive/texmf-dist/fonts/type1/pu
 blic/amsfonts/cm/cmsy6.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/am
 sfonts/cm/cmsy7.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/
 cm/cmsy8.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/symbols
-/msam10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/symbols/
-msbm10.pfb></usr/share/texlive/texmf-dist/fonts/type1/urw/courier/ucrr8a.pfb></
-usr/share/texlive/texmf-dist/fonts/type1/urw/times/utmb8a.pfb></usr/share/texli
-ve/texmf-dist/fonts/type1/urw/times/utmbi8a.pfb></usr/share/texlive/texmf-dist/
-fonts/type1/urw/times/utmr8a.pfb></usr/share/texlive/texmf-dist/fonts/type1/urw
-/times/utmri8a.pfb>
-Output written on main.pdf (6 pages, 409574 bytes).
+/msam10.pfb></usr/share/texlive/texmf-dist/fonts/type1/urw/courier/ucrr8a.pfb><
+/usr/share/texlive/texmf-dist/fonts/type1/urw/times/utmb8a.pfb></usr/share/texl
+ive/texmf-dist/fonts/type1/urw/times/utmbi8a.pfb></usr/share/texlive/texmf-dist
+/fonts/type1/urw/times/utmr8a.pfb></usr/share/texlive/texmf-dist/fonts/type1/ur
+w/times/utmri8a.pfb>
+Output written on main.pdf (6 pages, 405811 bytes).
 Transcript written on main.log.
 Latexmk: Examining 'main.log'
 === TeX engine is 'pdfTeX'
@@ -276,7 +269,7 @@ Running 'bibtex  "main.aux"'
 ------------
 Rule 'pdflatex': File changes, etc:
    Changed files, or newly in use since previous run(s):
-      'main.tex'
+      'figures//B2_limits.png'
 ------------
 Run number 1 of rule 'pdflatex'
 ------------
