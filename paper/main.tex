@@ -155,8 +155,8 @@ is the better one meets it; we map where each policy fails under switching
 constraints.
 \item \emph{Event incidence:} to our knowledge, the first latitude-resolved
 estimate of how often the modeled in-line event fires, with an analytic
-approximation that reduces the power criterion to an aperture-independent
-off-axis angle, plus a link-budget criterion for when switching pays.
+approximation that reduces the power criterion to an off-axis angle,
+aperture-independent under the ITU-R envelope, plus a link-budget criterion for when switching pays.
 \end{itemize}
 
 \section{System Model}
@@ -361,7 +361,7 @@ G_{\text{rx}}(\theta^{*}) = \delta_{\text{dB}} + N_{\text{dB}} -
 \end{equation}
 Whenever $\theta^{*}$ falls in the sidelobe envelope of the receive pattern, which
 for S.1428 is $G = 32 - 25\log_{10}\theta$ ($1^\circ$--$48^\circ$), the aperture
-cancels: for OneWeb, $\theta^{*} = \AnalyticThetaStarDeg^\circ$ (spread
+cancels (a property of this envelope, not of real antennas): for OneWeb, $\theta^{*} = \AnalyticThetaStarDeg^\circ$ (spread
 \AnalyticThetaSpreadDeg$^\circ$ across \EirpHeadDiam--\AperMaxM~m), which explains
 why the event fraction barely depends on terminal size. The co-located event
 probability is then
