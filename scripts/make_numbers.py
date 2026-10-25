@@ -847,6 +847,21 @@ def main(argv: list[str] | None = None) -> int:
         add("DiagnosisNewMaxErrPct", _pct(js["max_abs_err_new_cond"]), e8)
         add("DiagnosisIndepMaxErrPct", _pct(js["max_abs_err_indep_cond"]), e8)
 
+    # --- E15: geometric screen at several thresholds, co-located, Gen2 as deployed ---
+    e15 = newest("e15_theta_screen")
+    if e15 is not None:
+        s15 = pd.read_csv(e15 / "summary_theta_screen.csv")
+        s15 = s15[(s15["system_a"] == VICTIM) & (s15["variant"] == 1)]
+        star = dict(macros).get("AnalyticThetaStarDeg")
+        theta_word = {1.0: "One", 2.0: "Two", 5.0: "Five", 10.0: "Ten", 15.0: "Fifteen"}
+        for th, g in s15.groupby("theta_deg"):
+            word = theta_word.get(float(th)) or (
+                "Star" if star is not None and _num(th, "{:.2f}") == star else None)
+            if word is None:
+                raise SystemExit(f"{e15.name}: theta {th} has no macro name")
+            add(f"ThetaScreen{word}PeakPct",
+                _pct(_peak(g, "event_frac_mean")["event_frac_mean"]), e15)
+
     # --- E9: OneWeb 55 deg mask diagnosis (as-deployed E6 geometry) ---
     e9 = newest("e9_min_elevation_diagnosis")
     if e9 is not None:

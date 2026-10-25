@@ -1,0 +1,17 @@
+{
+  "experiment": "e15_theta_screen",
+  "seed": 0,
+  "timestamp_utc": "20261025T205318Z",
+  "git_hash": "d01e303c2ccc9d43bf562c4e844e7a8929ca3b47",
+  "git_worktree": {
+    "dirty": false,
+    "modified_files": [],
+    "diff_sha256": null
+  },
+  "compute_dtype": "float32",
+  "python": "3.11.10",
+  "platform": "Linux-6.8.0-138-generic-x86_64-with-glibc2.35",
+  "argv": [
+    "scripts/theta_screen_sweep.py"
+  ]
+}
