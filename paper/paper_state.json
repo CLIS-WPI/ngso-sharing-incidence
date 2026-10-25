@@ -15,13 +15,13 @@
     "command": "latexmk -g -pdf -interaction=nonstopmode -halt-on-error main.tex",
     "pdf": "main.pdf",
     "log": "build-attestation.log",
-    "log_sha256": "35737be0436a88a57145f6f831d73630f58ee2b56c820bd96e8bf0405ead0195",
+    "log_sha256": "dde65681d482a61cb1e1e54084e7dac71d4af0493c93851a22d2c50d0c8ba1ff",
     "exit_code": 0,
     "tool_version": "Latexmk, John Collins, 20 November 2021. Version 4.76",
     "attestation": "executed",
-    "ran_at": "2026-10-25T21:47:28.731058+00:00",
+    "ran_at": "2026-10-25T21:49:51.189970+00:00",
     "status": "passed",
-    "input_sha256": "c48e5892855c75d0e4dddaf8c48b8a935662f8f3c55cd01ee9bd1aeab407fefb",
-    "pdf_sha256": "0050c3681396241f67cbcbe1d81d4090309088cebe0d5a1f82e088cdf773356a"
+    "input_sha256": "41efc15a0fc21af9d2a195909f34cad01c47df8836a7eaa71e3ee01c637c3896",
+    "pdf_sha256": "c6f68f1d1b08cd954d47f610cd3b7717d931d0e2096c4ae9affe0d842218748d"
   }
 }
