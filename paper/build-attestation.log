@@ -198,14 +198,10 @@ e.tex
 Underfull \hbox (badness 2119) in paragraph at lines 139--148
 []\OT1/ptm/m/it/10 Related work. \OT1/ptm/m/n/10 In-ter-fer-ence be-tween the O
 neWeb and
-[1{/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}]
-Underfull \hbox (badness 1997) in paragraph at lines 174--179
-\OT1/ptm/m/n/10 quency ranges $\OMS/cmsy/m/n/10 F[]$ \OT1/ptm/m/n/10 for each l
-ink type $\OML/cmm/m/it/10 `$ \OT1/ptm/m/n/10 (user/gateway,
-[2] [3]
+[1{/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}] [2] [3]
 
 LaTeX Font Warning: Font shape `OT1/ptm/m/scit' undefined
-(Font)              using `OT1/ptm/m/it' instead on input line 454.
+(Font)              using `OT1/ptm/m/it' instead on input line 453.
 
 [4 <./figures//B1_events_both.png>] [5 <./figures//B2_limits.png>] (./main.bbl)
 
@@ -240,7 +236,7 @@ cm/cmsy8.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/symbols
 ive/texmf-dist/fonts/type1/urw/times/utmbi8a.pfb></usr/share/texlive/texmf-dist
 /fonts/type1/urw/times/utmr8a.pfb></usr/share/texlive/texmf-dist/fonts/type1/ur
 w/times/utmri8a.pfb>
-Output written on main.pdf (6 pages, 408153 bytes).
+Output written on main.pdf (6 pages, 408072 bytes).
 Transcript written on main.log.
 Latexmk: Examining 'main.log'
 === TeX engine is 'pdfTeX'

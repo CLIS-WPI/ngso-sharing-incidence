@@ -171,11 +171,10 @@ geodetic positions. Satellite $j$ is visible from $g$ when its elevation is at
 least the minimum elevation $\epsilon_k^{\min}$ of its system;
 $\mathcal{V}_{k}(g,t)$ denotes the visible satellites of system $k$.
 
-\emph{Co-frequency pairs.} Each system holds authorized frequency ranges
-$\mathcal{F}_k^{\ell}$ for each link type $\ell$ (user/gateway, up/down). An
-ordered pair $(A,B)$ is screened on link type $\ell$ only if
-$\mathcal{F}_A^{\ell} \cap \mathcal{F}_B^{\ell} \neq \emptyset$; the coupling is
-evaluated at the center frequency $f$ of the overlap, with wavelength $\lambda$.
+\emph{Co-frequency pairs.} A pair $(A,B)$ is screened on link type $\ell$
+(user/gateway, up/down) only if their authorized ranges overlap,
+$\mathcal{F}_A^{\ell} \cap \mathcal{F}_B^{\ell} \neq \emptyset$, and coupled at the
+overlap's center frequency $f$ (wavelength $\lambda$).
 
 \emph{Signal, interference, and the in-line event.} A victim station $g$ of
 system $A$ served by satellite $s \in \mathcal{V}_A(g,t)$ has carrier-to-noise
@@ -246,20 +245,20 @@ and day, using the policy's time-averaged rate as the rate lost during an
 interruption; overlap with existing outages is
 not removed, so $\Delta U_{g,\tau}$ is an upper bound.
 
-\emph{Protection metrics.} Let $s(t)$ be the satellite actually used. With the
-rate map $R(\gamma) = \log_2(1+\gamma/m)$ for a served instant and $R=0$ for an
-unserved one ($m$ an implementation margin) and a C/N threshold $\gamma_0$,
+\emph{Protection metrics.} With $s(t)$ the satellite used, the rate map
+$R(\gamma) = \log_2(1+\gamma/m)$ ($R=0$ if unserved; $m$ an implementation
+margin), and a C/N threshold $\gamma_0$, the \emph{relative} loss of mean
+throughput $D_g$ and the \emph{absolute} rise in unavailable time $\Delta U_g$ are
 \begin{gather}
 D_g = 1 - \frac{\overline{R(\gamma_g(t;s(t)))}}{\overline{R(c_g(t;s_0))}},\\
 \Delta U_g = \Pr\{\gamma_g(t;s(t)) < \gamma_0\} - \Pr\{c_g(t;s_0) < \gamma_0\},
 \label{eq:metrics}
 \end{gather}
-over $t\in\mathcal{T}$, with an unserved instant counted as unavailable. The
-baseline is the interference-free link under the baseline policy. A link
+over $t\in\mathcal{T}$, with an unserved instant counted as unavailable. The baseline is the interference-free link
+under the baseline policy. A link
 qualifies for protection only if its baseline availability
 $\Pr\{c_g \ge \gamma_0\}$ is at least $a_{\min}$, and the rule is met when
-$D_g \le D_{\max}$ and $\Delta U_g \le U_{\max}$. Both metrics are invariant to the
-channel bandwidth.
+$D_g \le D_{\max}$ and $\Delta U_g \le U_{\max}$.
 
 \section{Evaluation Setup}
 \label{sec:setup}
