@@ -278,7 +278,8 @@ propagated with the same model. Starlink satellites are assigned to Gen2 by
 shell and launch (all \NSatsFortyThree\ at 43$^\circ$ and the
 \NSatsFiftyThreeGenTwo\ at 53$^\circ$ launched from \GenTwoLaunchCutoff\ on, an
 assumption), giving \NStarlinkGenTwo\ Gen2 satellites; the 33$^\circ$ shell is
-still empty. Each run covers \DurationH~h in \TimeStepS~s steps from
+still empty. No public catalog maps satellites to their authorization, so we
+bracket this assignment by the 43$^\circ$ shell alone and all Starlink (Sec.~\ref{sec:results}). Each run covers \DurationH~h in \TimeStepS~s steps from
 \NStartTimes\ non-overlapping start times \StartSpacingH~h apart, for \NStations\
 stations at latitudes \LatMinDeg--\LatMaxDeg$^\circ$ (\LatStepDeg$^\circ$ steps)
 on \NLongitudes\ meridians.
@@ -555,7 +556,7 @@ coordination~\cite[Sec.~5.1]{delportillo2019}.
 
 \begin{table*}[t]
 \caption{Scenario-based sensitivity of the protection results, not a prediction
-of operational interference: OneWeb
+of operational interference: realistic variant, OneWeb
 victim, Starlink Gen2, as deployed, \EirpHeadDiam~m, \SenStartTimes\ days; EA/RA: event-avoiding/rate-aware handoff. Event:
 worst-station fraction of time with $\Delta T/T>\DttThresholdPct\%$. Noise
 \NoiseAssumedOneK/\NoiseAssumedStarK~K: generic OneWeb/Starlink system temperatures
@@ -610,10 +611,9 @@ handoff, rate-aware handoff lowers the degradation from \DepGenTwoNoHoDegrPct\% 
 handoff, which loses more throughput with more switches
 (\DepDwellEvAvNTenSwitchesPerHour\ per hour). Whether this is affordable depends on the
 interruption each switch causes. \emph{Measure the criterion, not a proxy:} only a screen at $\theta^{*}$ matches
-the $\Delta T/T$ criterion. Unlike
-entrant-side satellite selection for coexistence~\cite{kim2026selection}, which
-designs the interferer's response, our results show that the protected system's
-own response, which the entrant cannot control, determines compliance.
+the $\Delta T/T$ criterion. Unlike entrant-side
+selection~\cite{kim2026selection}, the response that decides compliance here is
+the protected system's own.
 
 \section{Limitations}
 (a) Propagation is clear-sky and the rate map is a margin-reduced Shannon bound;
@@ -623,8 +623,7 @@ panels, which also lose gain when scanning toward low elevation. (c) Non-serving
 baseline uses the highest-elevation satellite and handoff ignores satellite
 capacity. (e) Only the user downlink is modeled. (f) The OneWeb EIRP is taken
 from~\cite{delportillo2019}; its constant EIRP from fixed beams and the
-\StationMinElevDeg$^\circ$ mask are assumptions. (g) The equal split of the Gen2
-grant and the launch-designator classification at 53$^\circ$ are assumptions. (h) Interruption is added after simulation and does not enter the handoff
+\StationMinElevDeg$^\circ$ mask are assumptions. (g) The equal Gen2 shells are an assumption. (h) Interruption is added after simulation and does not enter the handoff
 decision, so an interruption-aware policy would switch less; a \TsCheckStepS~s step
 also yields more switches than the \TimeStepS~s step (\TsTwoEvAvSwitchesPerHour\ vs.\
 \TsTenEvAvSwitchesPerHour\ per hour event-avoiding, \TsTwoRateMaxSwitchesPerHour\ vs.\
