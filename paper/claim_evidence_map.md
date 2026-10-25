@@ -409,7 +409,7 @@ Numbers typed directly in `main.tex` from the abstract to the acknowledgment (ru
 | 288 | 1528 | S.1528~\cite{itu1528}; $m = 10^{\ImplMarginDb/10}$ (a \ImplMarginDb~dB margin). |
 | 293 | 47, 25.208 | service edge: (a) the \emph{Gen2 filed maximum} (primary), the 47 CFR~25.208(b) |
 | 328 | 525, 535 | Filed altitude (km) & 525--535 & \OnewebAltKm & \cite{fcc2291} / \textsc{a}\\ |
-| 329 | 28, 89, 1, 18, 36, 1 | Planes$\times$sats, $F$ & 28$\times$89 (each), 1 & 18$\times$36, 1 & \textsc{a}\\ |
+| 329 | 2492, 28, 1, 648, 18, 1 | Sats/planes/phasing & 2492/28/1 each & 648/18/1 & \textsc{a}\\ |
 | 334 | 3 | 3-dB beamwidth (deg) & \StarBeamwidthDeg & \OneBeamwidthDeg & derived / \textsc{a}\\ |
 | 359 | 1428 | for S.1428 is $G = 32 - 25\log_{10}\theta$ ($1^\circ$--$48^\circ$), the aperture |
 | 407 | 40, 53 | (\VisDepLatForty\ satellites at 40$^\circ$) and collapsing beyond the 53$^\circ$ |
