@@ -3,9 +3,11 @@
 `tle/` is the CelesTrak TLE snapshot every as-deployed result in the paper uses
 (E5, E6, E9 and the sensitivity runs). It is committed byte-exact (`.gitattributes`
 marks `*.tle` as `-text`, so the CRLF line endings CelesTrak serves are kept and the
-sha256 values below hold). `ngsi.tle.fetch_group` reads `tle/<group>.tle` when it
-exists and downloads only when it is missing, so re-running the experiments uses
-this snapshot, not today's sky. Everything else under `data/raw/` is gitignored.
+sha256 values below hold). `ngsi.tle.fetch_group` reads `tle/<group>.tle` only after
+checking its sha256 against the table below, and fails if the file is missing or
+differs; it never downloads on its own (only `python scripts/fetch_tle.py --fetch-tle`
+does, on purpose). So re-running the experiments uses this snapshot, not today's
+sky. Everything else under `data/raw/` is gitignored.
 
 | file | source URL | download date (UTC) | objects | sha256 |
 |------|------------|---------------------|---------|--------|
@@ -15,6 +17,8 @@ this snapshot, not today's sky. Everything else under `data/raw/` is gitignored.
 CelesTrak GP data (TLE format), public. Starlink TLE epochs 2026-09-21 05:49 to
 2026-10-20 16:38 UTC (median 2026-10-20 05:34); OneWeb TLE epochs 2026-10-19 03:37 to
 2026-10-20 12:59 UTC (median 2026-10-20 06:33). The timestamped files are identical
-copies kept under their download time.
+copies kept under their download time. An earlier snapshot (CelesTrak `starlink` /
+`oneweb` groups downloaded 2026-10-18, 10,651 / 651 objects; not kept) was used by
+every as-deployed result before Phase 4.
 
 Check: `sha256sum data/raw/tle/*.tle`.
