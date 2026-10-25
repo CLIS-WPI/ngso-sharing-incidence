@@ -288,7 +288,10 @@ S.1428~\cite{itu1428} and the interferer the ITU-R satellite pattern
 S.1528~\cite{itu1528}; $m = 10^{\ImplMarginDb/10}$ (a \ImplMarginDb~dB margin).
 Propagation is clear-sky free space; rain fade, which the FCC assesses case by
 case~\cite{fcc24117}, is not modeled. OneWeb transmits at constant EIRP from
-fixed beams. Starlink holds a constant surface PFD while steering~\cite{fcc2291},
+fixed beams. Its filed \OnewebMinElevSensDeg$^\circ$
+mask~\cite[Sec.~2.2]{delportillo2019} leaves only \MinElevQualStations\ of \NStations\
+stations qualified for protection, so our primary case uses 25$^\circ$, where all
+qualify, and \OnewebMinElevSensDeg$^\circ$ is a sensitivity case. Starlink holds a constant surface PFD while steering~\cite{fcc2291},
 so (\ref{eq:pfd}) applies with two anchors at the \PfdAnchorElevDeg$^\circ$
 service edge: (a) the \emph{Gen2 filed maximum} (primary), the 47 CFR~25.208(b)
 limit of $\PfdLimitDbw$~dBW/m$^2$/MHz~\cite{cfr25208} (which covers only
@@ -542,16 +545,12 @@ extra switch interrupts the link for $\tau$ seconds, the post-hoc upper-bound es
 availability change stays within the limit up to approximately
 \IntEvAvMaxTauUnavS~s (event-avoiding) and \IntRateMaxMaxTauUnavS~s
 (rate-aware), and rate-aware throughput up to \IntRateMaxMaxTauDegrS~s.
-OneWeb's filed design keeps a satellite above \OnewebMinElevSensDeg$^\circ$ for its
-users~\cite[Sec.~2.2]{delportillo2019}. Under that mask only the stations at
-\MinElevQualLatLo--\MinElevQualLatHi$^\circ$ (\MinElevQualStations\ of \NStations)
-reach the baseline availability needed for protection, so below
-\MinElevQualLatLo$^\circ$ the protection limits do not even apply; where it is, only
+Under OneWeb's \OnewebMinElevSensDeg$^\circ$ mask, protection applies only at
+\MinElevQualLatLo--\MinElevQualLatHi$^\circ$, where just
 \MinElevNAboveMin--\MinElevNAboveMax\ OneWeb satellites are above the mask on
 average; both policies then exceed the availability limit but not the throughput
-limit. This matches
-the observation that OneWeb's fixed, non-steerable beams leave it only a passive
-role in in-line coordination~\cite[Sec.~5.1]{delportillo2019}.
+limit, consistent with OneWeb's passive role in in-line
+coordination~\cite[Sec.~5.1]{delportillo2019}.
 
 \begin{table*}[t]
 \caption{Sensitivity of the protection results, realistic variant, OneWeb
