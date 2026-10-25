@@ -8,10 +8,11 @@ __pycache__/
 .mypy_cache/
 
 # --- Data ---
-# Raw TLE / population / BSL data are large or licensed: never commit them.
-# The README records the source URL and download date for each file.
+# Raw data are not committed, except the public CelesTrak TLE snapshot the paper
+# uses (data/raw/tle/). The README records source URL, date and sha256.
 data/raw/*
 !data/raw/README.md
+!data/raw/tle/
 data/processed/*
 !data/processed/.gitkeep
 

@@ -1,1 +1,3 @@
 * text=auto eol=lf
+# CelesTrak serves TLEs with CRLF; keep the snapshot byte-exact (sha256 in data/raw/README.md).
+data/raw/tle/*.tle -text

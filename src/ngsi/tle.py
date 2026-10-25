@@ -18,6 +18,8 @@ downloaded and its URL/date recorded in ``data/raw/README.md`` (AGENTS.md rule 1
 
 from __future__ import annotations
 
+import hashlib
+import re
 import urllib.request
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
@@ -107,20 +109,53 @@ def parse_tle(text: str) -> list[TleRecord]:
     return records
 
 
+def recorded_tle_sha256(readme: str | Path) -> dict[str, str]:
+    """``{file name: sha256}`` from the ``tle/<name>.tle`` rows of ``data/raw/README.md``."""
+    out: dict[str, str] = {}
+    for line in Path(readme).read_text(encoding="utf-8").splitlines():
+        digests = re.findall(r"\b[0-9a-f]{64}\b", line)
+        if len(digests) == 1:
+            out.update({n: digests[0] for n in re.findall(r"tle/([\w.-]+\.tle)", line)})
+    return out
+
+
+def check_tle_cache(path: str | Path) -> None:
+    """Fail unless the pinned snapshot ``path`` exists with the sha256 recorded in the
+    ``README.md`` next to its directory (``data/raw/README.md`` for ``data/raw/tle/``)."""
+    path = Path(path)
+    readme = path.parent.parent / "README.md"
+    hint = ("Restore the pinned snapshot with `git checkout -- data/raw/tle`; a new "
+            "snapshot changes every as-deployed result, so download one only on purpose "
+            "with `python scripts/fetch_tle.py --fetch-tle` and record its sha256 in "
+            f"{readme}.")
+    if not path.is_file():
+        raise FileNotFoundError(f"TLE snapshot {path} is missing. {hint}")
+    want = recorded_tle_sha256(readme).get(path.name) if readme.is_file() else None
+    if want is None:
+        raise RuntimeError(f"No sha256 recorded for {path.name} in {readme}. {hint}")
+    got = hashlib.sha256(path.read_bytes()).hexdigest()
+    if got != want:
+        raise RuntimeError(f"TLE snapshot {path} has sha256 {got}, but {readme} records "
+                           f"{want}. {hint}")
+
+
 def fetch_group(
     group: str,
     cache_dir: str | Path,
     *,
-    force: bool = False,
+    fetch: bool = False,
     timeout: float = 60.0,
 ) -> str:
-    """Download a CelesTrak group (cached in ``cache_dir/<group>.tle``); return text.
+    """Return the pinned CelesTrak snapshot ``cache_dir/<group>.tle``.
 
-    Returns the cached file verbatim when present unless ``force`` is set, so a
-    run is reproducible against a pinned snapshot once downloaded.
+    The file must exist and match its sha256 in ``data/raw/README.md``
+    (:func:`check_tle_cache`); otherwise this fails rather than download.  Only
+    ``fetch=True`` (``scripts/fetch_tle.py --fetch-tle``) downloads a new snapshot
+    and overwrites the cache.
     """
     cache = Path(cache_dir) / f"{group}.tle"
-    if cache.exists() and not force:
+    if not fetch:
+        check_tle_cache(cache)
         return cache.read_text(encoding="utf-8")
     req = urllib.request.Request(celestrak_url(group), headers={"User-Agent": USER_AGENT})
     with urllib.request.urlopen(req, timeout=timeout) as resp:  # noqa: S310 (fixed host)

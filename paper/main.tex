@@ -303,8 +303,9 @@ sources; derivations are in the repository.
 \emph{Regulatory parameters and statistics.} We set $\delta = \DttThreshold$
 ($I/N > \InThresholdDb$~dB)~\cite{cfr25261}, $D_{\max} = \DegradeLimitPct\%$,
 $U_{\max} = \UnavailLimitPct\%$, $\gamma_0 = \CnGateDb$~dB, and
-$a_{\min} = \RuleBaselineAvailPct\%$~\cite{fcc24117}. Each protection number is
-the worst qualifying station per replication, averaged across replications, with
+$a_{\min} = \RuleBaselineAvailPct\%$~\cite{fcc24117}. Because the limits
+protect every qualifying link, each protection number is the worst qualifying
+station per replication, not the average user, averaged across replications, with
 a \CiPct\% $t$-interval; a limit is \emph{exceeded} only if the whole interval lies
 above it and \emph{met} only if it lies below. Our evaluation is a compatibility
 analysis under these assumptions, of the kind a compatibility showing contains; it
@@ -401,13 +402,13 @@ one although fewer Starlink satellites are visible (\VisDepLatZero\ versus
 count alone.
 
 \emph{A narrow geometric screen would miss most of it.}
-A common shortcut declares an in-line event only when the two serving satellites
-are nearly aligned. With a \ThetaScreenDeg$^\circ$ separation threshold, that
-screen fires only \ThetaColoPeakPct\% of the time at its peak (co-located,
-Gen2 as deployed). Equation
-(\ref{eq:thetastar}) explains the gap: Starlink's serving beam pushes OneWeb's
-$\Delta T/T$ over the threshold through the terminal's sidelobes out to
-$\theta^{*} = \AnalyticThetaStarDeg^\circ$.
+A common shortcut flags an in-line event when the two serving satellites are
+within a fixed angle. At 1, 2, 5, and 10$^\circ$ that screen fires only
+\ThetaScreenOnePeakPct, \ThetaScreenTwoPeakPct, \ThetaScreenFivePeakPct, and
+\ThetaScreenTenPeakPct\% of the time at its peak (co-located, as deployed),
+whereas a screen at $\theta^{*} = \AnalyticThetaStarDeg^\circ$ from
+(\ref{eq:thetastar}) reproduces the $\Delta T/T$ peak (\ThetaScreenStarPeakPct\
+vs.\ \BindDepColoPct\%).
 
 \begin{figure}[t]
 \centering
@@ -422,10 +423,9 @@ realistic variant, both directions, Starlink Gen2 at its filed maximum, as filed
 \emph{Without handoff, the modeled showing fails.}
 If the OneWeb user makes no interference-driven handoff (it still follows the
 baseline policy's own changes of highest-elevation satellite), the modeled
-assessment exceeds both limits in both geometries (Table~\ref{tab:handoff}): throughput degrades by
-\DepGenTwoNoHoDegrPct$\pm$\DepGenTwoNoHoDegrCi\% as deployed
-(\DepGenTwoNoHoDegrOver\ of \DepGenTwoReps\ station-replications over the limit)
-and availability drops by \DepGenTwoNoHoUnavPct$\pm$\DepGenTwoNoHoUnavCi\%. All
+assessment exceeds both limits in both geometries (Table~\ref{tab:handoff}): the worst station's throughput degrades by
+\DepGenTwoNoHoDegrPct$\pm$\DepGenTwoNoHoDegrCi\% as deployed (only
+\DepGenTwoNoHoDegrOver\ of \DepGenTwoReps\ station-replications exceed the limit) and availability drops by \DepGenTwoNoHoUnavPct$\pm$\DepGenTwoNoHoUnavCi\%. All
 OneWeb links qualify (\QualOneStationReps\ of \QualOneStationRepsTotal). The
 availability limit is the harder one: at \PfdOffsetThreeDb~dB below the filed
 maximum the throughput loss meets its limit
@@ -531,7 +531,8 @@ availability at \DepDwellRateMaxUnavFirstExceedS~s. Without it, the two policies
 switch \DepDwellEvAvNTenSwitchesPerHour\ and \DepDwellRateMaxNTenSwitchesPerHour\
 times per hour on average over stations, against \IntRateMaxBaseSwitchesPerHour\ for the
 baseline; the interruption results below use each station's own excess rate, and
-the worst stations, which set them, switch well above this average. If each
+the worst stations, which set them, make \IntEvAvWorstExcessSwitchesPerHour\ and
+\IntRateMaxWorstExcessSwitchesPerHour\ extra switches per hour. If each
 extra switch interrupts the link for $\tau$ seconds, the post-hoc upper-bound estimate of the
 availability change stays within the limit up to approximately
 \IntEvAvMaxTauUnavS~s (event-avoiding) and \IntRateMaxMaxTauUnavS~s
@@ -582,7 +583,7 @@ OneWeb \OnewebMinElevSensDeg$^\circ$ mask & \TabMinElevFiftyFiveEventPct\,$\pm$\
 
 \section{Discussion}
 \label{sec:discussion}
-Three implications follow for compatibility showings.
+Four implications follow for compatibility showings.
 \emph{The assumed selection strategy decides the verdict.} The FCC lets an
 analysis assume the incumbent's satellite selection strategy~\cite{fcc24117}. At
 the same interferer power, our primary verdict flips between ``exceeded'' and ``met''
@@ -598,7 +599,13 @@ protection limits toward Gen2, and after the ten-year sunset the Gen2 relationsh
 also moves to band splitting. Whether a combination of
 satellite selection, band splitting, and coordination serves both well requires
 modeling the two regimes jointly, which we leave open. Scoring the alternate with the serving satellite's C/N, a natural
-shortcut, hides this cost (\DepGenTwoLegacyDegrPct\% degradation). \emph{Measure the criterion, not a proxy.}
+shortcut, hides this cost (\DepGenTwoLegacyDegrPct\% degradation). \emph{Switching is the price of protection.} Relative to no interference-driven
+handoff, rate-aware handoff lowers the degradation from \DepGenTwoNoHoDegrPct\% to
+\DepGenTwoRateMaxDegrPct\% at \DepDwellRateMaxNTenSwitchesPerHour\ instead of
+\IntRateMaxBaseSwitchesPerHour\ switches per hour, and it dominates event-avoiding
+handoff, which loses more throughput with more switches
+(\DepDwellEvAvNTenSwitchesPerHour\ per hour). Whether this is affordable depends on the
+interruption each switch causes. \emph{Measure the criterion, not a proxy.}
 Geometric in-line screens understate how often the $\Delta T/T$ criterion applies,
 because the trigger reaches deep into the victim terminal's sidelobes. Unlike
 entrant-side satellite selection for coexistence~\cite{kim2026selection}, which

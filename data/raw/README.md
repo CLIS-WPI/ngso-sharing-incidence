@@ -1,21 +1,24 @@
 # Raw data
 
-This directory holds input data that is **not** committed (see `.gitignore`).
-For every file downloaded, record here:
+`tle/` is the CelesTrak TLE snapshot every as-deployed result in the paper uses
+(E5, E6, E9 and the sensitivity runs). It is committed byte-exact (`.gitattributes`
+marks `*.tle` as `-text`, so the CRLF line endings CelesTrak serves are kept and the
+sha256 values below hold). `ngsi.tle.fetch_group` reads `tle/<group>.tle` only after
+checking its sha256 against the table below, and fails if the file is missing or
+differs; it never downloads on its own (only `python scripts/fetch_tle.py --fetch-tle`
+does, on purpose). So re-running the experiments uses this snapshot, not today's
+sky. Everything else under `data/raw/` is gitignored.
 
-| file | source URL | download date (UTC) | notes / licence |
-|------|------------|---------------------|-----------------|
-| `tle/starlink.tle` (= `tle/starlink_20261020T192548Z.tle`) | https://celestrak.org/NORAD/elements/gp.php?GROUP=starlink&FORMAT=tle | 2026-10-20T19:25:48Z | CelesTrak GP data (TLE format), public. 10,649 objects; TLE epochs 2026-09-21 05:49 to 2026-10-20 16:38 UTC (median 2026-10-20 05:34). sha256 7f3f66521005e216dd94ea5f9cd543594be5014c1ce289b3a1d21bce2eeacace. Phase 4 snapshot: all as-deployed results (E5/E6) from Phase 4 on use it. |
-| `tle/oneweb.tle` (= `tle/oneweb_20261020T192553Z.tle`) | https://celestrak.org/NORAD/elements/gp.php?GROUP=oneweb&FORMAT=tle | 2026-10-20T19:25:53Z | CelesTrak GP data (TLE format), public. 651 objects; TLE epochs 2026-10-19 03:37 to 2026-10-20 12:59 UTC (median 2026-10-20 06:33). sha256 0d8c70cc30dc436e81914b4a4da74492c262e57c8215e6723276a66ccd0491d9. Phase 4 snapshot. |
+| file | source URL | download date (UTC) | objects | sha256 |
+|------|------------|---------------------|---------|--------|
+| `tle/starlink.tle` (= `tle/starlink_20261020T192548Z.tle`) | https://celestrak.org/NORAD/elements/gp.php?GROUP=starlink&FORMAT=tle | 2026-10-20T19:25:48Z | 10,649 | `7f3f66521005e216dd94ea5f9cd543594be5014c1ce289b3a1d21bce2eeacace` |
+| `tle/oneweb.tle` (= `tle/oneweb_20261020T192553Z.tle`) | https://celestrak.org/NORAD/elements/gp.php?GROUP=oneweb&FORMAT=tle | 2026-10-20T19:25:53Z | 651 | `0d8c70cc30dc436e81914b4a4da74492c262e57c8215e6723276a66ccd0491d9` |
 
-Earlier snapshot (Phases 3b-3e, not in this clone): CelesTrak `starlink` / `oneweb` groups downloaded 2026-10-18 (10,651 / 651 objects), used by every as-deployed result before Phase 4.
+CelesTrak GP data (TLE format), public. Starlink TLE epochs 2026-09-21 05:49 to
+2026-10-20 16:38 UTC (median 2026-10-20 05:34); OneWeb TLE epochs 2026-10-19 03:37 to
+2026-10-20 12:59 UTC (median 2026-10-20 06:33). The timestamped files are identical
+copies kept under their download time. An earlier snapshot (CelesTrak `starlink` /
+`oneweb` groups downloaded 2026-10-18, 10,651 / 651 objects; not kept) was used by
+every as-deployed result before Phase 4.
 
-Expected sources (fill in when downloaded, do not guess URLs):
-
-- **TLE snapshots** for the modelled NGSO constellations (e.g. Celestrak), for
-  validating the analytic two-body propagation against SGP4.
-- **Population / Broadband-Serviceable-Location (BSL)** rasters for the
-  population-weighting phase of the incidence study.
-
-Do not hard-code values derived from these files; process them into
-`data/processed/` and cite the run directory in `results/`.
+Check: `sha256sum data/raw/tle/*.tle`.
