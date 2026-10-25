@@ -154,7 +154,7 @@ narrowly exceeds the throughput limit, whereas staying while the interfered link
 is the better one meets it; we map where each policy fails under switching
 constraints.
 \item \emph{Event incidence:} to our knowledge, the first latitude-resolved
-measurement of how often the in-line event fires, with an analytic
+estimate of how often the modeled in-line event fires, with an analytic
 approximation that reduces the power criterion to an aperture-independent
 off-axis angle.
 \end{itemize}
@@ -386,20 +386,18 @@ PFD, and the simulation remains the primary result.
 We follow one OneWeb user through the rule, from the trigger to the protection
 limits, with Starlink Gen2 at its filed maximum unless stated otherwise.
 
-\emph{The trigger fires often, and mostly on OneWeb.}
+\emph{The modeled trigger fires often, and mostly on OneWeb.}
 Fig.~\ref{fig:events} shows the fraction of time with $\Delta T/T$ above the
 threshold. For a OneWeb user it peaks at \BindDepWorstPct$\pm$\BindDepWorstCi\% at
 \BindDepWorstLat$^\circ$ as deployed (\BindFilWorstPct\% as filed), whereas a
 Starlink user peaks at \BindDepStarWorstPct\%: OneWeb carries
-\BurdenRatioDep$\times$ the exposure. As victim, OneWeb at \OnewebAltKm~km looks
+\BurdenRatioDep$\times$ the modeled exposure. These are modeled
+probabilities, not measured exposure: actual beam activity is unknown. As victim, OneWeb at \OnewebAltKm~km looks
 through the PFD-limited beams of the lower, denser Starlink shells; as interferer,
-its longer slant range and lower EIRP density weaken its contribution. The event fraction follows Gen2 visibility, which is highest at
-mid-latitudes (\VisDepLatForty\ satellites above the mask at 40$^\circ$) and collapses
-beyond the 53$^\circ$ shell inclination (\VisDepLatSixty\ at
-60$^\circ$); at low latitudes the as-deployed fraction exceeds the as-filed
-one although fewer Starlink satellites are visible (\VisDepLatZero\ versus
-\VisFilLatZero\ at the equator), so the event rate is not set by the interferer
-count alone.
+its longer slant range and lower EIRP density weaken its contribution. The event fraction follows Gen2 visibility, highest at mid-latitudes
+(\VisDepLatForty\ satellites at 40$^\circ$) and collapsing beyond the 53$^\circ$
+inclination; at the equator it exceeds the as-filed value with fewer visible
+satellites (\VisDepLatZero\ vs.\ \VisFilLatZero), so the interferer count alone does not set it.
 
 \emph{A narrow geometric screen would miss most of it.}
 A common shortcut flags an in-line event when the two serving satellites are
@@ -413,7 +411,7 @@ vs.\ \BindDepColoPct\%).
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.94\columnwidth]{B1_events_both.png}
-\caption{Fraction of time with $\Delta T/T>\DttThresholdPct\%$ versus latitude,
+\caption{Modeled fraction of time with $\Delta T/T>\DttThresholdPct\%$ versus latitude,
 realistic variant, both directions, Starlink Gen2 at its filed maximum, as filed
 (\EventNPhasings\ phasings) and as deployed (\NStartTimes\ start times),
 \EirpHeadDiam~m; means over meridians and replications.}
@@ -434,8 +432,7 @@ availability change (\TabPfdMinusThreeUnavNoDivPct$\pm$\TabPfdMinusThreeUnavNoDi
 still exceeds its limit; only at the Gen1 design PFD are both met
 (\TabGenOneDegrNoDivPct$\pm$\TabGenOneDegrNoDivCi\% and
 \TabGenOneUnavNoDivPct$\pm$\TabGenOneUnavNoDivCi\%; Table~\ref{tab:cases}).
-A Starlink user, for comparison only, loses
-\DegrDepStarPct$\pm$\DegrDepStarCi\% of throughput.
+
 
 \begin{table}[t]
 \caption{Protection metrics by handoff policy and constraint: OneWeb victim,
