@@ -528,8 +528,10 @@ def main(argv: list[str] | None = None) -> int:
             add(f"{tag}EirpDbw", _num(bm.eirp_density_dbw_per_mhz, "{:g}"), e4)
         _lb = yaml.safe_load((e4 / "configs" / "link_budget.yaml").read_text())["user_terminal"]
         add("AperEff", _num(_lb["aperture_efficiency"], "{:g}"), e4)
-        bind = d[d["system_a"] == VICTIM]
-        rev = d[d["system_a"] != VICTIM]
+        # Peaks and worst cases at the headline aperture only (E4 sweeps several).
+        dh = d[d["diameter_m"] == HEAD_DIAM]
+        bind = dh[dh["system_a"] == VICTIM]
+        rev = dh[dh["system_a"] != VICTIM]
         add("BindFilWorstPct", _pct(_peak(bind[bind["variant"] == 0], "event_frac_mean")[
             "event_frac_mean"]), e4)
         add("BindFilColoPct", _pct(_peak(bind[bind["variant"] == 1], "event_frac_mean")[
@@ -550,9 +552,10 @@ def main(argv: list[str] | None = None) -> int:
         # Baseline C/N (median, p10) and availability per direction, worst latitude.
         for sysn, tag in ((VICTIM, "One"), ("STARLINK", "Star")):
             dd = d[d["system_a"] == sysn]
-            add(f"BaselineCnMed{tag}Db", _num(dd["cn0_median_mean"].min(), "{:.1f}"), e4)
-            add(f"BaselineCnPTen{tag}Db", _num(dd["cn0_p10_mean"].min(), "{:.1f}"), e4)
-            add(f"BaselineAvail{tag}MinPct", _pct(dd["avail0_frac_mean"].min(), 0), e4)
+            ddh = dd[dd["diameter_m"] == HEAD_DIAM]
+            add(f"BaselineCnMed{tag}Db", _num(ddh["cn0_median_mean"].min(), "{:.1f}"), e4)
+            add(f"BaselineCnPTen{tag}Db", _num(ddh["cn0_p10_mean"].min(), "{:.1f}"), e4)
+            add(f"BaselineAvail{tag}MinPct", _pct(ddh["avail0_frac_mean"].min(), 0), e4)
             ref = dd[(dd["diameter_m"] == 0.6) & (dd["latitude_deg"] == 45.0)]
             if sysn == VICTIM and len(ref):
                 add("CalRefCnMedDb", _num(ref["cn0_median_mean"].iloc[0], "{:.1f}"), e4)
@@ -613,8 +616,11 @@ def main(argv: list[str] | None = None) -> int:
             add("NStarlinkGenUnclassified", str(int(_gc["unclassified"])), e5)
         ddtt = pd.read_csv(e5 / "summary_dtt.csv")
         bind5 = ddtt[ddtt["system_a"] == VICTIM]
-        wp = _peak(bind5[bind5["variant"] == 0], "event_frac_mean")
-        cp = _peak(bind5[bind5["variant"] == 1], "event_frac_mean")
+        # Peaks and worst cases at the headline aperture only (E5 sweeps several).
+        bind5h = bind5[bind5["diameter_m"] == HEAD_DIAM]
+        star5h = ddtt[(ddtt["system_a"] == "STARLINK") & (ddtt["diameter_m"] == HEAD_DIAM)]
+        wp = _peak(bind5h[bind5h["variant"] == 0], "event_frac_mean")
+        cp = _peak(bind5h[bind5h["variant"] == 1], "event_frac_mean")
         add("BindDepWorstPct", _pct(wp["event_frac_mean"]), e5)
         add("BindDepWorstCi", _pct(wp["event_frac_ci95"]), e5)
         add("BindDepWorstLat", _num(wp["latitude_deg"], "{:.0f}"), e5)
@@ -639,18 +645,17 @@ def main(argv: list[str] | None = None) -> int:
             m, ci = _rep_worst(raw5, col, sysn, var)
             add(f"{name}Pct", _pct(m, nd), e5)
             add(f"{name}Ci", _pct(ci, nd), e5)
-        add("BaselineAvailOneDepPct", _pct(bind5["avail0_frac_mean"].min(), 0), e5)
+        add("BaselineAvailOneDepPct", _pct(bind5h["avail0_frac_mean"].min(), 0), e5)
         _f2 = bind5[(bind5["variant"] == 0) & (bind5["diameter_m"] == HEAD_DIAM)]
         add("FigLimitsMaxCiDegrPct", _pct(_f2[["degradation_nodiv_ci95",
                                                "degradation_div_ci95"]].max().max()), e5)
         add("FigLimitsMaxCiUnavPct", _pct(_f2[["unavail_incr_frac_ci95",
                                                "unavail_incr_div_frac_ci95"]].max().max(), 3), e5)
         add("BindDepStarWorstPct", _pct(_peak(
-            ddtt[(ddtt["system_a"] == "STARLINK") & (ddtt["variant"] == 0)],
+            star5h[star5h["variant"] == 0],
             "event_frac_mean")["event_frac_mean"]), e5)
-        bwd = bind5[bind5["variant"] == 0]["event_frac_mean"].max()
-        swd = ddtt[(ddtt["system_a"] == "STARLINK") & (ddtt["variant"] == 0)][
-            "event_frac_mean"].max()
+        bwd = bind5h[bind5h["variant"] == 0]["event_frac_mean"].max()
+        swd = star5h[star5h["variant"] == 0]["event_frac_mean"].max()
         add("BurdenRatioDep", _num(bwd / swd, "{:.1f}"), e5)
         # Aperture sensitivity of the headline binding fraction (worst case).
         peak_by_ap = [bind5[(bind5["variant"] == 0) & (bind5["diameter_m"] == ap)][
@@ -732,7 +737,8 @@ def main(argv: list[str] | None = None) -> int:
         add("EirpRevMinPct", _pct(rev_all["event_frac_max"].min(), 2), e6)
         add("EirpRevMaxPct", _pct(rev_all["event_frac_max"].max(), 2), e6)
         # 25.261(d) sensitivity: qualified throughput degradation, forward direction.
-        fwd_all = s[(s["victim"] == VICTIM) & (s["variant"] == 0)]
+        fwd_all = s[(s["victim"] == VICTIM) & (s["variant"] == 0)
+                    & (s["diameter_m"] == HEAD_DIAM)]
         add("EirpDegrMinPct", _pct(fwd_all["degr_max_qual"].min()), e6)
         add("EirpDegrMaxPct", _pct(fwd_all["degr_max_qual"].max()), e6)
         add("EirpDegrMinCi", _pct(fwd_all.loc[fwd_all["degr_max_qual"].idxmin(), "degr_max_qual_ci95"]), e6)
@@ -797,11 +803,15 @@ def main(argv: list[str] | None = None) -> int:
     e7 = newest("e7_analytic")
     if e7 is not None:
         a7 = pd.read_csv(e7 / "summary_analytic.csv")
-        t = a7[a7["victim"] == VICTIM]["theta_star_deg"].dropna()
+        # theta* at the headline aperture; the spread is across all apertures.
+        t_all = a7[a7["victim"] == VICTIM]["theta_star_deg"].dropna()
+        t = a7[(a7["victim"] == VICTIM) & (a7["diameter_m"] == HEAD_DIAM)][
+            "theta_star_deg"].dropna()
         if len(t):
             add("AnalyticThetaStarDeg", _num(t.iloc[0], "{:.2f}"), e7)
-            add("AnalyticThetaSpreadDeg", _num(t.max() - t.min(), "{:.2f}"), e7)
+            add("AnalyticThetaSpreadDeg", _num(t_all.max() - t_all.min(), "{:.2f}"), e7)
         c7 = pd.read_csv(e7 / "summary_compare.csv")
+        c7 = c7[c7["diameter_m"] == HEAD_DIAM]  # headline aperture only
         if len(c7):
             # `abs_err` is signed (analytic - simulated): take its magnitude.
             add("AnalyticMaxAbsErrPct", _pct(c7["abs_err"].abs().max()), e7)
