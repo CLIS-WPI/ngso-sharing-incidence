@@ -79,7 +79,7 @@ switching, these policies yield mean worst-station throughput degradations
 of \DepGenTwoNoHoDegrPct\%, \DepGenTwoEvAvDegrPct\%, and
 \DepGenTwoRateMaxDegrPct\%, respectively, against a
 \DegradeLimitPct\% limit, at the cost of \DepDwellRateMaxNTenSwitchesPerHour\
-switches per hour for rate-aware handoff versus \IntRateMaxBaseSwitchesPerHour\ for
+switches per hour on average for rate-aware handoff versus \IntRateMaxBaseSwitchesPerHour\ for
 the baseline. Event-avoiding handoff narrowly exceeds the limit
 (it meets it as filed) because avoiding every in-line event can select a weaker desired link;
 rate-aware handoff meets it by retaining the interfered link when
@@ -419,10 +419,10 @@ realistic variant, both directions, Starlink Gen2 at its filed maximum, as filed
 \label{fig:events}
 \end{figure}
 
-\emph{Without handoff, the showing fails.}
+\emph{Without handoff, the modeled showing fails.}
 If the OneWeb user makes no interference-driven handoff (it still follows the
-baseline policy's own changes of highest-elevation satellite), both limits are broken in both
-geometries (Table~\ref{tab:handoff}): throughput degrades by
+baseline policy's own changes of highest-elevation satellite), the modeled
+assessment exceeds both limits in both geometries (Table~\ref{tab:handoff}): throughput degrades by
 \DepGenTwoNoHoDegrPct$\pm$\DepGenTwoNoHoDegrCi\% as deployed
 (\DepGenTwoNoHoDegrOver\ of \DepGenTwoReps\ station-replications over the limit)
 and availability drops by \DepGenTwoNoHoUnavPct$\pm$\DepGenTwoNoHoUnavCi\%. All
@@ -442,7 +442,9 @@ A Starlink user, for comparison only, loses
 Starlink Gen2 at its filed maximum, as deployed, 25$^\circ$ mask unless stated,
 $\tau$ = interruption per extra switch (upper bound). Worst station per day,
 mean$\pm$\CiPct\% CI, \%. \textbf{Bold}: limit exceeded (\DegradeLimitPct\%
-Degr., \UnavailLimitPct\% $\Delta$Unav.); \textit{italic}: indistinguishable.}
+Degr., \UnavailLimitPct\% $\Delta$Unav.); \textit{italic}: indistinguishable. In
+the $\tau$ rows, $\Delta$Unav.\ is an upper bound, so bold there means only that the
+bound exceeds the limit.}
 \label{tab:handoff}
 \centering
 \scriptsize
@@ -527,8 +529,10 @@ time raises both policies' losses: among the tested values, rate-aware
 throughput first exceeds the limit at \DepDwellRateMaxDegrFirstExceedS~s and
 availability at \DepDwellRateMaxUnavFirstExceedS~s. Without it, the two policies
 switch \DepDwellEvAvNTenSwitchesPerHour\ and \DepDwellRateMaxNTenSwitchesPerHour\
-times per hour, against \IntRateMaxBaseSwitchesPerHour\ for the baseline. If each extra switch
-interrupts the link for $\tau$ seconds, the post-hoc upper-bound estimate of the
+times per hour on average over stations, against \IntRateMaxBaseSwitchesPerHour\ for the
+baseline; the interruption results below use each station's own excess rate, and
+the worst stations, which set them, switch well above this average. If each
+extra switch interrupts the link for $\tau$ seconds, the post-hoc upper-bound estimate of the
 availability change stays within the limit up to approximately
 \IntEvAvMaxTauUnavS~s (event-avoiding) and \IntRateMaxMaxTauUnavS~s
 (rate-aware), and rate-aware throughput up to \IntRateMaxMaxTauDegrS~s.
@@ -630,17 +634,17 @@ most \DegradeLimitPct\% of throughput and \UnavailLimitPct\% of availability. Fo
 OneWeb and Starlink Gen2, whether a compatibility analysis keeps this promise
 depends on an assumption the rule leaves open: how the incumbent's users switch
 satellites.
-Without interference-driven handoff, Starlink at its filed maximum exceeds both
-limits. With a 25$^\circ$ mask and unrestricted, lossless switching, a victim that
+Without interference-driven handoff, the modeled compatibility assessment with
+Starlink at its filed maximum exceeds both limits. With a 25$^\circ$ mask and unrestricted, lossless switching, a victim that
 dodges every in-line event moves to weaker links and, as deployed, narrowly
 exceeds the throughput limit, whereas one that keeps an interfered link while it
 is still the better one meets both limits; this gap persists in every geometry
 we tested. The better policy has limits
 too: among the tested settings, a \DepDwellRateMaxDegrFirstExceedS~s dwell time
 breaks its throughput limit, and a \DepDwellRateMaxUnavFirstExceedS~s dwell, a
-\OnewebMinElevSensDeg$^\circ$ mask, or more than about \IntRateMaxMaxTauUnavS~s of
-interruption per extra switch (an upper-bound, step-sensitive estimate) breaks
-its availability limit. Because the FCC lets compatibility analyses assume the
+\OnewebMinElevSensDeg$^\circ$ mask breaks its availability limit, and beyond about
+\IntRateMaxMaxTauUnavS~s of interruption per extra switch our upper-bound,
+step-sensitive estimate no longer guarantees it. Because the FCC lets compatibility analyses assume the
 incumbent's selection strategy, showings should state that policy and its
 switching constraints, test more than one, and evaluate the $\Delta T/T$
 criterion itself rather than a geometric screen. Future work will add rain fade

@@ -972,6 +972,14 @@ def phase4d_macros(add) -> None:
                 _num(g["base_switches_per_hour_mean"].iloc[0], "{:.1f}"), e14)
             add(f"Int{tag}ExcessSwitchesPerHour",
                 _num(g["excess_switches_per_hour_mean"].iloc[0], "{:.1f}"), e14)
+            # Worst-station excess rate, mean over days: with no availability change at
+            # tau = 0 anywhere, a tau row's availability is exactly f = E * tau / 3600 at
+            # the worst station of each day.
+            z, r = g[g["tau_s"] == 0], g[g["tau_s"] > 0]
+            if not z.empty and not r.empty and float(z["availability_max_obs"].iloc[0]) == 0.0:
+                r = r.iloc[-1]
+                add(f"Int{tag}WorstExcessSwitchesPerHour",
+                    _num(round(r["availability_mean"] * 3600.0 / r["tau_s"], 9), "{:.1f}"), e14)
             for tau, word in TAU_WORD.items():
                 r = g[np.isclose(g["tau_s"], tau)]
                 if r.empty:
