@@ -250,7 +250,7 @@ $R(\gamma) = \log_2(1+\gamma/m)$ ($R=0$ if unserved; $m$ an implementation
 margin), and a C/N threshold $\gamma_0$, the \emph{relative} loss of mean
 throughput $D_g$ and the \emph{absolute} rise in unavailable time $\Delta U_g$ are
 \begin{gather}
-D_g = 1 - \frac{\overline{R(\gamma_g(t;s(t)))}}{\overline{R(c_g(t;s_0))}},\\
+D_g = 1 - \frac{\overline{R(\gamma_g(t;s(t)))}}{\overline{R(c_g(t;s_0))}},\label{eq:degr}\\
 \Delta U_g = \Pr\{\gamma_g(t;s(t)) < \gamma_0\} - \Pr\{c_g(t;s_0) < \gamma_0\},
 \label{eq:metrics}
 \end{gather}
@@ -299,18 +299,17 @@ design point}, $\GenOnePfdDbw$~dBW/m$^2$/MHz~\cite[Table~A.7-1]{spacex2016},
 \PfdOffsetGenOneDb~dB lower. Table~\ref{tab:params} lists all parameters and
 sources; derivations are in the repository.
 
-\emph{Regulatory parameters and statistics.} We set $\delta = \DttThreshold$
-($I/N > \InThresholdDb$~dB)~\cite{cfr25261}, $D_{\max} = \DegradeLimitPct\%$,
-$U_{\max} = \UnavailLimitPct\%$, $\gamma_0 = \CnGateDb$~dB, and
-$a_{\min} = \RuleBaselineAvailPct\%$~\cite{fcc24117}. Because the limits
+\emph{Regulatory parameters and statistics.} The rule maps onto our outputs as
+follows: the trigger onto (\ref{eq:event}) with $\delta = \DttThreshold$~\cite{cfr25261},
+the limits onto (\ref{eq:degr})--(\ref{eq:metrics}) with $D_{\max} =
+\DegradeLimitPct\%$ and $U_{\max} = \UnavailLimitPct\%$, and link qualification onto
+$\gamma_0 = \CnGateDb$~dB and $a_{\min} = \RuleBaselineAvailPct\%$~\cite{fcc24117}. Because the limits
 protect every qualifying link, each protection number is the worst qualifying
 station per replication, not the average user, averaged across replications, with
 a \CiPct\% $t$-interval; a limit is \emph{exceeded} only if the whole interval lies
-above it and \emph{met} only if it lies below. Our evaluation is a compatibility
-analysis under these assumptions, of the kind a compatibility showing contains; it
-does not represent Starlink's actual beam scheduling, power, or coordination
-agreements, so an exceeded limit means a failed analysis, not an observed
-violation.
+above it and \emph{met} only if it lies below. This is a compatibility analysis, not a
+model of Starlink's actual operation, so an exceeded limit means a failed
+analysis, not an observed violation.
 
 \begin{table}[t]
 \caption{Model parameters and sources (\textsc{a}: ASSUMED).}
