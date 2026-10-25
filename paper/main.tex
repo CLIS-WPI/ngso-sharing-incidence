@@ -366,16 +366,17 @@ probability is then
 P = v_A v_B\,\Pr\{\angle(\hat u_A,\hat u_B) < \theta^{*}\},
 \label{eq:pevent}
 \end{equation}
-where $v_k = 1 - e^{-n_k}$ is the probability that system $k$ has a satellite in
-view, $n_k$ its mean visible count from the Walker latitude density averaged over
-the argument of latitude, and each serving direction $\hat u_k$ is the nearest of
-$n_k$ satellites uniform in the ground footprint, mapped to the look angle. On
-the filed Gen2 shells, (\ref{eq:pevent}) is within
-$\AnalyticSignedMinInclPct$ to \AnalyticSignedMaxInclPct\ percentage points (pp) of the simulation up to
-\AnalyticInclLatDeg$^\circ$ latitude; beyond the Gen2 inclinations, where the
-satellite density falls to zero, the uniform-footprint assumption fails and the
-error reaches \AnalyticMaxAbsBeyondPct~pp; (\ref{eq:pevent}) gives only the
-order of magnitude, whereas (\ref{eq:thetastar}) is exact under constant PFD.
+where $n_k$ is the mean visible count of system $k$ from its Walker latitude
+density, and we approximate visibility as Poisson ($v_k = 1 - e^{-n_k}$), each
+serving direction $\hat u_k$ as the nearest of $n_k$ satellites uniform in the
+footprint, and the two directions as independent, ignoring the structured
+orbits; (\ref{eq:pevent}) covers only the co-located event, not the aggregate
+(\ref{eq:agg}); the serving beam dominates, though (peak \BindDepColoPct\%
+co-located vs.\ \BindDepWorstPct\% realistic). On the filed Gen2 shells,
+(\ref{eq:pevent}) is within $\AnalyticSignedMinInclPct$ to \AnalyticSignedMaxInclPct\
+percentage points (pp) of the simulation up to \AnalyticInclLatDeg$^\circ$
+latitude and errs by up to \AnalyticMaxAbsBeyondPct~pp beyond the Gen2
+inclinations; it gives only the order of magnitude, whereas (\ref{eq:thetastar}) is exact under constant PFD.
 
 \emph{When does switching pay?} For OneWeb's constant EIRP, $c_g(t;s)$ in
 (\ref{eq:cn}) depends on $s$ only through $L(r_{g,s})$, so leaving the interfered
@@ -401,9 +402,9 @@ threshold. For a OneWeb user it peaks at \BindDepWorstPct$\pm$\BindDepWorstCi\% 
 \BindDepWorstLat$^\circ$ as deployed (\BindFilWorstPct\% as filed), whereas a
 Starlink user peaks at \BindDepStarWorstPct\%: OneWeb carries
 \BurdenRatioDep$\times$ the modeled exposure. These are modeled
-probabilities, not measured exposure: actual beam activity is unknown. As victim, OneWeb at \OnewebAltKm~km looks
-through the PFD-limited beams of the lower, denser Starlink shells; as interferer,
-its longer slant range and lower EIRP density weaken its contribution. The event fraction follows Gen2 visibility, highest at mid-latitudes
+probabilities, not measured exposure: actual beam activity is unknown. OneWeb, at \OnewebAltKm~km, looks through the
+lower, denser Starlink shells, while its own longer range and lower EIRP density
+weaken it as interferer. The event fraction follows Gen2 visibility, highest at mid-latitudes
 (\VisDepLatForty\ satellites at 40$^\circ$) and collapsing beyond the 53$^\circ$
 inclination; at the equator it exceeds the as-filed value with fewer visible
 satellites (\VisDepLatZero\ vs.\ \VisFilLatZero), so the interferer count alone does not set it.
@@ -419,7 +420,7 @@ vs.\ \BindDepColoPct\%).
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=0.94\columnwidth]{B1_events_both.png}
+\includegraphics[width=0.9\columnwidth]{B1_events_both.png}
 \caption{Modeled fraction of time with $\Delta T/T>\DttThresholdPct\%$ versus latitude,
 realistic variant, both directions, Starlink Gen2 at its filed maximum, as filed
 (\EventNPhasings\ phasings) and as deployed (\NStartTimes\ start times),
