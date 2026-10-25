@@ -1,6 +1,6 @@
 {
   "schema_version": "ai-research-writing/citation-lock-v1",
-  "request_sha256": "c2e2aa3358793a93e569bed9946d8ab44bcf9d93c7207b6cbd9423e732975f32",
+  "request_sha256": "3d73ce538eceeb905754d9b5e6e9686c323e7f99ae215cab20e0a7153e75dcc5",
   "records": [
     {
       "key": "kim2025",
@@ -8,7 +8,7 @@
       "status": "metadata-only",
       "provider": "crossref",
       "request_url": "https://api.crossref.org/works/10.1109%2FTWC.2024.3511660",
-      "checked_at": "2026-10-21T15:37:02.994009+00:00",
+      "checked_at": "2026-10-25T16:08:37.267808+00:00",
       "metadata": {
         "title": "Feasibility Analysis of In-Band Coexistence in Dense LEO Satellite Communication Systems",
         "authors": [
@@ -21,7 +21,7 @@
         "type": "journal-article"
       },
       "metadata_sha256": "49d2904f1c13268e8646aa0e514f9b037fd02fbf9d3a8bd6ce54314305863994",
-      "claim_support_sha256": "7ee12f33ba80d506b4ee05f2562d9f0c6ede310769325f8bf5d1e632fb7b6dbc",
+      "claim_support_sha256": "a23d46451af74d9f97f73b7d5c8c8025aee48302b63e1acb27399ed16c541a94",
       "cross_check": null,
       "cross_check_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
       "error": "One or more sentence-level claim-support records are non-terminal"
@@ -32,7 +32,7 @@
       "status": "metadata-only",
       "provider": "crossref",
       "request_url": "https://api.crossref.org/works/10.1109%2FTWC.2025.3645992",
-      "checked_at": "2026-10-21T15:37:03.127029+00:00",
+      "checked_at": "2026-10-25T16:08:37.345646+00:00",
       "metadata": {
         "title": "Satellite Selection for In-Band Coexistence of Dense LEO Networks",
         "authors": [
@@ -46,7 +46,7 @@
         "type": "journal-article"
       },
       "metadata_sha256": "16486d1796767e96ee61cf91219778b8cace5ac32b52d91d91fdf939a46beef2",
-      "claim_support_sha256": "b2063d3ff6dc12c61d53cc605ea838e0bd3d5322592121ba9f431e013710a2a0",
+      "claim_support_sha256": "745d134fa3f3f0912a0a479845c2e05d6effce120d32b7fbf4890f05b89a8161",
       "cross_check": null,
       "cross_check_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
       "error": "One or more sentence-level claim-support records are non-terminal"
@@ -57,7 +57,7 @@
       "status": "metadata-only",
       "provider": "arxiv",
       "request_url": "https://export.arxiv.org/api/query?id_list=2503.15262",
-      "checked_at": "2026-10-21T15:37:03.508869+00:00",
+      "checked_at": "2026-10-25T16:08:37.654626+00:00",
       "metadata": {
         "title": "Satellite Selection for In-Band Coexistence of Dense LEO Networks",
         "authors": [
@@ -82,7 +82,7 @@
       "status": "metadata-only",
       "provider": "crossref",
       "request_url": "https://api.crossref.org/works/10.1109%2FDySPAN.2019.8935875",
-      "checked_at": "2026-10-21T15:37:03.657853+00:00",
+      "checked_at": "2026-10-25T16:08:37.733046+00:00",
       "metadata": {
         "title": "Should We Worry About Interference in Emerging Dense NGSO Satellite Constellations?",
         "authors": [
@@ -96,7 +96,7 @@
         "type": "proceedings-article"
       },
       "metadata_sha256": "8132bda3fd247382eff5d6cb0f8cc610528e297c97700fa23ea432fa65d65d0c",
-      "claim_support_sha256": "1fe8b192685b52bcbaaac1063def5e46d31b06f563531ec4cd3e829062b59aa9",
+      "claim_support_sha256": "28036b6a7aa3c317183695435b8c366fe2d543ab83371396c7b92043f88120eb",
       "cross_check": null,
       "cross_check_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
       "error": "One or more sentence-level claim-support records are non-terminal"

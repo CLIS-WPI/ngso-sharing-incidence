@@ -206,11 +206,11 @@ ink type $\OML/cmm/m/it/10 `$ \OT1/ptm/m/n/10 (user/gateway,
 
 LaTeX Font Warning: Font shape `TS1/ptm/m/sc' undefined
 (Font)              using `TS1/ptm/m/n' instead
-(Font)              for symbol `textsection' on input line 435.
+(Font)              for symbol `textsection' on input line 437.
 
 
 LaTeX Font Warning: Font shape `OT1/ptm/m/scit' undefined
-(Font)              using `OT1/ptm/m/it' instead on input line 435.
+(Font)              using `OT1/ptm/m/it' instead on input line 437.
 
 [4 <./figures//B1_events_both.png>] [5 <./figures//B2_limits.png>] (./main.bbl)
 
@@ -249,7 +249,7 @@ cm/cmsy8.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/symbols
 ive/texmf-dist/fonts/type1/urw/times/utmbi8a.pfb></usr/share/texlive/texmf-dist
 /fonts/type1/urw/times/utmr8a.pfb></usr/share/texlive/texmf-dist/fonts/type1/ur
 w/times/utmri8a.pfb>
-Output written on main.pdf (6 pages, 405811 bytes).
+Output written on main.pdf (6 pages, 405928 bytes).
 Transcript written on main.log.
 Latexmk: Examining 'main.log'
 === TeX engine is 'pdfTeX'
@@ -269,7 +269,7 @@ Running 'bibtex  "main.aux"'
 ------------
 Rule 'pdflatex': File changes, etc:
    Changed files, or newly in use since previous run(s):
-      'figures//B2_limits.png'
+      'main.tex'
 ------------
 Run number 1 of rule 'pdflatex'
 ------------

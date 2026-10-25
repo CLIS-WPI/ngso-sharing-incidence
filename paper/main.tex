@@ -284,8 +284,10 @@ case~\cite{fcc24117}, is not modeled. OneWeb transmits at constant EIRP from
 fixed beams. Starlink holds a constant surface PFD while steering~\cite{fcc2291},
 so (\ref{eq:pfd}) applies with two anchors at the \PfdAnchorElevDeg$^\circ$
 service edge: (a) the \emph{Gen2 filed maximum} (primary), the 47 CFR~25.208(b)
-limit of $\PfdLimitDbw$~dBW/m$^2$/MHz~\cite{cfr25208}, which matches the top of the
-filed Gen2 EIRP within \FiledPfdOffsetDb~dB~\cite{fcc2291}; and (b) the \emph{Gen1
+limit of $\PfdLimitDbw$~dBW/m$^2$/MHz~\cite{cfr25208} (which covers only
+\PfdScopeLoGhz--\PfdScopeHiGhz~GHz of the shared band), matching the top of the filed
+Gen2 EIRP density, \StarlinkFiledTopDbw~dBW/MHz, within
+\FiledPfdOffsetDb~dB~\cite{fcc2291}; and (b) the \emph{Gen1
 design point}, $\GenOnePfdDbw$~dBW/m$^2$/MHz~\cite[Table~A.7-1]{spacex2016},
 \PfdOffsetGenOneDb~dB lower. Table~\ref{tab:params} lists all parameters and
 sources; derivations are in the repository.
