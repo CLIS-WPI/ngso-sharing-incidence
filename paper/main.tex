@@ -626,12 +626,12 @@ baseline uses the highest-elevation satellite and handoff ignores satellite
 capacity. (e) Only the user downlink is modeled. (f) The OneWeb EIRP is taken
 from~\cite{delportillo2019}; its constant EIRP from fixed beams and the
 \StationMinElevDeg$^\circ$ mask are assumptions. (g) The equal split of the Gen2
-grant and the launch-designator classification at 53$^\circ$ are assumptions. (h) Handoff is modeled at the \TimeStepS~s step; interruption is added afterwards
-per extra switch, and a \TsCheckStepS~s step yields more switches per hour
-on the same days (\TsTwoEvAvSwitchesPerHour\ versus \TsTenEvAvSwitchesPerHour\ for
-event-avoiding, \TsTwoRateMaxSwitchesPerHour\ versus \TsTenRateMaxSwitchesPerHour\ for
-rate-aware),
-so the tolerable interruption is likely smaller than stated. (i) $J_2$ propagation drifts from SGP4 after the first days,
+grant and the launch-designator classification at 53$^\circ$ are assumptions. (h) Interruption is added after simulation and does not enter the handoff
+decision, so an interruption-aware policy would switch less; a \TsCheckStepS~s step
+also yields more switches than the \TimeStepS~s step (\TsTwoEvAvSwitchesPerHour\ vs.\
+\TsTenEvAvSwitchesPerHour\ and \TsTwoRateMaxSwitchesPerHour\ vs.\
+\TsTenRateMaxSwitchesPerHour\ per hour), so the tolerable interruption is likely
+smaller than stated. (i) $J_2$ propagation drifts from SGP4 after the first days,
 so later days act as further phasings of the observed shells (the statistics we
 use show no trend); as-deployed intervals describe day-to-day variation within
 one snapshot, and as-filed intervals only the sampled phasings. All statements hold under
