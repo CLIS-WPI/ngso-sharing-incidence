@@ -556,33 +556,33 @@ coordination~\cite[Sec.~5.1]{delportillo2019}.
 
 \begin{table*}[t]
 \caption{Scenario-based sensitivity of the protection results, not a prediction
-of operational interference: realistic variant, OneWeb
-victim, Starlink Gen2, as deployed, \EirpHeadDiam~m, \SenStartTimes\ days; EA/RA: event-avoiding/rate-aware handoff. Event:
-worst-station fraction of time with $\Delta T/T>\DttThresholdPct\%$. Noise
+of operational interference: OneWeb
+victim, Starlink Gen2, as deployed, \EirpHeadDiam~m; EA/RA: event-avoiding/rate-aware handoff. Event: worst-station
+time with $\Delta T/T>\DttThresholdPct\%$. Noise
 \NoiseAssumedOneK/\NoiseAssumedStarK~K: generic OneWeb/Starlink system temperatures
-instead of~\cite{delportillo2019}. Entries: mean\,$\pm$\,\CiPct\% CI, in \%.}
+instead of~\cite{delportillo2019}. EA and RA availabilities coincide. Mean\,$\pm$\,\CiPct\% CI (\%).}
 \label{tab:cases}
 \centering
 \footnotesize
 \setlength{\tabcolsep}{4pt}
 \renewcommand{\arraystretch}{1.2}
 \rowcolors{3}{white}{rowgray}
-\begin{tabular}{lccccccc}
+\begin{tabular}{lcccccc}
 \toprule
 \rowcolor{headblue}
  & & \multicolumn{3}{c}{\textbf{Throughput degradation} (limit \DegradeLimitPct\%)}
- & \multicolumn{3}{c}{\textbf{Availability change} (limit \UnavailLimitPct\%)}\\
+ & \multicolumn{2}{c}{\textbf{Availability change} (limit \UnavailLimitPct\%)}\\
 \rowcolor{headblue}
-\textbf{Case} & \textbf{Event} & None & EA & RA & None & EA & RA\\
+\textbf{Case} & \textbf{Event} & None & EA & RA & None & EA, RA\\
 \midrule
-Gen2 filed maximum & \TabPrimEventPct\,$\pm$\,\TabPrimEventCi & \TabPrimDegrNoDivPct\,$\pm$\,\TabPrimDegrNoDivCi & \TabPrimDegrDivPct\,$\pm$\,\TabPrimDegrDivCi & \TabPrimRateMaxDegrDivPct\,$\pm$\,\TabPrimRateMaxDegrDivCi & \TabPrimUnavNoDivPct\,$\pm$\,\TabPrimUnavNoDivCi & \TabPrimUnavDivPct\,$\pm$\,\TabPrimUnavDivCi & \TabPrimRateMaxUnavDivPct\,$\pm$\,\TabPrimRateMaxUnavDivCi\\
-PFD $-\PfdOffsetThreeDb$~dB & \TabPfdMinusThreeEventPct\,$\pm$\,\TabPfdMinusThreeEventCi & \TabPfdMinusThreeDegrNoDivPct\,$\pm$\,\TabPfdMinusThreeDegrNoDivCi & \TabPfdMinusThreeDegrDivPct\,$\pm$\,\TabPfdMinusThreeDegrDivCi & \TabPfdMinusThreeRateMaxDegrDivPct\,$\pm$\,\TabPfdMinusThreeRateMaxDegrDivCi & \TabPfdMinusThreeUnavNoDivPct\,$\pm$\,\TabPfdMinusThreeUnavNoDivCi & \TabPfdMinusThreeUnavDivPct\,$\pm$\,\TabPfdMinusThreeUnavDivCi & \TabPfdMinusThreeRateMaxUnavDivPct\,$\pm$\,\TabPfdMinusThreeRateMaxUnavDivCi\\
-Gen1 design PFD & \TabGenOneEventPct\,$\pm$\,\TabGenOneEventCi & \TabGenOneDegrNoDivPct\,$\pm$\,\TabGenOneDegrNoDivCi & \TabGenOneDegrDivPct\,$\pm$\,\TabGenOneDegrDivCi & \TabGenOneRateMaxDegrDivPct\,$\pm$\,\TabGenOneRateMaxDegrDivCi & \TabGenOneUnavNoDivPct\,$\pm$\,\TabGenOneUnavNoDivCi & \TabGenOneUnavDivPct\,$\pm$\,\TabGenOneUnavDivCi & \TabGenOneRateMaxUnavDivPct\,$\pm$\,\TabGenOneRateMaxUnavDivCi\\
-Gen2 range low end & \TabLowEventPct\,$\pm$\,\TabLowEventCi & \TabLowDegrNoDivPct\,$\pm$\,\TabLowDegrNoDivCi & \TabLowDegrDivPct\,$\pm$\,\TabLowDegrDivCi & \TabLowRateMaxDegrDivPct\,$\pm$\,\TabLowRateMaxDegrDivCi & \TabLowUnavNoDivPct\,$\pm$\,\TabLowUnavNoDivCi & \TabLowUnavDivPct\,$\pm$\,\TabLowUnavDivCi & \TabLowRateMaxUnavDivPct\,$\pm$\,\TabLowRateMaxUnavDivCi\\
-Starlink EIRP of~\cite{delportillo2019} & \TabDpCommonEventPct\,$\pm$\,\TabDpCommonEventCi & \TabDpCommonDegrNoDivPct\,$\pm$\,\TabDpCommonDegrNoDivCi & \TabDpCommonDegrDivPct\,$\pm$\,\TabDpCommonDegrDivCi & \TabDpCommonRateMaxDegrDivPct\,$\pm$\,\TabDpCommonRateMaxDegrDivCi & \TabDpCommonUnavNoDivPct\,$\pm$\,\TabDpCommonUnavNoDivCi & \TabDpCommonUnavDivPct\,$\pm$\,\TabDpCommonUnavDivCi & \TabDpCommonRateMaxUnavDivPct\,$\pm$\,\TabDpCommonRateMaxUnavDivCi\\
-Constant EIRP & \TabConstEirpEventPct\,$\pm$\,\TabConstEirpEventCi & \TabConstEirpDegrNoDivPct\,$\pm$\,\TabConstEirpDegrNoDivCi & \TabConstEirpDegrDivPct\,$\pm$\,\TabConstEirpDegrDivCi & \TabConstEirpRateMaxDegrDivPct\,$\pm$\,\TabConstEirpRateMaxDegrDivCi & \TabConstEirpUnavNoDivPct\,$\pm$\,\TabConstEirpUnavNoDivCi & \TabConstEirpUnavDivPct\,$\pm$\,\TabConstEirpUnavDivCi & \TabConstEirpRateMaxUnavDivPct\,$\pm$\,\TabConstEirpRateMaxUnavDivCi\\
-Noise \NoiseAssumedOneK/\NoiseAssumedStarK~K & \TabNoiseAssumedEventPct\,$\pm$\,\TabNoiseAssumedEventCi & \TabNoiseAssumedDegrNoDivPct\,$\pm$\,\TabNoiseAssumedDegrNoDivCi & \TabNoiseAssumedDegrDivPct\,$\pm$\,\TabNoiseAssumedDegrDivCi & \TabNoiseAssumedRateMaxDegrDivPct\,$\pm$\,\TabNoiseAssumedRateMaxDegrDivCi & \TabNoiseAssumedUnavNoDivPct\,$\pm$\,\TabNoiseAssumedUnavNoDivCi & \TabNoiseAssumedUnavDivPct\,$\pm$\,\TabNoiseAssumedUnavDivCi & \TabNoiseAssumedRateMaxUnavDivPct\,$\pm$\,\TabNoiseAssumedRateMaxUnavDivCi\\
-OneWeb \OnewebMinElevSensDeg$^\circ$ mask & \TabMinElevFiftyFiveEventPct\,$\pm$\,\TabMinElevFiftyFiveEventCi & \TabMinElevFiftyFiveDegrNoDivPct\,$\pm$\,\TabMinElevFiftyFiveDegrNoDivCi & \TabMinElevFiftyFiveDegrDivPct\,$\pm$\,\TabMinElevFiftyFiveDegrDivCi & \TabMinElevFiftyFiveRateMaxDegrDivPct\,$\pm$\,\TabMinElevFiftyFiveRateMaxDegrDivCi & \TabMinElevFiftyFiveUnavNoDivPct\,$\pm$\,\TabMinElevFiftyFiveUnavNoDivCi & \TabMinElevFiftyFiveUnavDivPct\,$\pm$\,\TabMinElevFiftyFiveUnavDivCi & \TabMinElevFiftyFiveRateMaxUnavDivPct\,$\pm$\,\TabMinElevFiftyFiveRateMaxUnavDivCi\\
+Gen2 filed maximum & \TabPrimEventPct\,$\pm$\,\TabPrimEventCi & \TabPrimDegrNoDivPct\,$\pm$\,\TabPrimDegrNoDivCi & \TabPrimDegrDivPct\,$\pm$\,\TabPrimDegrDivCi & \TabPrimRateMaxDegrDivPct\,$\pm$\,\TabPrimRateMaxDegrDivCi & \TabPrimUnavNoDivPct\,$\pm$\,\TabPrimUnavNoDivCi & \TabPrimUnavDivPct\,$\pm$\,\TabPrimUnavDivCi\\
+PFD $-\PfdOffsetThreeDb$~dB & \TabPfdMinusThreeEventPct\,$\pm$\,\TabPfdMinusThreeEventCi & \TabPfdMinusThreeDegrNoDivPct\,$\pm$\,\TabPfdMinusThreeDegrNoDivCi & \TabPfdMinusThreeDegrDivPct\,$\pm$\,\TabPfdMinusThreeDegrDivCi & \TabPfdMinusThreeRateMaxDegrDivPct\,$\pm$\,\TabPfdMinusThreeRateMaxDegrDivCi & \TabPfdMinusThreeUnavNoDivPct\,$\pm$\,\TabPfdMinusThreeUnavNoDivCi & \TabPfdMinusThreeUnavDivPct\,$\pm$\,\TabPfdMinusThreeUnavDivCi\\
+Gen1 design PFD & \TabGenOneEventPct\,$\pm$\,\TabGenOneEventCi & \TabGenOneDegrNoDivPct\,$\pm$\,\TabGenOneDegrNoDivCi & \TabGenOneDegrDivPct\,$\pm$\,\TabGenOneDegrDivCi & \TabGenOneRateMaxDegrDivPct\,$\pm$\,\TabGenOneRateMaxDegrDivCi & \TabGenOneUnavNoDivPct\,$\pm$\,\TabGenOneUnavNoDivCi & \TabGenOneUnavDivPct\,$\pm$\,\TabGenOneUnavDivCi\\
+Gen2 range low end & \TabLowEventPct\,$\pm$\,\TabLowEventCi & \TabLowDegrNoDivPct\,$\pm$\,\TabLowDegrNoDivCi & \TabLowDegrDivPct\,$\pm$\,\TabLowDegrDivCi & \TabLowRateMaxDegrDivPct\,$\pm$\,\TabLowRateMaxDegrDivCi & \TabLowUnavNoDivPct\,$\pm$\,\TabLowUnavNoDivCi & \TabLowUnavDivPct\,$\pm$\,\TabLowUnavDivCi\\
+Starlink EIRP of~\cite{delportillo2019} & \TabDpCommonEventPct\,$\pm$\,\TabDpCommonEventCi & \TabDpCommonDegrNoDivPct\,$\pm$\,\TabDpCommonDegrNoDivCi & \TabDpCommonDegrDivPct\,$\pm$\,\TabDpCommonDegrDivCi & \TabDpCommonRateMaxDegrDivPct\,$\pm$\,\TabDpCommonRateMaxDegrDivCi & \TabDpCommonUnavNoDivPct\,$\pm$\,\TabDpCommonUnavNoDivCi & \TabDpCommonUnavDivPct\,$\pm$\,\TabDpCommonUnavDivCi\\
+Constant EIRP & \TabConstEirpEventPct\,$\pm$\,\TabConstEirpEventCi & \TabConstEirpDegrNoDivPct\,$\pm$\,\TabConstEirpDegrNoDivCi & \TabConstEirpDegrDivPct\,$\pm$\,\TabConstEirpDegrDivCi & \TabConstEirpRateMaxDegrDivPct\,$\pm$\,\TabConstEirpRateMaxDegrDivCi & \TabConstEirpUnavNoDivPct\,$\pm$\,\TabConstEirpUnavNoDivCi & \TabConstEirpUnavDivPct\,$\pm$\,\TabConstEirpUnavDivCi\\
+Noise \NoiseAssumedOneK/\NoiseAssumedStarK~K & \TabNoiseAssumedEventPct\,$\pm$\,\TabNoiseAssumedEventCi & \TabNoiseAssumedDegrNoDivPct\,$\pm$\,\TabNoiseAssumedDegrNoDivCi & \TabNoiseAssumedDegrDivPct\,$\pm$\,\TabNoiseAssumedDegrDivCi & \TabNoiseAssumedRateMaxDegrDivPct\,$\pm$\,\TabNoiseAssumedRateMaxDegrDivCi & \TabNoiseAssumedUnavNoDivPct\,$\pm$\,\TabNoiseAssumedUnavNoDivCi & \TabNoiseAssumedUnavDivPct\,$\pm$\,\TabNoiseAssumedUnavDivCi\\
+OneWeb \OnewebMinElevSensDeg$^\circ$ mask & \TabMinElevFiftyFiveEventPct\,$\pm$\,\TabMinElevFiftyFiveEventCi & \TabMinElevFiftyFiveDegrNoDivPct\,$\pm$\,\TabMinElevFiftyFiveDegrNoDivCi & \TabMinElevFiftyFiveDegrDivPct\,$\pm$\,\TabMinElevFiftyFiveDegrDivCi & \TabMinElevFiftyFiveRateMaxDegrDivPct\,$\pm$\,\TabMinElevFiftyFiveRateMaxDegrDivCi & \TabMinElevFiftyFiveUnavNoDivPct\,$\pm$\,\TabMinElevFiftyFiveUnavNoDivCi & \TabMinElevFiftyFiveUnavDivPct\,$\pm$\,\TabMinElevFiftyFiveUnavDivCi\\
 \bottomrule
 \end{tabular}
 \end{table*}
@@ -647,7 +647,7 @@ exceeds the throughput limit, whereas one that keeps an interfered link while it
 is still the better one meets both limits; this gap persists in every geometry
 we tested. The better policy has limits
 too: among the tested settings, a \DepDwellRateMaxDegrFirstExceedS~s dwell time
-breaks its throughput limit, and a \DepDwellRateMaxUnavFirstExceedS~s dwell, a
+breaks its throughput limit, and a \DepDwellRateMaxUnavFirstExceedS~s dwell or a
 \OnewebMinElevSensDeg$^\circ$ mask breaks its availability limit, and beyond about
 \IntRateMaxMaxTauUnavS~s of interruption per extra switch our upper-bound,
 step-sensitive estimate no longer guarantees it. Because the FCC lets compatibility analyses assume the
