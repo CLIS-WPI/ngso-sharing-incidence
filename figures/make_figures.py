@@ -582,7 +582,14 @@ def fig_b1_events(e4: Path, e5: Path) -> Path | None:
     ax.set_xlim(0, 65)
     ax.set_ylim(bottom=0)
     ax.grid(alpha=0.3)
-    ax.legend(fontsize=5.8, loc="upper left", ncol=1)
+    # Colour = victim, line style = filing: the 2x2 key fits between the curves (y ~7.5-11 %).
+    from matplotlib.lines import Line2D
+    keys = [Line2D([], [], color="#1f77b4", lw=1.5), Line2D([], [], color="#d62728", lw=1.5),
+            Line2D([], [], color="k", lw=1.5, ls="-"), Line2D([], [], color="k", lw=1.5, ls="--")]
+    ax.legend(keys, ["OneWeb victim", "Starlink victim", "as-filed", "as-deployed"],
+              fontsize=8, ncol=2, loc="center left", bbox_to_anchor=(0.0, 0.40),
+              handlelength=1.6, handletextpad=0.4, columnspacing=0.8, borderpad=0.3,
+              labelspacing=0.2, borderaxespad=0.3, framealpha=0.8)
     fig.tight_layout()
     out = PAPER_FIG_DIR / "B1_events_both.png"
     PAPER_FIG_DIR.mkdir(parents=True, exist_ok=True)
